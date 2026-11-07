@@ -233,9 +233,9 @@ test('usage: Codex limit windows and Claude Code activity today, each reply coun
     + line({ type: 'event_msg', timestamp: ago(30), payload: { type: 'token_count', rate_limits: { primary: { used_percent: 12, window_minutes: 300, resets_at: resets }, secondary: { used_percent: 69, window_minutes: 10080, resets_at: resets }, plan_type: 'pro' } } }));
   const claude = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-deck-claude-')); t.after(() => fs.rmSync(claude, { recursive: true, force: true }));
   fs.mkdirSync(path.join(claude, 'projects', 'p'), { recursive: true });
-  const reply = (id, output) => line({ type: 'assistant', timestamp: ago(20), message: { id, role: 'assistant', content: [], usage: { output_tokens: output } } });
+  const reply = (id, output) => line({ type: 'assistant', timestamp: ago(0.2), message: { id, role: 'assistant', content: [], usage: { output_tokens: output } } });
   fs.writeFileSync(path.join(claude, 'projects', 'p', '11111111-2222-3333-4444-555555555555.jsonl'), reply('m1', 100) + reply('m1', 100) + reply('m2', 50)
-    + line({ type: 'assistant', timestamp: ago(10), isApiErrorMessage: true, apiErrorParams: { rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', resetsAt: resets } }, message: { id: 'e', role: 'assistant', content: [] } }));
+    + line({ type: 'assistant', timestamp: ago(0.1), isApiErrorMessage: true, apiErrorParams: { rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', resetsAt: resets } }, message: { id: 'e', role: 'assistant', content: [] } }));
   const { usage } = await createTaskBridge({ claudeHome: claude, codexHome: codex }).getState();
   assert.equal(usage.codex.plan, 'pro');
   assert.deepEqual(usage.codex.windows.map(w => [w.label, w.usedPercent]), [['5-hour', 12], ['Weekly', 69]]);

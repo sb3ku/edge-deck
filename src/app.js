@@ -568,7 +568,7 @@ function printerFigure(model, data = {}) {
   if (source) {
     // Printer photos are not shipped (Bambu Lab's images); without one, an icon.
     const image = el('img', 'printer-artwork'); image.alt = ''; image.decoding = 'async'; image.draggable = false;
-    image.addEventListener('error', () => { box.replaceChildren(icon('printer')); box.classList.add('no-photo'); }, { once: true });
+    image.addEventListener('error', () => { if (!image.isConnected || box.classList.contains('has-model')) return; box.replaceChildren(icon('printer')); box.classList.add('no-photo'); }, { once: true });
     image.src = source; box.append(image);
   } else box.append(icon('printer'));
   return box;
@@ -614,14 +614,6 @@ function agoText(iso) {
   const minutes = Math.max(0, Math.round((Date.now() - at) / 60000));
   return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes} min ago` : minutes < 1440 ? `${Math.floor(minutes / 60)}h ago` : `${Math.floor(minutes / 1440)}d ago`;
 }
-function printerTemps(data) {
-  const row = el('div', 'printer-temps');
-  for (const [kind, value, label] of [['nozzle', data.nozzle, 'Nozzle'], ['bed', data.bed, 'Bed']]) {
-    if (!Number.isFinite(value)) continue;
-    const item = el('span', 'printer-temp'); item.setAttribute('aria-label', `${label} ${Math.round(value)} degrees`); item.append(icon(kind), el('span', '', `${Math.round(value)}°C`)); row.append(item);
-  }
-  return row.childElementCount ? row : null;
-}
 // Idle: the spools loaded in the AMS, in their real colours; the one feeding
 // the nozzle is ringed.
 function filamentSpools(data) {
@@ -651,15 +643,13 @@ function renderPrinters(panel) {
     const displayName = data.accountName || data.name || config.name;
     row.append(button('', () => showPrinterConsole(config.id, row), { className: 'printer-open', label: `Open ${displayName} control panel` }), printerFigure(config.model, { ...data, id: config.id }));
     const detail = el('div', 'printer-details'); const top = el('div', 'printer-topline');
-    // A finished print says so below; the small status badge would only repeat it.
-    top.append(el('h3', 'printer-name', displayName)); if (data.status !== 'finished') top.append(badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
+    top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
     const modelName = `Bambu Lab ${config.model || ''}`.trim();
     if (String(displayName).trim().toLowerCase() !== modelName.toLowerCase()) detail.append(el('p', 'printer-model', modelName));
     if (data.status === 'not_configured') {
       detail.append(el('p', 'printer-note', 'Connect over your local network.'), button('Connect printer', () => showSettings('printers'), { className: 'button subtle' }));
     } else if (active) {
       if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
-      const temps = printerTemps(data); if (temps) detail.append(temps);
       if (Number.isFinite(data.progress)) detail.append(printProgress(displayName, data));
     } else if (data.status === 'finished') {
       // Finished: a clear done state, what was printed, when and how long it took.
@@ -674,11 +664,9 @@ function renderPrinters(panel) {
     } else if (data.status === 'idle') {
       // Ready: a calm status line and the loaded filament.
       const ready = el('p', 'printer-ready'); ready.append(el('i', 'printer-ready-dot'), document.createTextNode('Ready to print')); detail.append(ready);
-      const temps = printerTemps(data); if (temps) detail.append(temps);
       const spools = filamentSpools(data); if (spools) detail.append(spools);
     } else {
       if (data.message) detail.append(el('p', 'printer-note', data.message));
-      const temps = ['error'].includes(data.status) ? printerTemps(data) : null; if (temps) detail.append(temps);
     }
     const disclosure = el('span', 'printer-disclosure'); disclosure.setAttribute('aria-hidden', 'true'); disclosure.append(icon('right'));
     row.append(detail, disclosure); list.append(row);

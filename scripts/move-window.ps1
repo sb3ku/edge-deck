@@ -1,7 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][ValidateRange(1,2147483647)][int]$TargetPid,
   [Parameter(Mandatory=$true)][string]$ProfilePath,
-  [ValidateSet('Inspect','Set')][string]$Action='Set',
+  [ValidateSet('Inspect','Set','Tray','Activate')][string]$Action='Set',
   [int]$Left,[int]$Top,[int]$Width,[int]$Height,
   [long]$WindowStyle=-1,[long]$ExtendedStyle=-1,
   [switch]$Borderless,[switch]$Inspect
@@ -28,6 +28,7 @@ public class EdgeDeckWindow {
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
   [DllImport("user32.dll",SetLastError=true)] public static extern bool SetWindowPos(IntPtr handle, IntPtr after, int x, int y, int width, int height, uint flags);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr handle, int mode);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr handle);
   [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
   [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW",SetLastError=true)] private static extern IntPtr GetWindowLongPtr64(IntPtr handle,int index);
   [DllImport("user32.dll",EntryPoint="GetWindowLongW",SetLastError=true)] private static extern int GetWindowLong32(IntPtr handle,int index);
@@ -130,6 +131,19 @@ try {
     if ($Inspect -or $Action -eq 'Inspect') { @{ready=$false} | ConvertTo-Json -Compress; exit }
     throw 'The dashboard window is not ready.'
   }
+  # Tray: a tool window has no taskbar button (Edge Deck lives in the tray).
+  # The style takes effect when the window is shown again, so hide and show it.
+  if ($Action -eq 'Tray') {
+    $ex = [EdgeDeckWindow]::Style($windowHandle,-20)
+    $wanted = ($ex -bor 0x80) -band (-bnot 0x40000)
+    if ($wanted -ne $ex) {
+      [void][EdgeDeckWindow]::ShowWindow($windowHandle,0)
+      [EdgeDeckWindow]::SetStyle($windowHandle,-20,$wanted)
+      [void][EdgeDeckWindow]::ShowWindow($windowHandle,5)
+    }
+  }
+  # Activate: bring the dashboard to the front (from the tray icon).
+  if ($Action -eq 'Activate') { [void][EdgeDeckWindow]::ShowWindow($windowHandle,5); [void][EdgeDeckWindow]::SetForegroundWindow($windowHandle) }
   if (-not $Inspect -and $Action -eq 'Set') {
     [EdgeDeckWindow]::Apply($windowHandle,$Left,$Top,$Width,$Height,$WindowStyle,$ExtendedStyle,$Borderless.IsPresent)
   }

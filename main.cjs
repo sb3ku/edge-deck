@@ -15,6 +15,8 @@ const {createCameraBridge,findFfmpeg}=require('./lib/camera.cjs');
 const {createThumbnailStore,findPicture}=require('./lib/print-thumbnail.cjs');
 const {createBambuCloud}=require('./lib/bambu-cloud.cjs');
 const {createSpotifyCanvas}=require('./lib/spotify-canvas.cjs');
+const {createTray}=require('./lib/tray.cjs');
+let tray=null;
 const {createWindowsIntegration}=require('./lib/windows-integration.cjs');
 const {createWeatherBridge}=require('./lib/weather.cjs');
 const {createAppIcons,ICON_ID}=require('./lib/app-icons.cjs');
@@ -52,9 +54,9 @@ let weatherState={status:'unconfigured',location:null,units:'metric',current:nul
 let ffmpegAvailable=false;
 app.requestSingleInstanceLock(verify?`edge-deck-verify-${process.pid}`:'edge-deck').then(first=>{if(!first)return process.exit(0);return app.whenReady().then(start);})
   .catch(e=>{console.error(e);approvals?.close();media?.close();printers?.close();app.exit(1);});
-app.on('second-instance',()=>{dashboardWindow?.setFullscreen(true).catch(error=>console.error(error.message));});
+app.on('second-instance',()=>{dashboardWindow?.setFullscreen(true).then(()=>verify?null:dashboardWindow?.hideFromTaskbar()).then(()=>dashboardWindow?.activate()).catch(error=>console.error(error.message));});
 for(const signal of ['SIGINT','SIGTERM','SIGBREAK'])process.on(signal,()=>app.quit());
-app.on('before-quit',()=>{approvals?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
+app.on('before-quit',()=>{tray?.close();approvals?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
 function state() {
   const publicConfig=config.publicConfig();
   const printerStates=printers.getState().map(printer=>{
@@ -285,7 +287,7 @@ async function startBrowser() {
     'music:remove-playlist':id=>{config.removePlaylist(id);return state();},
     'music:open-playlist':openPlaylist,
     'window:display':async id=>{const d=screen.getAllDisplays().find(d=>String(d.id)===String(id));if(!d)throw Error('Display is no longer connected.');return dashboardWindow.move({...d,nativeBounds:screen.dipToScreenRect(null,d.bounds)});},
-    'window:fullscreen':()=>dashboardWindow.fullscreen(),
+    'window:fullscreen':()=>dashboardWindow.fullscreen().then(result=>{if(!verify)dashboardWindow.hideFromTaskbar().catch(()=>{});return result;}),
     'app:icon':appIcon,
     'icons:search':searchIcons,
     'app:choose':async()=>{const result=await chooseFile('Choose an app or shortcut');if(result.canceled)return null;const file=result.filePaths[0];return{path:file,name:path.basename(file,path.extname(file))};},
@@ -301,6 +303,16 @@ async function startBrowser() {
   const profile=path.join(app.getPath('userData'),verifyBrowser?`BrowserProfile-test-${Date.now()}`:'BrowserProfile');
   dashboardWindow=createDashboardWindow({url:browserHost.url,profile,display:{...display,nativeBounds:screen.dipToScreenRect(null,display.bounds)},inspect:verifyBrowser||process.argv.includes('--inspect-dashboard'),onClose:()=>app.quit()});
   await dashboardWindow.ready();
+  // The icon in the taskbar's notification area: show, leave full screen, quit.
+  if(!verify){
+    // Edge Deck lives in the tray: no taskbar button for the dashboard window.
+    const tuck=()=>dashboardWindow?.hideFromTaskbar().catch(error=>console.error(error.message));
+    tuck();
+    tray=createTray({onAction:word=>{
+      if(word==='quit')return app.quit();
+      dashboardWindow?.setFullscreen(word==='show').then(tuck).then(()=>word==='show'&&dashboardWindow?.activate()).catch(error=>console.error(error.message));
+    }});
+  }
   void pollSpotify();spotifyTimer=setInterval(pollSpotify,5000);
   if(!verify)void pollPlayer();
   void pollWeather();weatherTimer=setInterval(pollWeather,60000);

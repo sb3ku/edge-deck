@@ -104,9 +104,17 @@ test('Spotify honors Retry-After instead of polling a limited API', async t => {
   await bridge.getState({ refresh: true });
   assert.equal(calls, 1);
   advance(61000);
-  const recovered = await bridge.getState();
+  const recovered = await bridge.getState({ refresh: true });
   assert.equal(calls, 2);
   assert.equal(recovered.error, null);
+});
+
+test('a very long Retry-After is capped at ten minutes, since Spotify lifts limits sooner', async t => {
+  let calls = 0;
+  const { bridge, advance } = harness(t, async () => { calls++; return calls === 1 ? response({}, 429, { 'Retry-After': '86400' }) : response({ items: [], next: null }); });
+  await bridge.getState();
+  advance(590000); await bridge.getState({ refresh: true }); assert.equal(calls, 1);
+  advance(11000); const state = await bridge.getState({ refresh: true }); assert.equal(calls, 2); assert.equal(state.error, null);
 });
 
 test('Playlist playback targets the current active device and sends only the context URI', async t => {
