@@ -1,0 +1,250 @@
+/* Shared interaction layer. Loaded after component CSS; dashboard placement stays
+   in styles.css, and the layout editor owns its own scoped layout rules. */
+:root {
+  --ui-font: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --ui-radius-control: 12px;
+  --ui-radius-group: 16px;
+  --ui-radius-sheet: 24px;
+  --ui-control-min: 48px;
+  --ui-focus: #85bcff;
+  --ui-field-border: #686873;
+  --ui-disabled-text: #aaaab4;
+  --ui-disabled-surface: #29292e;
+  --ui-selected-control: #3b3b42;
+  --ui-danger-surface: #39282b;
+  --ui-danger-border: #925758;
+  --ui-danger-text: #ffaaa5;
+  --control-hover: #3d3d43;
+  --accent-button-hover: #0066cc;
+  font-family: var(--ui-font);
+}
+
+/* Shared roles, with deliberate exceptions for circular media transport and
+   dismissal controls. Prominence never changes the minimum hit area. */
+.button,.icon-button,.weather-button,.edge-media-widget .emw-button,
+.printer-panel .button,.printer .button,.layout-button {
+  min-width: var(--ui-control-min);
+  min-height: var(--ui-control-min);
+  border-radius: var(--ui-radius-control);
+  font-weight: 600;
+}
+.button:not(:disabled):hover,.icon-button:not(:disabled):hover,
+.weather-button:not(:disabled):hover { background-color: var(--control-hover); }
+.button.primary { background: var(--accent-button); color: #fff; }
+.button.primary:not(:disabled):hover { background: var(--accent-button-hover); }
+.quiet-button,.emw-transport .emw-play { border-radius: 50%; }
+.button.danger,.printer-panel .button.danger,.edge-media-widget .emw-remove {
+  color: var(--ui-danger-text);
+}
+.printer-panel .printer-confirmation .button.danger {
+  background: var(--ui-danger-surface);
+  border: 1px solid var(--ui-danger-border);
+  color: var(--ui-danger-text);
+}
+.printer-panel .printer-confirmation .button.danger:not(:disabled):hover { background: #503034; }
+
+/* The focus ring is opaque and does not depend on a component's surface. */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
+summary:focus-visible,.printer-panel button:focus-visible,
+.printer-panel input:focus-visible,.printer-panel select:focus-visible {
+  outline: 3px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+.printer-open:focus-visible,.weather-card-open:focus-visible { outline-offset: -5px; }
+.edge-media-widget .emw-button:focus-visible { outline-color: var(--music-accent); }
+.settings-tabs .tab:focus-visible,.card-tabs .card-tab:focus-visible,
+.emw-tabs .emw-button:focus-visible { outline-offset: -3px; }
+.emw-search:focus-within {
+  border-color: var(--music-accent);
+  outline: 3px solid var(--music-accent);
+  outline-offset: 2px;
+}
+.edge-media-widget .emw-search input:focus-visible { outline: none; }
+dialog :is(button,input,select,summary,a) { scroll-margin: 12px; }
+
+/* Explicit disabled treatment retains readable labels. Disabled controls remain
+   disabled in the DOM; this layer does not simulate functionality. */
+button:disabled,.button:disabled,.printer-panel button:disabled,.printer-panel .button:disabled,
+.printer-panel .printer-confirmation .button:disabled,.edge-media-widget .emw-button:disabled,
+.edge-media-widget .emw-button[aria-disabled="true"],.edge-media-widget .emw-tile-open[aria-disabled="true"],
+.weather-details .weather-button:disabled,.layout-button:disabled {
+  opacity: 1;
+  color: var(--ui-disabled-text);
+  background-color: var(--ui-disabled-surface);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.toggle:disabled { background: transparent; }
+.toggle:disabled::before { background: #414147; }
+.toggle:disabled::after { background: #aaaab4; }
+.printer-panel-spool:disabled,.printer-panel-nozzle:disabled { border-style: dashed; }
+input:disabled,select:disabled,.printer-panel-target-input:disabled {
+  opacity: 1;
+  color: var(--ui-disabled-text);
+  cursor: not-allowed;
+}
+
+/* Stable settings navigation can scroll instead of squeezing labels or taps. */
+.settings-tabs {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--control-hover) transparent;
+  border-radius: var(--ui-radius-group);
+}
+#settings .tab {
+  flex: 1 0 auto;
+  min-width: 72px;
+  min-height: var(--ui-control-min);
+  padding-inline: 14px;
+  white-space: nowrap;
+  border-radius: var(--ui-radius-control);
+}
+.settings-tabs .tab.active,.emw-tabs .emw-button[aria-pressed=true],
+.card-tabs [aria-selected=true],.card-tabs [aria-pressed=true],
+.weather-unit-control .weather-button[aria-pressed=true] {
+  background: var(--ui-selected-control);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%),0 1px 3px rgb(0 0 0 / 16%);
+}
+.settings-content { overscroll-behavior: contain; scrollbar-gutter: stable; padding-bottom: 24px; }
+.settings-header h2 { line-height: 1.2; }
+.settings-row-title { line-height: 1.4; }
+.settings-row small,.form-field small,.notice { line-height: 1.5; }
+.settings-row small,.form-field small { font-size: 12px; }
+.settings-content details>summary { border-radius: var(--ui-radius-control); }
+.settings-content details>summary:hover { color: var(--text); }
+.settings-content .form-actions { gap: 12px; }
+.notice { border-color: var(--line); border-radius: var(--ui-radius-group); }
+
+/* Inputs share one recognizable edge, including the less prominent searches. */
+.form-field input,.form-field select,.weather-search-input,
+.emw-add-form input,.printer-panel-field select,.printer-panel-target-input {
+  min-height: var(--ui-control-min);
+  border: 1px solid var(--ui-field-border);
+  border-radius: var(--ui-radius-control);
+  color: var(--text);
+  background-color: var(--surface-inset);
+}
+.form-field input::placeholder,.weather-search-input::placeholder,
+.emw-add-form input::placeholder { color: var(--muted); opacity: 1; }
+input[readonly] { color: #d0d0d9; }
+input[aria-invalid=true],select[aria-invalid=true] { border-color: var(--red); }
+.emw-search { border-color: var(--ui-field-border); }
+
+/* Native checkbox semantics with a 24px mark inside a 48px touch target. Minima
+   override the old inline 24px dimensions without inflating the visible mark. */
+.settings-row input[type=checkbox] {
+  appearance: none;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+.settings-row input[type=checkbox]::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--ui-field-border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+.settings-row input[type=checkbox]:checked::before { border-color: var(--accent-button); background: var(--accent-button); }
+.settings-row input[type=checkbox]:checked::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 7px;
+  margin-top: -3px;
+  border: solid #fff;
+  border-width: 0 0 2px 2px;
+  transform: rotate(-45deg);
+}
+.settings-row input[type=checkbox]:disabled::before { background: var(--ui-disabled-surface); border-color: var(--ui-disabled-text); }
+
+/* Detail sheets share the same chrome; their own contents retain their layout. */
+.printer-console-dialog,.weather-dialog { border-radius: var(--ui-radius-sheet); border-color: var(--line); }
+.printer-console-header,.weather-dialog-header { background: var(--panel); border-bottom-color: var(--line); }
+.printer-console-header h2,.weather-dialog-header h2 { font-size: 20px; font-weight: 600; letter-spacing: -.35px; }
+.printer-console-header>.quiet-button,.weather-dialog-header>.quiet-button { background: var(--control); }
+.printer-console-header>.quiet-button:hover,.weather-dialog-header>.quiet-button:hover { background: var(--control-hover); }
+.printer-panel-nav[aria-pressed=true] svg { color: var(--accent-text); }
+.printer-panel-eyebrow { font-size: 12px; letter-spacing: .45px; }
+.printer-panel .printer-confirmation { overflow-y: auto; }
+.printer-panel .printer-confirmation .notice { color: #c2c2cc; }
+.printer-panel .printer-confirmation .form-actions { gap: 12px; }
+.weather-city-result { border-color: var(--line); }
+.weather-error,.form-error,.emw-feedback.is-error { line-height: 1.5; }
+.toast { line-height: 1.45; border-radius: var(--ui-radius-group); }
+.empty-content p,.emw-empty p,.weather-card-empty p { line-height: 1.5; }
+
+/* No geometry selectors here: root owns overview, bento and focus placement. */
+.container-card { border-color: rgb(255 255 255 / 9%); }
+.card-toolbar { border-bottom-color: var(--line); }
+.card-tabs { scrollbar-width: thin; scrollbar-color: var(--control-hover) transparent; }
+.card-tabs button,.card-edit-button { min-width: 48px; min-height: 48px; }
+.container-card .weather-card-heading:not(:has(.weather-stale-badge)) { display: none; }
+.container-card.weather .weather-widget { flex: 1 0 auto; min-height: 315px; height: auto; }
+.container-card.weather .weather-card-main { flex: 1 0 auto; }
+
+/* A short card is a glanceable view. Keep its primary information and actions
+   visible; expanded weather and secondary music controls remain accessible. */
+@container deck-card (max-height:360px) {
+  .container-card.clock .clock-day { font-size: 18px; line-height: 1.2; }
+  .container-card.clock .clock-time { font-size: clamp(40px,14cqw,64px); line-height: 1; margin-top: 8px; }
+  .container-card.clock .clock-time span { font-size: 14px; }
+  .container-card.clock .clock-date { font-size: 14px; line-height: 1.4; margin-top: 8px; }
+  .container-card.clock .clock-bottom { display: none; }
+
+  .container-card.weather .weather-widget { min-height: 160px; padding: 12px 16px; }
+  .container-card.weather .weather-card-heading { min-height: 18px; margin-bottom: 4px; }
+  .container-card.weather .weather-card-city { font-size: 20px; line-height: 1.2; }
+  .container-card.weather .weather-card-main {
+    display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1fr);
+    grid-template-rows: auto auto; align-content: center;
+    column-gap: 12px; row-gap: 4px; padding: 8px 0;
+  }
+  .container-card.weather .weather-card-temperature { grid-column: 1; grid-row: 1/span 2; align-self: center; font-size: 60px; letter-spacing: -4px; }
+  .container-card.weather .weather-card-condition { grid-column: 2; grid-row: 1; align-self: end; margin: 0; font-size: 14px; line-height: 1.3; }
+  .container-card.weather .weather-high-low { grid-column: 2; grid-row: 2; align-self: start; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 12px; }
+  .container-card.weather .weather-card-hours { display: none; }
+  .container-card.weather .weather-card-note { margin-top: 6px; font-size: 11px; }
+  .container-card.weather .weather-card-source { margin-top: 2px; font-size: 10px; }
+
+    grid-template-columns: 64px minmax(0,1fr);
+    grid-template-rows: 40px 48px 60px;
+    gap: 4px 12px; align-content: start; min-height: 0;
+  }
+}
+
+@media(prefers-reduced-transparency:reduce) {
+  dialog::backdrop,.printer-panel .printer-confirmation::backdrop { backdrop-filter: none; background: #000b; }
+  .launcher-dock { backdrop-filter: none; background: var(--surface-raised); }
+  .weather-cloud-shape { display: none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
+  button:not(:disabled):active { transform: none; }
+  .task-current-label, .task-step-text.is-shimmer { background: none; -webkit-text-fill-color: currentColor; }
+  .working-wave i { transform: none; opacity: 1; }
+}
+@media(prefers-contrast:more) {
+  :root { --ui-field-border: #aaaab4; --ui-focus: #b7d8ff; --ui-disabled-text: #c6c6ce; --ui-danger-border: #ffaaa5; }
+  .container-card,.notice,.printer-panel-temperature,.weather-section,.weather-metric { border-color: var(--line); }
+}
+@media(forced-colors:active) {
+  :root { --ui-focus: Highlight; --ui-field-border: ButtonText; --ui-selected-control: Highlight; }
+  .settings-row input[type=checkbox] { forced-color-adjust: none; }
+  .settings-row input[type=checkbox]::before { background: Canvas; border-color: ButtonText; }
+  .settings-row input[type=checkbox]:checked::before { background: Highlight; border-color: Highlight; }
+  .settings-row input[type=checkbox]:checked::after { border-color: HighlightText; }
+  .task-current-label { background: none; -webkit-text-fill-color: CanvasText; }
+  .weather-temperature-track i { background: Highlight; }
+}

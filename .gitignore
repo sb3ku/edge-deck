@@ -1,0 +1,13 @@
+node_modules/
+artifacts/
+*.log
+
+# Personal: the author's own verification log and Windows shortcut.
+VERIFICATION.md
+*.lnk
+
+# Third-party printer images are not distributed (Bambu Lab product photos,
+# Bambu Studio artwork under AGPL, and a user-supplied drawing). Add your own;
+# see src/assets/printers/README.md.
+src/assets/printers/*
+!src/assets/printers/README.md

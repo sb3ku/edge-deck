@@ -1,0 +1,174 @@
+/* Native companion console. Shared theme tokens keep it aligned with the dashboard. */
+.printer-console-dialog,.printer-panel{
+  --printer-text:var(--text,#f5f5f7);
+  --printer-inset:var(--surface-inset,#101012);
+  --printer-hover:var(--control-hover,#303136);
+  --printer-selected:color-mix(in srgb,var(--accent) 14%,var(--panel));
+  --printer-action:var(--accent-button,color-mix(in srgb,var(--accent) 86%,#000));
+  --printer-action-hover:var(--accent-button-hover,color-mix(in srgb,var(--accent-button,#0071e3) 90%,#000));
+  --printer-primary-text:#fff;
+  --printer-danger-surface:color-mix(in srgb,var(--red) 9%,var(--control));
+  --printer-danger-line:color-mix(in srgb,var(--red) 16%,var(--line));
+  --printer-spool-rim:#8e8e93;
+  --printer-spool-neutral:#636366;
+}
+.printer-console-dialog{inset:0;margin:auto;width:min(1120px,95vw);max-width:none;height:min(640px,95dvh);max-height:95dvh;border:1px solid var(--line);border-radius:22px;padding:0;background:var(--background);color:var(--printer-text);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.printer-console-dialog[open]{display:flex;flex-direction:column}
+.printer-console-dialog>header{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0}
+.printer-console-dialog>header h2{font-size:20px;font-weight:600;letter-spacing:-.4px}
+#printer-console-content{min-height:0;flex:1;overflow:hidden}
+.printer-panel{container-type:inline-size;display:grid;grid-template-columns:80px minmax(0,1fr);height:100%;min-height:0;background:var(--background);font-size:14px;line-height:1.45;letter-spacing:-.1px;color:var(--printer-text)}
+.printer-panel [hidden]{display:none!important}
+.printer-panel button{font-size:14px;touch-action:manipulation;min-height:48px;min-width:48px}
+.printer-panel button:disabled{opacity:.4}
+.printer-panel button:focus-visible,.printer-panel select:focus-visible,.printer-panel input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.printer-panel .button{background:var(--control);color:var(--printer-text);border-radius:12px;font-weight:550}
+.printer-panel .button:not(:disabled):hover{background:var(--printer-hover)}
+.printer-panel .button.primary{background:var(--printer-action);color:var(--printer-primary-text)}
+.printer-panel .button.primary:not(:disabled):hover{background:var(--printer-action-hover)}
+.printer-panel button:not(:disabled):active{transform:scale(.98)}
+.printer-panel-rail{display:flex;flex-direction:column;gap:8px;padding:16px 8px;background:var(--panel);border-right:1px solid var(--line)}
+.printer-panel-model{font-size:12px;text-align:center;color:var(--muted);font-weight:600;letter-spacing:.8px;margin:4px 0 16px;overflow-wrap:anywhere}
+.printer-panel-nav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:76px;border:1px solid transparent;border-radius:20px;background:transparent;color:var(--muted);padding:12px 3px;font-size:12px!important;transition:background .2s,color .2s,border-color .2s}
+.printer-panel-nav svg{width:24px;height:24px;stroke-width:1.7}
+.printer-panel-nav[aria-pressed=true]{background:var(--control);border-color:var(--line);color:var(--printer-text)}
+.printer-panel-nav[aria-pressed=true] svg{color:var(--accent)}
+.printer-panel-nav:not([aria-pressed=true]):hover{background:var(--printer-hover)}
+.printer-panel-rail-note{white-space:pre;text-align:center;letter-spacing:2px;font-size:10px;line-height:1.8;color:var(--muted);margin-top:auto;padding-top:18px}
+.printer-panel-main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:16px 24px 20px;gap:16px}
+.printer-panel-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
+.printer-panel-top-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.printer-panel-top-actions>.button{padding:9px 12px;min-height:48px}
+.printer-panel-identity{display:flex;align-items:center;flex-wrap:wrap;gap:14px;min-width:0}
+.printer-panel-identity h3{font-size:22px;font-weight:600;letter-spacing:-.5px;overflow-wrap:anywhere}
+.printer-panel-status{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:13px}
+.printer-panel-status:before{content:"";width:7px;height:7px;background:var(--muted);border-radius:50%}
+.printer-panel-status[data-status=printing]:before,.printer-panel-status[data-status=finished]:before,.printer-panel-status[data-status=idle]:before{background:var(--green)}
+.printer-panel-status[data-status=paused]:before,.printer-panel-status[data-status=connecting]:before{background:var(--amber)}
+.printer-panel-status[data-status=error]:before{background:var(--red)}
+.printer-panel-refresh{padding:9px 12px;background:var(--control);flex-shrink:0}
+.printer-panel-refresh svg{width:18px;height:18px}
+.printer-panel-messages{padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-height:84px;overflow:auto;flex-shrink:0}
+.printer-panel-messages .form-error{margin:0}.printer-panel-command{color:var(--printer-text);font-size:13px}
+.printer-panel-screens{min-height:0;overflow:auto;flex:1;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--control) transparent;overscroll-behavior:contain}
+.printer-panel-screen{animation:printer-panel-enter .2s ease-out}
+.printer-panel-home{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;min-height:100%}
+.printer-panel-overview,.printer-panel-controls{min-width:0;display:flex;flex-direction:column;gap:12px}
+.printer-panel-camera{padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px}
+.printer-panel-camera-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.printer-panel-eyebrow{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted)}
+.printer-panel-camera-heading .button{padding:8px 13px;min-height:48px;background:var(--control)}
+.printer-panel-camera-stage{height:180px;max-height:220px;position:relative;display:grid;place-items:center;background:var(--printer-inset);border-radius:12px;overflow:hidden}
+.printer-panel-camera-stage img{display:block;width:100%;height:100%;max-height:220px;object-fit:contain}
+.printer-panel-camera-placeholder{display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--muted);text-align:center;padding:14px}
+.printer-panel-camera-placeholder>svg{width:60px;height:60px;stroke-width:1.15;margin-bottom:4px}
+.printer-panel-camera-placeholder strong{font-size:15px;color:var(--printer-text);font-weight:500}
+.printer-panel-camera-placeholder span{font-size:12px}
+.printer-panel-camera>.printer-panel-help{margin-top:7px}
+.printer-panel-camera-time{color:var(--muted);font-size:11px;margin-top:4px}
+.printer-panel-camera-reason{color:var(--amber)!important}
+.printer-panel-job{padding:2px 2px 4px}
+.printer-panel-job h3{font-size:18px;font-weight:550;line-height:1.3;letter-spacing:-.3px;margin:6px 0 10px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.printer-panel-job-numbers{display:flex;align-items:baseline;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}
+.printer-panel-job-numbers strong{font-size:26px;font-weight:600;color:var(--printer-text);font-variant-numeric:tabular-nums}
+.printer-panel-progress{height:5px;background:var(--control);border-radius:3px;overflow:hidden;margin-top:8px}
+.printer-panel-progress>span{display:block;height:100%;background:var(--green);border-radius:3px;transition:width .4s ease}
+.printer-panel-thermal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.printer-panel-temperature{padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;gap:8px;text-align:left;align-items:flex-start;transition:background .2s,border-color .2s}
+.printer-panel-temperature:hover{background:var(--printer-hover);border-color:var(--line)}
+.printer-panel-temperature-label{display:flex;align-items:center;gap:8px;color:var(--printer-text);font-size:13px}
+.printer-panel-temperature-label svg{width:22px;height:22px;color:var(--muted)}
+.printer-panel-temperature>strong{font-size:40px;font-weight:400;letter-spacing:-1.5px;line-height:1.15;font-variant-numeric:tabular-nums}
+.printer-panel-temperature>strong small{font-size:17px;color:var(--muted);margin-left:2px;letter-spacing:0}
+.printer-panel-temperature>small{color:var(--muted);font-size:11px}
+.printer-panel-help{color:var(--muted);font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.printer-panel-print-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:1px}
+.printer-panel-action{min-height:92px;background:var(--control);border:1px solid var(--line);border-radius:16px;padding:12px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--printer-text);font-weight:550;transition:background .18s,transform .15s}
+.printer-panel-action svg{width:27px;height:27px;stroke-width:2}
+.printer-panel-action:not(:disabled):hover{background:var(--printer-hover)}
+.printer-panel-action.danger{color:var(--red);background:var(--printer-danger-surface);border-color:var(--printer-danger-line)}
+.printer-panel-capabilities{font-size:11px}
+.printer-panel-filament-shortcut{display:flex;align-items:center;text-align:left;gap:12px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:18px;min-height:76px;color:var(--printer-text);margin-top:auto;transition:background .2s}
+.printer-panel-filament-shortcut:hover{background:var(--printer-hover)}
+.printer-panel-filament-shortcut>svg:first-child{width:29px;height:29px}
+.printer-panel-filament-shortcut>svg:last-child{margin-left:auto;width:20px}
+.printer-panel-filament-shortcut strong,.printer-panel-filament-shortcut small{display:block}
+.printer-panel-filament-shortcut strong{font-size:16px;font-weight:550}
+.printer-panel-filament-shortcut small{font-size:12px;color:var(--muted);margin-top:3px}
+.printer-panel-filament{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px}
+.printer-panel-spool-area{min-width:0}.printer-panel-filament-actions{min-width:0;display:flex;flex-direction:column;gap:8px;border-left:1px solid var(--line);padding-left:24px}
+.printer-panel-filament-actions>.printer-panel-section-heading{margin-bottom:0}
+.printer-panel-filament-actions>.printer-panel-nozzles{margin-bottom:0}
+.printer-panel-filament-actions .printer-panel-nozzle{min-height:88px;padding:8px;gap:4px}
+.printer-panel-section-heading{margin-bottom:16px}.printer-panel-section-heading h3{font-size:18px;letter-spacing:-.3px}.printer-panel-section-heading>span{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.printer-panel-ams{border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:16px;background:var(--panel)}
+.printer-panel-ams h4{margin:0 0 10px 3px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.4px}
+.printer-panel-spools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.printer-panel-spool{min-height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 3px;background:var(--surface-raised,var(--control));border:1px solid transparent;border-radius:14px;color:var(--printer-text);transition:border-color .2s,background .2s,transform .15s}
+.printer-panel-spool:not(:disabled):hover,.printer-panel-nozzle:not(:disabled):hover{background:var(--printer-hover)}
+.printer-panel-spool strong{font-size:14px;font-weight:550;max-width:100%;overflow-wrap:anywhere}.printer-panel-spool>span:not(.printer-panel-spool-shape){font-size:12px;color:var(--muted)}.printer-panel-spool small{font-size:11px;color:var(--muted)}
+.printer-panel-spool[aria-pressed=true],.printer-panel-nozzle[aria-pressed=true]{border-color:var(--accent);background:var(--printer-selected);box-shadow:none}
+.printer-panel-spool:disabled{opacity:.65}
+.printer-panel-spool-shape{--filament-color:var(--printer-spool-neutral);position:relative;display:block;width:36px;height:44px;border-radius:50%;border:4px solid var(--printer-spool-rim);background:var(--filament-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3);margin:0 0 6px}
+.printer-panel-spool-shape:after{content:"";position:absolute;inset:11px 7px;border-radius:50%;border:2px solid var(--printer-spool-rim);background:var(--printer-inset)}
+.printer-panel-spool-shape.has-color{border-color:var(--printer-spool-rim)}
+.printer-panel-nozzles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:3px}
+.printer-panel-nozzle{min-height:102px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:12px 8px;text-align:center;transition:border-color .2s,background .2s}
+.printer-panel-nozzle strong{font-size:13px;font-weight:550}.printer-panel-nozzle span{font-size:11px;color:var(--muted)}.printer-panel-nozzle:disabled{opacity:.65}
+.printer-panel-nozzle svg{width:27px;height:27px}
+.printer-panel-field{margin:0;font-size:12px;gap:6px;color:var(--muted)}.printer-panel-field select{font-size:14px;min-height:48px;padding:10px 12px;background:var(--printer-inset);border-color:var(--line);border-radius:12px;color:var(--printer-text)}
+.printer-panel-route{font-size:12px;color:var(--accent-text,var(--accent));line-height:1.45;min-height:18px}
+.printer-panel-filament-actions>.button{width:100%;min-height:48px}.printer-panel-filament-actions>.printer-panel-load{background:var(--printer-action);color:var(--printer-primary-text)}.printer-panel-filament-actions>.printer-panel-load:not(:disabled):hover{background:var(--printer-action-hover)}
+.printer-panel-filament-actions>.printer-panel-field:not(:first-child){margin-top:3px}
+.printer-panel-filament-empty{min-height:220px;border:1px solid var(--line);border-radius:18px;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:24px;margin-bottom:16px;color:var(--muted)}
+.printer-panel-filament-empty svg{width:54px;height:54px;stroke-width:1.1}.printer-panel-filament-empty h3{font-size:18px}.printer-panel-filament-empty p{font-size:13px}
+.printer-panel .printer-confirmation{color:var(--printer-text);background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.printer-panel .printer-confirmation::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
+.printer-panel .printer-confirmation .notice{color:var(--muted);background:var(--printer-inset);border:1px solid var(--line);border-radius:16px;font-size:14px;line-height:1.5}
+.printer-panel .printer-confirmation .form-actions{justify-content:flex-end;margin-bottom:0}
+.printer-panel .printer-confirmation .button.primary{background:var(--printer-action);color:var(--printer-primary-text)}
+.printer-panel-phase{display:flex;align-items:center;gap:8px;color:var(--printer-text);font-size:15px;font-weight:550;margin:7px 0}
+.printer-panel-phase:before{content:"";width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--green)}
+.printer-panel-machine-controls{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:24px;align-items:start}
+.printer-panel-heaters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0;align-items:start}
+.printer-panel-heater{border:1px solid var(--line);border-radius:18px;padding:14px;background:var(--panel);min-width:0}
+.printer-panel-heater-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.printer-panel-heater-heading h3{display:flex;align-items:center;gap:8px;font-size:15px;line-height:1.35;letter-spacing:-.3px}
+.printer-panel-heater-heading h3 svg{width:21px;height:21px;color:var(--muted)}
+.printer-panel-heater-heading>.printer-panel-help{font-size:11px;white-space:nowrap}
+.printer-panel-heater-nozzles{display:flex;gap:6px;margin:12px 0}
+.printer-panel-choice{display:flex;align-items:center;justify-content:center;min-height:48px;flex:1;padding:9px 8px;background:var(--control);border:1px solid transparent;border-radius:12px;color:var(--muted);font-weight:550;transition:background .2s,border-color .2s,color .2s}
+.printer-panel-choice:not(:disabled):hover{background:var(--printer-hover);color:var(--printer-text)}
+.printer-panel-choice[aria-pressed=true]{background:var(--printer-selected);border-color:var(--accent);color:var(--printer-text);box-shadow:none}
+.printer-panel-heater-readings{display:flex;align-items:baseline;gap:12px;justify-content:space-between;margin:5px 0 9px}
+.printer-panel-heater-readings>strong{font-size:34px;line-height:1.2;font-weight:400;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.printer-panel-heater-readings>span{font-size:11px;color:var(--muted)}
+.printer-panel-target-row{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;gap:8px}
+.printer-panel-target-row .button{padding:8px;min-height:48px;background:var(--control);font-size:18px;font-weight:400}
+.printer-panel-target-input{display:block;width:100%;min-width:0;min-height:48px;text-align:center;background:var(--printer-inset);color:var(--printer-text);border:1px solid var(--line);border-radius:12px;font-size:24px;appearance:textfield;-moz-appearance:textfield;font-variant-numeric:tabular-nums}
+.printer-panel-target-input::-webkit-inner-spin-button,.printer-panel-target-input::-webkit-outer-spin-button{appearance:none;margin:0}
+.printer-panel-target-input:disabled{opacity:.5}.printer-panel-target-input[aria-invalid=true]{border-color:var(--red)}
+.printer-panel-temperature-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.printer-panel-temperature-actions .button{min-height:48px;padding:9px}
+.printer-panel-temperature-actions .primary{background:var(--printer-action);color:var(--printer-primary-text)}
+.printer-panel-temperature-actions .primary:hover{background:var(--printer-action-hover)}
+.printer-panel-motion{border-left:1px solid var(--line);padding:4px 0 4px 24px;min-width:0}
+.printer-panel-motion .printer-panel-section-heading{margin-bottom:13px}
+.printer-panel-steps{display:flex;gap:7px;margin-bottom:18px}
+.printer-panel-motion-pads{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:14px;align-items:center;margin-bottom:17px}
+.printer-panel-xy{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,74px);gap:7px}
+.printer-panel-jog{min-width:48px;min-height:60px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;padding:8px 4px;border:1px solid var(--line);border-radius:16px;background:var(--control);color:var(--printer-text);font-size:15px!important;font-weight:500;transition:background .2s,transform .15s}
+.printer-panel-jog svg{width:22px;height:22px}.printer-panel-jog:not(:disabled):hover{background:var(--printer-hover)}
+.printer-panel-jog.north{grid-area:1/2}.printer-panel-jog.west{grid-area:2/1}.printer-panel-jog.center{grid-area:2/2;background:var(--panel);border-color:var(--line);font-size:11px!important;color:var(--accent-text,var(--accent))}.printer-panel-jog.east{grid-area:2/3}.printer-panel-jog.south{grid-area:3/2}
+.printer-panel-z{display:flex;flex-direction:column;gap:9px;text-align:center}.printer-panel-z>span{font-size:12px;color:var(--muted)}.printer-panel-z .printer-panel-jog{min-height:74px;font-size:20px!important}
+.printer-panel-homed{font-size:12px;color:var(--muted);margin:12px 0}
+.printer-panel-motion>.printer-panel-help{margin-top:10px}
+.printer-panel.is-live-refresh .printer-panel-screen{animation:none}
+@keyframes printer-panel-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:850px){.printer-console-dialog{width:96vw}.printer-panel{grid-template-columns:70px minmax(0,1fr)}.printer-panel-main{padding:12px;gap:10px}.printer-panel-home,.printer-panel-filament{grid-template-columns:1fr;gap:18px}.printer-panel-filament-actions{padding:0;border-left:0}.printer-panel-controls{gap:11px}.printer-panel-camera-stage{height:200px}.printer-panel-filament-shortcut{margin-top:0}.printer-panel-identity{gap:8px}.printer-panel-identity h3{font-size:18px}.printer-panel-refresh{font-size:12px!important;padding:8px}.printer-panel-refresh svg{display:none}}
+@container(max-width:740px){.printer-panel-home,.printer-panel-filament{grid-template-columns:1fr;gap:18px}.printer-panel-filament-actions{padding:0;border-left:0}.printer-panel-filament-shortcut{margin-top:0}.printer-panel-identity{gap:8px}.printer-panel-identity h3{font-size:18px}.printer-panel-refresh{font-size:12px!important;padding:8px}.printer-panel-refresh svg{display:none}}
+@media(max-width:850px){.printer-panel-machine-controls{grid-template-columns:1fr}.printer-panel-motion{border-left:0;padding:8px 0}.printer-panel-motion-pads{max-width:420px}.printer-panel-heater-heading h3{font-size:15px}}
+@container(max-width:1000px){.printer-panel-machine-controls{grid-template-columns:1fr}.printer-panel-motion{border-left:0;padding:8px 0}.printer-panel-motion-pads{max-width:420px}}
+@container(max-width:740px){.printer-panel-machine-controls{grid-template-columns:1fr}.printer-panel-motion{border-left:0;padding:8px 0}.printer-panel-motion-pads{max-width:420px}.printer-panel-heater-heading h3{font-size:15px}}
+@container(max-width:560px){.printer-panel-heaters{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.printer-panel-screen{animation:none}.printer-panel *{transition:none!important}}

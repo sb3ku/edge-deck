@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 26 26">
+  <title>Edge Deck</title>
+  <!-- Matches the three visible tiles in styles.css .brand-mark. -->
+  <rect x="0.5" y="0.5" width="25" height="25" rx="6.5" fill="#252528" stroke="#4c4c4f"/>
+  <rect x="4" y="4" width="7.5" height="18" rx="2" fill="#6eb1ff"/>
+  <rect x="14.5" y="4" width="7.5" height="7.5" rx="2" fill="#d8d8df"/>
+  <rect x="14.5" y="14.5" width="7.5" height="7.5" rx="2" fill="#d8d8df"/>
+</svg>

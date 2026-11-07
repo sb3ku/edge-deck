@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src https://canvaz.scdn.co; connect-src 'self'; frame-src https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Edge Deck</title>
+  <meta name="theme-color" content="#0a0a0c">
+  <link rel="icon" href="assets/app/edge-deck.ico" type="image/x-icon">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="printer-panel.css">
+  <link rel="stylesheet" href="media-widget.css">
+  <link rel="stylesheet" href="weather-ui.css">
+  <link rel="stylesheet" href="cards.css">
+  <link rel="stylesheet" href="layout-ui.css">
+  <link rel="stylesheet" href="apple-ui.css">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="deck">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>Edge Deck</h1><span class="workspace-name">Overview</span></div>
+      <div class="top-actions"><span id="connection-label" class="connection-label">Starting…</span><button id="fullscreen" class="quiet-button" title="Toggle full screen" aria-label="Toggle full screen"></button><button id="edit-layout" class="button" aria-pressed="false">Edit layout</button><button id="customize" class="button"><span id="settings-icon" aria-hidden="true"></span>Customize</button></div>
+    </header>
+    <main id="widgets" class="widgets" aria-label="Dashboard widgets"></main>
+    <footer id="launchers" class="launchers" aria-label="App shortcuts"></footer>
+  </div>
+  <dialog id="settings" aria-labelledby="settings-title">
+    <div class="settings-header"><div><p class="muted">Edge Deck</p><h2 id="settings-title">Customize your deck</h2></div><button id="close-settings" class="quiet-button" aria-label="Close settings"></button></div>
+    <nav id="settings-tabs" class="settings-tabs" aria-label="Settings sections"></nav>
+    <div id="settings-content" class="settings-content"></div>
+  </dialog>
+  <dialog id="layout-editor" aria-labelledby="layout-editor-title"><div class="settings-header"><div><p class="muted">Your deck</p><h2 id="layout-editor-title">Edit card</h2></div><button id="close-layout-editor" class="quiet-button" aria-label="Close card editor"></button></div><div id="layout-editor-content" class="settings-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="printer-console" class="printer-console-dialog" aria-labelledby="printer-console-title">
+    <header class="printer-console-header"><h2 id="printer-console-title">Printer controls</h2><button id="close-printer-console" class="quiet-button" aria-label="Close printer controls"></button></header>
+    <div id="printer-console-content"></div>
+  </dialog>
+  <dialog id="weather-dialog" class="weather-dialog" aria-labelledby="weather-title">
+    <header class="weather-dialog-header"><h2 id="weather-title">Weather</h2><button id="close-weather" class="quiet-button" aria-label="Close weather"></button></header>
+    <div id="weather-content"></div>
+  </dialog>
+  <script src="browser-bridge.js" defer></script>
+  <script src="music-ui.js" defer></script>
+  <script src="printer-ui.js" defer></script>
+  <script src="media-widget.js" defer></script>
+  <script src="weather-sky.js" defer></script>
+  <script src="weather-ui.js" defer></script>
+  <script src="vendor/thinking-orbs.js" defer></script>
+  <script src="agent-orbs.js" defer></script>
+  <script src="quick-actions.js" defer></script>
+  <script src="layout-engine.js" defer></script>
+  <script src="layout-ui.js" defer></script>
+  <script src="card-drag.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
