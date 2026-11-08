@@ -17,6 +17,9 @@ const {createBambuCloud}=require('./lib/bambu-cloud.cjs');
 const {createSpotifyCanvas}=require('./lib/spotify-canvas.cjs');
 const {createTray}=require('./lib/tray.cjs');
 const {createUpdater,repoFrom}=require('./lib/updater.cjs');
+const {createNotifier}=require('./lib/notifier.cjs');
+const {createToastLines}=require('./lib/toast.cjs');
+let notifier=null,notifyTimer=null;
 const packageInfo=require('./package.json');
 let tray=null,updater=null;
 const {createWindowsIntegration}=require('./lib/windows-integration.cjs');
@@ -151,6 +154,8 @@ async function openPlaylist(input){const uri=normalizePlaylistUri(input);if(!uri
 let stateVersion=0;const stateWaiters=new Set();
 function broadcast() {
   stateVersion++;for(const wake of [...stateWaiters])wake();
+  // Notifications look at the state once a burst of changes has settled.
+  if(notifier&&!notifyTimer)notifyTimer=setTimeout(()=>{notifyTimer=null;try{notifier.update(state());}catch(error){console.error(error.message);}},800);
 }
 function waitForState(version){
   return new Promise(resolve=>{
@@ -331,6 +336,8 @@ async function startBrowser() {
       if(word==='update')return installUpdate();
       dashboardWindow?.setFullscreen(word==='show').then(tuck).then(()=>word==='show'&&dashboardWindow?.activate()).catch(error=>console.error(error.message));
     }});
+    const toastLine=createToastLines({directory:app.getPath('userData'),picture:id=>thumbnails?.picture(id)||null});
+    notifier=createNotifier({send:note=>tray?.send(toastLine(note)),settings:()=>config.publicConfig().notifications});
     // Updates from GitHub releases: a minute after start, then every six hours.
     updater=createUpdater({root:__dirname,version:packageInfo.version,repo:repoFrom(packageInfo),onChange:status=>{
       if(status.state==='available')tray?.send(`update ${status.latest}`);else if(status.state==='current')tray?.send('current');

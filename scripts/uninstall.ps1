@@ -23,6 +23,8 @@ foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::Ge
 }
 Remove-Item -Recurse -Force (Join-Path ([Environment]::GetFolderPath('Programs')) 'Edge Deck') -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\EdgeDeck' -ErrorAction SilentlyContinue
+# Notification name/icon and the edgedeck: link that opens the dashboard.
+Remove-Item -Recurse -Force 'HKCU:\Software\Classes\AppUserModelId\EdgeDeck', 'HKCU:\Software\Classes\edgedeck' -ErrorAction SilentlyContinue
 if ($RemoveSettings) { Remove-Item -Recurse -Force $data -ErrorAction SilentlyContinue }
 # The folder is removed after this script ends (it runs from inside it).
 Start-Process -WindowStyle Hidden (Join-Path $env:SystemRoot 'System32\cmd.exe') -ArgumentList "/c timeout /t 2 /nobreak >nul & rmdir /s /q `"$installDir`""

@@ -22,6 +22,7 @@ The music card works like Spotify's mobile app: a full-screen player that slides
 - **Bambu Lab printers (H2D, P1S).** Live status over your local network: the printer's own preview of the model being printed, progress laid out like the printer's screen, a clear finished state, and the loaded AMS spools in their real colours when idle. Optional controls (pause, resume, stop, temperatures, axes, filament) and camera preview. Printer names can come from your Bambu account.
 - **Weather.** Current conditions, hourly and seven-day forecast from Open-Meteo, over an animated sky with 24 conditions, each for day, sunrise, sunset and night. No API key or location tracking.
 - **AI agents.** Working chats from Codex, Claude Code and the ChatGPT desktop app, with an animated orb for what each is doing, its step list and background tasks, and your plan usage. Optional: answer Claude Code permission requests on the touchscreen.
+- **Notifications.** A Windows notification when a print finishes or fails (with a picture of the model) and when an agent waits for your approval. They wait while a game is full screen.
 - **Quick actions and apps.** Switch audio devices, mute, system volume, and a dock of your apps and websites.
 - **Your layout.** Cards you can add, combine, resize and rearrange by dragging; several layouts; low-power mode that calms animation while you game.
 
@@ -81,6 +82,7 @@ Tap the weather to choose your city. Agent chats appear automatically when Codex
 - Everything runs on your PC. The dashboard's local server listens only on `127.0.0.1` with a per-launch secret.
 - Sign-ins (Spotify, printer access codes, Bambu, Canvas) are encrypted with Windows user encryption (AES-256-GCM with a DPAPI-protected key) in `%APPDATA%\Edge Deck`.
 - Agent activity is read from the agents' local log files; only text the agent showed you is used, never prompts, commands or thinking.
+- For notifications, Edge Deck registers its name and an `edgedeck:` link (which only opens the dashboard) for your user under `HKCU\Software\Classes`; the uninstaller removes them.
 - No telemetry. Network requests go only to the services you connect (Spotify, Open-Meteo, Bambu Lab, Iconify for app icons, your printers).
 
 ## Development

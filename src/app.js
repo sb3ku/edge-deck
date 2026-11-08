@@ -1099,6 +1099,15 @@ async function settingsDisplay(content) {
   powerRow.append(powerCopy, powerChoices); content.append(powerRow);
   const powerStatus = el('p', `power-status${power.active ? ' is-active' : ''}`, powerStatusText(power));
   powerStatus.setAttribute('role', 'status'); content.append(powerStatus);
+  // Tray notifications. They wait while a game or other full-screen app is in front.
+  const notifications = { printers: true, agents: true, ...(state.config.notifications || {}) };
+  for (const [key, title, detail] of [['printers', 'Print notifications', 'A notification when a print finishes or fails.'], ['agents', 'Approval notifications', 'A notification when Claude Code or Codex waits for your approval.']]) {
+    const noteRow = el('div', 'settings-row'); const noteCopy = el('div');
+    noteCopy.append(el('p', 'settings-row-title', title), el('small', '', `${detail} Held back while a game is full screen.`));
+    const noteToggle = button('', async () => { const cfg = newConfig(); cfg.notifications = { ...notifications, [key]: !notifications[key] }; await saveConfig(cfg); renderSettings(); }, { className: 'toggle', label: title });
+    noteToggle.setAttribute('role', 'switch'); noteToggle.setAttribute('aria-checked', String(notifications[key] !== false));
+    noteRow.append(noteCopy, noteToggle); content.append(noteRow);
+  }
   const integration = state.system?.windowsIntegration || { supported: false };
   const desktopAvailable = integration.supported === true && typeof bridge.createDesktopShortcut === 'function';
   const startupAvailable = integration.supported === true && typeof bridge.setStartup === 'function';

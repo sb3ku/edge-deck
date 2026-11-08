@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0
+
+- **Notifications.** A Windows notification when a print finishes (with a picture of the model, the printer and how long it took) or fails, and when Claude Code or Codex waits for your approval. Clicking one opens the dashboard.
+- While a game or other full-screen app is in front, notifications wait and appear once it closes; several become one summary.
+- Turn print or approval notifications off in Customize → Display.
+
 ## 0.12.1
 
 - Starting Edge Deck (for example after an update) no longer takes focus from a full-screen game: the dashboard is tucked out of the taskbar without being activated.
