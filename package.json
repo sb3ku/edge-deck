@@ -1,6 +1,6 @@
 {
   "name": "edge-deck",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "description": "Touchscreen dashboard for the Corsair XENEON EDGE: Spotify, Bambu Lab printers, weather and AI agent activity.",
   "main": "main.cjs",

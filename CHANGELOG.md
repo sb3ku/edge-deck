@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1
+
+- Starting Edge Deck (for example after an update) no longer takes focus from a full-screen game: the dashboard is tucked out of the taskbar without being activated.
+
 ## 0.12.0
 
 The first public release.

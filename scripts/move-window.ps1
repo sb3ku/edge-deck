@@ -139,7 +139,8 @@ try {
     if ($wanted -ne $ex) {
       [void][EdgeDeckWindow]::ShowWindow($windowHandle,0)
       [EdgeDeckWindow]::SetStyle($windowHandle,-20,$wanted)
-      [void][EdgeDeckWindow]::ShowWindow($windowHandle,5)
+      # SW_SHOWNOACTIVATE: show it again without taking focus (a game may be in front).
+      [void][EdgeDeckWindow]::ShowWindow($windowHandle,4)
     }
   }
   # Activate: bring the dashboard to the front (from the tray icon).
