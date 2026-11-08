@@ -7,7 +7,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src https://canvaz.scdn.co; connect-src 'self'; frame-src https:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Edge Deck</title>
   <meta name="theme-color" content="#0a0a0c">
-  <link rel="icon" href="assets/app/edge-deck.ico" type="image/x-icon">
+  <link rel="icon" href="assets/app/edge-deck.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="assets/app/edge-deck.ico" type="image/x-icon">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="printer-panel.css">
   <link rel="stylesheet" href="media-widget.css">
@@ -20,7 +21,7 @@
 <body>
   <div class="deck">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>Edge Deck</h1><span class="workspace-name">Overview</span></div>
+      <div class="brand"><img class="brand-mark" src="assets/app/edge-deck.svg" alt="" aria-hidden="true" width="28" height="28"><h1>Edge Deck</h1><span class="workspace-name">Overview</span></div>
       <div class="top-actions"><span id="connection-label" class="connection-label">Starting…</span><button id="fullscreen" class="quiet-button" title="Toggle full screen" aria-label="Toggle full screen"></button><button id="edit-layout" class="button" aria-pressed="false">Edit layout</button><button id="customize" class="button"><span id="settings-icon" aria-hidden="true"></span>Customize</button></div>
     </header>
     <main id="widgets" class="widgets" aria-label="Dashboard widgets"></main>

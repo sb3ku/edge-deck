@@ -16,7 +16,9 @@ const {createThumbnailStore,findPicture}=require('./lib/print-thumbnail.cjs');
 const {createBambuCloud}=require('./lib/bambu-cloud.cjs');
 const {createSpotifyCanvas}=require('./lib/spotify-canvas.cjs');
 const {createTray}=require('./lib/tray.cjs');
-let tray=null;
+const {createUpdater,repoFrom}=require('./lib/updater.cjs');
+const packageInfo=require('./package.json');
+let tray=null,updater=null;
 const {createWindowsIntegration}=require('./lib/windows-integration.cjs');
 const {createWeatherBridge}=require('./lib/weather.cjs');
 const {createAppIcons,ICON_ID}=require('./lib/app-icons.cjs');
@@ -71,7 +73,7 @@ function state() {
   });
   // Verification stays deterministic: a game in front must not change the UI under test.
   const presence=verify?'normal':['fullscreen','away'].includes(mediaState.presence)?mediaState.presence:'normal';
-  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
+  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
 }
 async function pollSpotify(){if(spotifyBusy)return;spotifyBusy=true;try{spotifyState={...await spotify.getState(),player:spotifyState.player??null};broadcast();}catch{spotifyState={...spotifyState,error:'Spotify connection is unavailable.'};}finally{spotifyBusy=false;}}
 // Spotify's player state is polled faster while music plays so progress,
@@ -89,6 +91,18 @@ function updateCanvas(trackUri){
   if(!trackUri||canvasState.trackUri===trackUri)return;
   canvasState={trackUri,url:null,looking:true};
   canvasClient.forTrack(trackUri).then(url=>{if(canvasState.trackUri!==trackUri)return;canvasState={trackUri,url};broadcast();},()=>{});
+}
+// Update checks: asked for (tray or Customize) ones always report back.
+async function checkForUpdate(asked){
+  if(!updater)return null;
+  const status=await updater.check();
+  if(asked)tray?.send(status.state==='available'?`update ${status.latest}`:status.state==='current'?`notice Edge Deck ${packageInfo.version} is up to date.`:`notice Could not check for updates. ${status.error||''}`);
+  return status;
+}
+async function installUpdate(){
+  if(!updater)throw Error('Updates are not available here.');
+  try{const result=await updater.install();tray?.send(`notice Installing Edge Deck ${result.version}. It restarts in a moment.`);return result;}
+  catch(error){tray?.send(`failed ${error.message}`);throw error;}
 }
 async function spotifyPlayer(action,value){
   if(verify)throw Error('Spotify playback is disabled during verification.');
@@ -275,6 +289,9 @@ async function startBrowser() {
     'bambu:verify':async input=>{if(verify)throw Error('Cloud sign-in is disabled during verification.');const result=await bambuCloud.verify(input||{});thumbnails?.reset();bambuCloud.printerNames().then(found=>{printerNames=found;broadcast();},()=>{});broadcast();return {...result,state:state()};},
     'canvas:save':async value=>{if(verify)throw Error('Canvas sign-in is disabled during verification.');canvasClient.save(value);canvasState={trackUri:null,url:null};spotify.getState({refresh:true}).then(next=>{spotifyState={...next,player:spotifyState.player??null};broadcast();},()=>{});updateCanvas(spotifyState.player?.track?.uri);broadcast();return state();},
     'canvas:remove':async()=>{canvasClient?.remove();canvasState={trackUri:null,url:null};broadcast();return state();},
+    'update:check':async()=>{if(verify)throw Error('Update checks are disabled during verification.');await checkForUpdate(false);return state();},
+    'update:install':async()=>{if(verify)throw Error('Updates are disabled during verification.');await installUpdate();return state();},
+    'update:notes':async()=>{const page=updater?.state().page;if(!page||!page.startsWith(`https://github.com/${repoFrom(packageInfo)}/`))throw Error('No release notes to open.');await shell.openExternal(page);return {opened:true};},
     'bambu:signout':async()=>{bambuCloud?.signOut();thumbnails?.reset();broadcast();return {state:state()};},
     'printer:camera':async id=>{if(verify)throw Error('Physical camera connections are disabled during verification.');return cameras.getFrame(id);},
     'displays:get':()=>displays(),
@@ -310,8 +327,17 @@ async function startBrowser() {
     tuck();
     tray=createTray({onAction:word=>{
       if(word==='quit')return app.quit();
+      if(word==='check')return checkForUpdate(true);
+      if(word==='update')return installUpdate();
       dashboardWindow?.setFullscreen(word==='show').then(tuck).then(()=>word==='show'&&dashboardWindow?.activate()).catch(error=>console.error(error.message));
     }});
+    // Updates from GitHub releases: a minute after start, then every six hours.
+    updater=createUpdater({root:__dirname,version:packageInfo.version,repo:repoFrom(packageInfo),onChange:status=>{
+      if(status.state==='available')tray?.send(`update ${status.latest}`);else if(status.state==='current')tray?.send('current');
+      broadcast();
+    }});
+    setTimeout(()=>checkForUpdate(false),60000).unref?.();
+    setInterval(()=>checkForUpdate(false),6*3600000).unref?.();
   }
   void pollSpotify();spotifyTimer=setInterval(pollSpotify,5000);
   if(!verify)void pollPlayer();

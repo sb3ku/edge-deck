@@ -33,14 +33,21 @@ The music card works like Spotify's mobile app: a full-screen player that slides
 
 ## Install
 
-1. Download or clone this repository.
-2. Double-click **Install Edge Deck.cmd**.
+1. Download **edge-deck-x.y.z.zip** from the [latest release](https://github.com/sb3ku/edge-deck/releases/latest).
+2. Right-click the zip → **Properties** → tick **Unblock** → **OK** (Windows marks downloads; this lets the installer script run).
+3. Extract it and double-click **Install Edge Deck.cmd**.
 
 The installer runs for your Windows user only (no administrator rights). It copies Edge Deck to `%LOCALAPPDATA%\Programs\Edge Deck`, adds it to the Start menu, can add a desktop shortcut and start with Windows, and registers it under **Settings → Apps → Installed apps**, where you can uninstall it. Your settings live in `%APPDATA%\Edge Deck` and survive reinstalling.
 
 Why a script rather than a `setup.exe`: Windows Smart App Control blocks unsigned programs, and Edge Deck runs on the signed Node.js instead, so nothing unsigned has to be allowed.
 
-Edge Deck lives in the taskbar's hidden icons (**^**) rather than on the taskbar. Click its icon to bring the dashboard back full screen; right-click for **Exit full screen** and **Quit**.
+Edge Deck lives in the taskbar's hidden icons (**^**) rather than on the taskbar. Click its icon to bring the dashboard back full screen; right-click for **Exit full screen**, **Check for updates** and **Quit**.
+
+### Updates
+
+Edge Deck checks this repository's releases every six hours. When a new version is out, the tray shows a notification and **Update to x.y.z**; one click downloads the release, checks it against the SHA-256 published with it, and reinstalls in place (your settings stay). **Customize → Display** shows the version and update status too. A copy run from a git checkout is not replaced; update it with Already up to date..
+
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 To run from source instead: `npm install`, then `npm start`.
 

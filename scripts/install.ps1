@@ -62,6 +62,9 @@ foreach ($item in $items) {
   Copy-Item -Recurse -Force $from $to
 }
 Say "Installed to: $InstallDir"
+# Marks this as an installed copy, which updates itself from GitHub releases.
+$installedVersion = (Get-Content (Join-Path $InstallDir 'package.json') -Raw | ConvertFrom-Json).version
+@{ version = $installedVersion; installedAt = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $InstallDir 'installed.json')
 
 # 3. Runtime package
 Say 'Installing the printer connection package...'

@@ -1068,8 +1068,24 @@ function settingsBambuCloud(content) {
   }
   block.append(form); content.append(block);
 }
+// The version and updates from GitHub releases.
+function settingsUpdates(content) {
+  const update = state.update || { state: 'idle' };
+  const row = el('div', 'settings-row update-row'); const copy = el('div');
+  const text = { checking: 'Checking for updates…', current: 'Up to date', available: `Version ${update.latest} is available`, downloading: 'Downloading the update…', installing: 'Installing… Edge Deck restarts in a moment.', error: update.error || 'The update check failed.', idle: 'Updates are checked automatically.' }[update.state] || '';
+  copy.append(el('p', 'settings-row-title', `Edge Deck ${update.current || ''}`.trim()), el('small', '', text));
+  const actions = el('div', 'row-actions');
+  if (update.state === 'available') {
+    if (update.installable !== false) actions.append(button('Update now', async () => { try { const next = await bridge.installUpdate(); if (next?.config) updateState(next); renderSettings(); toast('Installing the update'); } catch (error) { toast(error.message); } }, { className: 'button primary' }));
+    else copy.append(el('small', '', 'This copy runs from a source folder: update it with git pull.'));
+    if (update.page) actions.append(button('Release notes', () => bridge.updateNotes().catch(error => toast(error.message)), { className: 'button subtle' }));
+  }
+  if (!['checking', 'downloading', 'installing'].includes(update.state)) actions.append(button('Check now', async () => { try { const next = await bridge.checkUpdate(); if (next?.config) updateState(next); renderSettings(); } catch (error) { toast(error.message); } }, { className: 'button subtle' }));
+  row.append(copy, actions); content.append(row);
+}
 async function settingsDisplay(content) {
   content.append(el('p', 'intro', 'Place the deck on your XENEON EDGE, then enter full screen.'));
+  settingsUpdates(content);
   const row = el('div', 'settings-row'); row.append(el('span', 'settings-row-title', '24-hour clock'));
   const toggle = button('', async () => { const cfg = newConfig(); cfg.clock24 = !cfg.clock24; await saveConfig(cfg); renderSettings(); }, { className: 'toggle', label: '24-hour clock' }); toggle.setAttribute('role', 'switch'); toggle.setAttribute('aria-checked', String(state.config.clock24)); row.append(toggle); content.append(row);
   const power = powerInfo();
