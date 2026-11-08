@@ -2,11 +2,13 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const preview = !window.edge;
-const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory or video memory'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+// Widgets drawn by their own modules (widget-*.js), registered on window.EdgeWidgets.
+const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine']);
 const defaultConfig = {
   clock24: true, theme: 'dark', layout: {mode:'overview'},
   weather: { location: null, units: 'metric' }, music: { savedPlaylists: [] },
-  widgets: Object.keys(widgetCatalog).map(type => ({ id: type, type, title: widgetCatalog[type][0], enabled: true, ...(type==='launchers'?{}:{size:'medium',items:[{id:type+'-content',type}],activeItemId:type+'-content'}) })),
+  widgets: Object.keys(widgetCatalog).filter(type => !MODULE_TYPES.has(type)).map(type => ({ id: type, type, title: widgetCatalog[type][0], enabled: true, ...(type==='launchers'?{}:{size:'medium',items:[{id:type+'-content',type}],activeItemId:type+'-content'}) })),
   printers: [{ id: 'h2d', name: 'H2D', model: 'H2D', host: '', serial: '', configured: false }, { id: 'p1s', name: 'P1S', model: 'P1S', host: '', serial: '', configured: false }],
   launchers: []
 };
@@ -33,6 +35,9 @@ const bridge = window.edge || {
 };
 
 const paths = {
+  gauge: '<path d="M5 17a8 8 0 1 1 14 0"/><path d="m12 13 4-4"/>',
+  switch: '<rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="15" cy="12" r="2.5"/>',
+  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/>',
   grip: '<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>',
   settings: '<path d="m10 3 4 0 1 3 3 1 3-1 2 4-2 2v4l2 2-2 4-3-1-3 1-1 3h-4l-1-3-3-1-3 1-2-4 2-2v-4l-2-2 2-4 3 1 3-1z" transform="translate(1 -1) scale(.91)"/><circle cx="12" cy="12" r="3"/>',
   fullscreen: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
@@ -296,7 +301,7 @@ function renderCards(){
   const container=$('#widgets');
   const mode=state.config.layout?.mode || 'overview';
   container.dataset.layout=mode; container.classList.toggle('is-editing',editingLayout);
-  {const name=$('.workspace-name');if(name)name.textContent={auto:'Auto',overview:'Overview',bento:'Bento',focus:'Focus'}[mode]||'Overview';}
+  {const name=$('.workspace-name');if(name)name.textContent={widgets:'Widgets',auto:'Auto',overview:'Overview',bento:'Bento',focus:'Focus'}[mode]||'Overview';}
   const page=currentPage();
   const visible=state.config.widgets.filter(w=>isEnabled(w)&&w.type!=='launchers'&&(w.page||firstPageId())===page);
   const ids=new Set(visible.map(w=>w.id));
@@ -307,9 +312,9 @@ function renderCards(){
     const items=cardItems(card), active=items.find(i=>i.id===card.activeItemId)||items[0],type=active?.type||'empty';
     panel.className=`widget container-card ${type}`;panel.dataset.widget=type;panel.dataset.size=card.size||'medium';panel.setAttribute('aria-label',cardTitle(card));
     panel.dataset.cardTitle=cardTitle(card);
-    applyMood(panel,type);
+    applyMood(panel,type,card,active);
     let toolbar=$('.card-toolbar',panel);
-    const chromeKey=JSON.stringify([card.title,items,items.map(item=>state.config.launchers.find(app=>app.id===item.launcherId)?.name),editingLayout]);
+    const chromeKey=JSON.stringify([card.title,items,items.map(item=>state.config.launchers.find(app=>app.id===item.launcherId)?.name),editingLayout,mode,card.size]);
     if(!toolbar){toolbar=el('div','card-toolbar');panel.prepend(toolbar);}
     if(!$(':scope > .card-reveal',panel)){const reveal=el('div','card-reveal');reveal.setAttribute('aria-hidden','true');panel.prepend(reveal);}
     if(toolbar.dataset.key!==chromeKey){
@@ -317,6 +322,15 @@ function renderCards(){
       const handle=button('',()=>toast('Hold this handle, then drag to move the card.'),{className:'quiet-button card-drag-handle',icon:'grip',label:`Move ${cardTitle(card)}`});handle.title='Hold and drag to move';
       const title=el('h2','card-title',cardTitle(card));
       toolbar.append(handle,title,button('',()=>showCardEditor(card.id),{className:'quiet-button card-edit-button',icon:'settings',label:`Edit ${cardTitle(card)} card`}));
+      // Widgets: Small, Medium or Large, one tap.
+      if(editingLayout&&mode==='widgets'){
+        const sizes=el('div','widget-sizes');sizes.setAttribute('role','group');sizes.setAttribute('aria-label',`${cardTitle(card)} size`);
+        for(const [size,label,name] of [['small','S','Small'],['medium','M','Medium'],['large','L','Large'],['tall','T','Tall']]){
+          const choice=button(label,()=>setWidgetSize(card.id,size),{className:`widget-size${(card.size||'medium')===size?' is-active':''}`,label:`${name} size`});
+          choice.setAttribute('aria-pressed',String((card.size||'medium')===size));sizes.append(choice);
+        }
+        toolbar.append(sizes);
+      }
       $('.card-tabs',panel)?.remove();
       if(items.length>1){
         const tabs=el('div','card-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',`${cardTitle(card)} views`);
@@ -336,16 +350,17 @@ function renderCards(){
     if(!body){body=el('div','card-body');body.dataset.itemId=active?.id||'empty';body.id=`view-${card.id}-${active?.id||'empty'}`;panel.append(body);}
     body.hidden=false;body.setAttribute('role',items.length>1?'tabpanel':'group');body.setAttribute('aria-label',cardTitle(card));
     if(items.length>1)body.setAttribute('aria-labelledby',`tab-${card.id}-${active.id}`);else body.removeAttribute('aria-labelledby');
-    const value=type==='clock'?state.config.clock24:type==='today'?[state.weather,state.config.weather,state.config.clock24]:type==='weather'?[state.weather,state.config.weather]:type==='tasks'?[taskRenderValue(state.tasks),(state.approvals||[]).map(request=>request.session)]:type==='printers'?[state.printers,state.config.printers]:type==='media'?[state.media,state.spotify,state.config.music,state.spotifyCanvas]:type==='actions'?[state.media?.audio,state.media?.volume,state.controls]:type==='stats'?[state.pc,state.system?.presence]:[active,state.config.launchers.find(app=>app.id===active?.launcherId)];
-    const key=JSON.stringify([type,value]);
+    const value=type==='clock'?state.config.clock24:type==='today'?[state.weather,state.config.weather,state.config.clock24]:type==='weather'?[state.weather,state.config.weather]:type==='tasks'?[taskRenderValue(state.tasks),(state.approvals||[]).map(request=>request.session)]:type==='printers'?[state.printers,state.config.printers]:type==='media'?[state.media,state.spotify,state.config.music,state.spotifyCanvas]:type==='actions'?[state.media?.audio,state.media?.volume,state.controls]:type==='stats'?[state.pc,state.system?.presence]:window.EdgeWidgets?.[type]?[window.EdgeWidgets[type].signature?.(widgetContext(card,active,panel))??null]:[active,state.config.launchers.find(app=>app.id===active?.launcherId)];
+    const key=JSON.stringify([type,value,mode==='widgets'?card.size:'',mode]);
     if(body.dataset.renderKey!==key && !(['media','actions'].includes(type)&&body.contains(document.activeElement)&&document.activeElement?.matches('input[type="range"]')&&!document.activeElement.closest('[data-edge-media-root]'))){
       // Live widgets keep their DOM (animations, drafts, focus) and update in place.
       body.dataset.renderKey=key;
       const scroll=type==='tasks'?taskScroll(body):null;
       try{
-        if(!['media','actions','today'].includes(type))body.replaceChildren();
+        if(!['media','actions','today'].includes(type)&&!window.EdgeWidgets?.[type]?.live)body.replaceChildren();
         if(type==='app'||type==='website')renderAppContent(body,active);
         else if(type==='empty'){emptyContent(body,'plus','Your space, your way','Add a widget, an app or a website to this card.');body.append(button('Add content',()=>showCardEditor(card.id),{icon:'plus'}));}
+        else if(window.EdgeWidgets?.[type])window.EdgeWidgets[type].render(body,widgetContext(card,active,panel));
         else ({clock:renderClock,today:renderToday,weather:renderWeather,tasks:renderTasks,printers:renderPrinters,media:renderMedia,actions:renderActions,stats:renderStats})[type]?.(body);
         if(scroll)restoreTaskScroll(body,scroll);
       }catch(error){delete body.dataset.renderKey;console.error('A card could not be displayed; it will be redrawn on the next update.',error);} // a half-built card is retried
@@ -373,11 +388,39 @@ function updateShape(panel){
   panel.dataset.shape=ratio>1.35?'wide':ratio<0.8?'tall':'square';
 }
 const shapeObserver=new ResizeObserver(entries=>{for(const entry of entries)updateShape(entry.target);});
+// In Edit layout: how many widgets do not fit on this page.
+let widgetOverflow=0;
+function renderWidgetNotice(){
+  let note=$('#widget-notice');
+  if(!note){note=el('p','widget-notice');note.id='widget-notice';note.setAttribute('role','status');$('#widgets').after(note);}
+  note.hidden=!(editingLayout&&widgetOverflow>0);
+  note.textContent=widgetOverflow===1?'1 widget does not fit on this page. Make something smaller, or move it to another page in Customize → Layout.':`${widgetOverflow} widgets do not fit on this page. Make some smaller, or move them to another page in Customize → Layout.`;
+}
+async function setWidgetSize(id,size){
+  const cfg=newConfig(),card=cfg.widgets.find(w=>w.id===id);if(!card||card.size===size)return;
+  card.size=size;await saveConfig(cfg);
+}
 function applyCardLayout(){
   const container=$('#widgets'),mode=container.dataset.layout,panels=[...container.querySelectorAll(':scope > .container-card')];
   panels.forEach(p=>{p.style.gridColumn='';p.style.gridRow='';p.style.flexGrow='';});
   container.style.removeProperty('--card-rows');container.style.removeProperty('--card-row-height');
   if(mode==='overview'){panels.forEach(p=>{if(p.dataset.size!=='medium')p.style.flexGrow=({small:.65,wide:1.6,tall:1.1,large:1.9})[p.dataset.size]||1;});return;}
+  if(mode==='widgets'){
+    // iOS-style grid: cells of about 300 px; two rows on the deck.
+    const width=container.clientWidth||innerWidth, height=container.clientHeight||600;
+    const columns=Math.max(2,Math.min(12,Math.floor((width+14)/314)));
+    const rows=height<520?1:2;
+    const plan=window.EdgeLayout.packWidgets(panels.map(p=>({id:p.dataset.id,type:p.dataset.widget,size:p.dataset.size})),{columns,rows});
+    container.style.setProperty('--widget-columns',columns);container.style.setProperty('--widget-rows',rows);
+    for(const panel of panels){const placement=plan.cards.find(c=>c.id===panel.dataset.id);
+      if(placement){panel.style.gridColumn=`${placement.column} / span ${placement.columnSpan}`;panel.style.gridRow=`${placement.row} / span ${placement.rowSpan}`;panel.hidden=false;delete panel.dataset.overflow;}
+      else{panel.dataset.overflow='true';panel.hidden=!editingLayout;}}
+    widgetOverflow=plan.overflow.length;
+    renderWidgetNotice();
+    requestAnimationFrame(()=>panels.forEach(updateShape));
+    return;
+  }
+  widgetOverflow=0;renderWidgetNotice();
   if(mode==='auto'){
     // Auto: one row of columns sized by content; stacked pairs share a column.
     const plan=window.EdgeLayout.planAuto(panels.map(p=>({id:p.dataset.id,type:p.dataset.widget})),{width:container.clientWidth||innerWidth,gap:14});
@@ -418,9 +461,12 @@ function header(panel, name, symbol, status) {
 // the agent brand colour while one works, printer status colours, a warm tint
 // when the PC runs hot. Music and weather keep their own artwork and skies.
 const MOODS = { claude: '217 119 87', codex: '16 163 127', chatgpt: '167 139 250', print: '155 225 93', done: '48 209 88', paused: '255 214 10', error: '255 69 58', hot: '255 159 10' };
-function applyMood(panel, type) {
+function applyMood(panel, type, card, item) {
   let mood = '', attention = false;
-  if (type === 'tasks') {
+  if (window.EdgeWidgets?.[type]?.mood) {
+    const result = window.EdgeWidgets[type].mood(widgetContext(card, item, panel)) || {};
+    mood = MOODS[result.mood] ? result.mood : ''; attention = !!result.attention;
+  } else if (type === 'tasks') {
     const tasks = Array.isArray(state.tasks?.items) ? state.tasks.items : [];
     attention = tasks.some(item => item.approval) || (state.approvals || []).length > 0;
     const first = tasks.find(item => item.status === 'working') || tasks[0];
@@ -436,6 +482,23 @@ function applyMood(panel, type) {
   }
   if (mood) { panel.dataset.mood = mood; panel.style.setProperty('--mood', MOODS[mood]); } else { delete panel.dataset.mood; panel.style.removeProperty('--mood'); }
   panel.toggleAttribute('data-needs-you', attention);
+}
+// What a widget module gets: its card and view, the helpers the built-in cards
+// use, and a way to save the view's own options (which reading, which printer).
+// A module registers window.EdgeWidgets[type] = { render(body, ctx), signature?(ctx),
+// mood?(ctx) -> { mood, attention }, live?: true (keeps its DOM between renders) }.
+function widgetContext(card, item, panel) {
+  return {
+    card, item: item || {}, panel, size: card.size || 'medium', mode: state.config.layout?.mode || 'overview',
+    state: () => state, config: () => state.config, bridge, updateState, toast,
+    el, button, icon, badge, header, emptyContent, glide, statRing, printerRing, printerRow, printerLabels, printerFigure, printProgress, filamentSpools, showPrinterConsole, showSettings, PRINTER_FINISHED_MS,
+    gigabytes, uptimeText, durationText, agoText,
+    clock24: () => state.config.clock24 !== false,
+    lowPower: () => document.documentElement.classList.contains('low-power'),
+    editCard: () => showCardEditor(card.id),
+    refreshMood: () => applyMood(panel, item?.type || card.type, card, item),
+    saveItem: async patch => { const cfg = newConfig(); const target = cfg.widgets.find(w => w.id === card.id)?.items?.find(i => i.id === item?.id); if (!target) return; Object.assign(target, patch); await saveConfig(cfg); },
+  };
 }
 // Bars and rings move from their previous value instead of jumping.
 const lastValues = new Map();
@@ -958,54 +1021,87 @@ function filamentSpools(data) {
   return slots.length ? box : null;
 }
 const PRINTER_FINISHED_MS = 5 * 60000;
+// Printers, Small widget: a progress ring per printer, its name and when it
+// finishes (or its status). The essentials only.
+function printerRing(progress, tone) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('aria-hidden', 'true');
+  const track = document.createElementNS(svg.namespaceURI, 'circle'), fill = document.createElementNS(svg.namespaceURI, 'circle');
+  for (const circle of [track, fill]) { circle.setAttribute('cx', '50'); circle.setAttribute('cy', '50'); circle.setAttribute('r', '42'); }
+  track.setAttribute('class', 'mini-ring-track'); fill.setAttribute('class', `mini-ring-fill is-${tone}`);
+  fill.style.strokeDasharray = `${Math.max(0, Math.min(100, progress)) * 2.639} 263.9`;
+  svg.append(track, fill); return svg;
+}
+function renderPrintersSmall(panel, configured) {
+  const list = el('div', 'printer-mini-list'); list.dataset.count = String(Math.min(2, configured.length));
+  for (const config of configured.slice(0, 2)) {
+    const data = (state.printers || []).find(p => p.id === config.id) || { status: config.configured ? 'connecting' : 'not_configured' };
+    const name = data.accountName || data.name || config.name;
+    const active = ['printing', 'paused'].includes(data.status) && Number.isFinite(data.progress);
+    const row = el('button', `printer-mini is-${data.status}`); row.type = 'button';
+    row.addEventListener('click', () => showPrinterConsole(config.id, row));
+    const dial = el('div', 'printer-mini-dial'); dial.append(printerRing(active ? data.progress : data.status === 'finished' ? 100 : 0, data.status === 'paused' ? 'paused' : data.status === 'error' ? 'error' : data.status === 'finished' ? 'done' : 'print'));
+    dial.append(el('strong', 'printer-mini-value', active ? `${Math.round(data.progress)}%` : data.status === 'finished' ? '✓' : data.status === 'idle' ? '' : '—'));
+    const done = active && data.status === 'printing' && Number.isFinite(data.remainingMinutes) ? new Date(Date.now() + data.remainingMinutes * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !state.config?.clock24 }) : '';
+    const copy = el('div', 'printer-mini-copy');
+    copy.append(el('span', 'printer-mini-name', name), el('span', 'printer-mini-status', done ? `Done ${done}` : (printerLabels[data.status] || ['Unknown'])[0]));
+    row.setAttribute('aria-label', `${name}: ${active ? `${Math.round(data.progress)} percent` : (printerLabels[data.status] || ['Unknown'])[0]}${done ? `, done at ${done}` : ''}`);
+    row.append(dial, copy); list.append(row);
+  }
+  panel.append(list);
+}
 function renderPrinters(panel) {
   const configured = state.config.printers || [];
+  const card = panel.closest?.('.container-card');
+  if ((state.config.layout?.mode === 'widgets') && card?.dataset.size === 'small' && configured.length) { renderPrintersSmall(panel, configured); return; }
   header(panel, '3D printers', 'printer', badge(`${configured.length} printers`));
   const list = el('div', 'printer-list');
-  for (const config of configured) {
-    const raw = (state.printers || []).find(p => p.id === config.id) || { status: config.configured ? 'connecting' : 'not_configured' };
-    const finishedFor = raw.status === 'finished' ? Date.now() - Date.parse(raw.finishedAt || raw.finishedSeenAt || '') : NaN;
-    const data = raw.status === 'finished' && finishedFor > PRINTER_FINISHED_MS ? { ...raw, status: 'idle', thumbnail: null } : raw;
-    const active = ['printing', 'paused'].includes(data.status);
-    const row = el('article', `printer is-rich${active ? ' is-job' : ''}`); row.dataset.printerId = config.id; row.dataset.status = data.status;
-    const displayName = data.accountName || data.name || config.name;
-    row.append(button('', () => showPrinterConsole(config.id, row), { className: 'printer-open', label: `Open ${displayName} control panel` }), printerFigure(config.model, { ...data, id: config.id }));
-    const cameraOn = liveCameras.has(config.id);
-    if (cameraAvailable(config.id) && (cameraOn || !['not_configured', 'offline'].includes(data.status))) {
-      const toggle = button('', () => toggleLiveCamera(config.id), { className: 'printer-camera-toggle', icon: cameraOn ? 'close' : 'camera', label: cameraOn ? `Close ${displayName} camera` : `Show ${displayName} camera` });
-      toggle.setAttribute('aria-pressed', String(cameraOn)); row.append(toggle);
-    }
-    if (cameraOn) { row.append(liveCameraRow(row, config.id, displayName, data)); list.append(row); continue; }
-    const detail = el('div', 'printer-details'); const top = el('div', 'printer-topline');
-    top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
-    const modelName = `Bambu Lab ${config.model || ''}`.trim();
-    if (String(displayName).trim().toLowerCase() !== modelName.toLowerCase()) detail.append(el('p', 'printer-model', modelName));
-    if (data.status === 'not_configured') {
-      detail.append(el('p', 'printer-note', 'Connect over your local network.'), button('Connect printer', () => showSettings('printers'), { className: 'button subtle' }));
-    } else if (active) {
-      if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
-      if (Number.isFinite(data.progress)) detail.append(printProgress(displayName, data));
-    } else if (data.status === 'finished') {
-      // Finished: a clear done state, what was printed, when and how long it took.
-      if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
-      const done = el('div', 'printer-done');
-      const head = el('div', 'printer-done-head'); const title = el('span', 'printer-done-title'); title.append(icon('check'), document.createTextNode('Done'));
-      head.append(title, el('span', 'printer-done-percent', '100%'));
-      const bar = el('div', 'printer-done-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-label', `${displayName} print finished`); bar.setAttribute('aria-valuenow', '100'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.append(el('span'));
-      const took = data.jobStartedAt && data.finishedAt ? durationText(Date.parse(data.finishedAt) - Date.parse(data.jobStartedAt)) : '';
-      const meta = el('div', 'printer-done-meta'); meta.append(el('span', '', [data.finishedAt ? `Finished ${agoText(data.finishedAt)}` : 'Print finished', took ? `took ${took}` : ''].filter(Boolean).join(' · ')), el('span', '', 'Clear the plate'));
-      done.append(head, bar, meta); detail.append(done);
-    } else if (data.status === 'idle') {
-      // Ready: a calm status line and the loaded filament.
-      const ready = el('p', 'printer-ready'); ready.append(el('i', 'printer-ready-dot'), document.createTextNode('Ready to print')); detail.append(ready);
-      const spools = filamentSpools(data); if (spools) detail.append(spools);
-    } else {
-      if (data.message) detail.append(el('p', 'printer-note', data.message));
-    }
-    const disclosure = el('span', 'printer-disclosure'); disclosure.setAttribute('aria-hidden', 'true'); disclosure.append(icon('right'));
-    row.append(detail, disclosure); list.append(row);
-  }
+  for (const config of configured) list.append(printerRow(config));
   if (!configured.length) emptyContent(panel, 'printer', 'Your print room', 'Add your printer connections in Customize.'); else panel.append(list);
+}
+// One printer's row: figure, name and status, then the job's progress, the
+// finished state or the loaded filament; the live camera replaces it when on.
+function printerRow(config) {
+  const raw = (state.printers || []).find(p => p.id === config.id) || { status: config.configured ? 'connecting' : 'not_configured' };
+  const finishedFor = raw.status === 'finished' ? Date.now() - Date.parse(raw.finishedAt || raw.finishedSeenAt || '') : NaN;
+  const data = raw.status === 'finished' && finishedFor > PRINTER_FINISHED_MS ? { ...raw, status: 'idle', thumbnail: null } : raw;
+  const active = ['printing', 'paused'].includes(data.status);
+  const row = el('article', `printer is-rich${active ? ' is-job' : ''}`); row.dataset.printerId = config.id; row.dataset.status = data.status;
+  const displayName = data.accountName || data.name || config.name;
+  row.append(button('', () => showPrinterConsole(config.id, row), { className: 'printer-open', label: `Open ${displayName} control panel` }), printerFigure(config.model, { ...data, id: config.id }));
+  const cameraOn = liveCameras.has(config.id);
+  if (cameraAvailable(config.id) && (cameraOn || !['not_configured', 'offline'].includes(data.status))) {
+    const toggle = button('', () => toggleLiveCamera(config.id), { className: 'printer-camera-toggle', icon: cameraOn ? 'close' : 'camera', label: cameraOn ? `Close ${displayName} camera` : `Show ${displayName} camera` });
+    toggle.setAttribute('aria-pressed', String(cameraOn)); row.append(toggle);
+  }
+  if (cameraOn) { row.append(liveCameraRow(row, config.id, displayName, data)); return row; }
+  const detail = el('div', 'printer-details'); const top = el('div', 'printer-topline');
+  top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
+  const modelName = `Bambu Lab ${config.model || ''}`.trim();
+  if (String(displayName).trim().toLowerCase() !== modelName.toLowerCase()) detail.append(el('p', 'printer-model', modelName));
+  if (data.status === 'not_configured') {
+    detail.append(el('p', 'printer-note', 'Connect over your local network.'), button('Connect printer', () => showSettings('printers'), { className: 'button subtle' }));
+  } else if (active) {
+    if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
+    if (Number.isFinite(data.progress)) detail.append(printProgress(displayName, data));
+  } else if (data.status === 'finished') {
+    // Finished: a clear done state, what was printed, when and how long it took.
+    if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
+    const done = el('div', 'printer-done');
+    const head = el('div', 'printer-done-head'); const title = el('span', 'printer-done-title'); title.append(icon('check'), document.createTextNode('Done'));
+    head.append(title, el('span', 'printer-done-percent', '100%'));
+    const bar = el('div', 'printer-done-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-label', `${displayName} print finished`); bar.setAttribute('aria-valuenow', '100'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.append(el('span'));
+    const took = data.jobStartedAt && data.finishedAt ? durationText(Date.parse(data.finishedAt) - Date.parse(data.jobStartedAt)) : '';
+    const meta = el('div', 'printer-done-meta'); meta.append(el('span', '', [data.finishedAt ? `Finished ${agoText(data.finishedAt)}` : 'Print finished', took ? `took ${took}` : ''].filter(Boolean).join(' · ')), el('span', '', 'Clear the plate'));
+    done.append(head, bar, meta); detail.append(done);
+  } else if (data.status === 'idle') {
+    // Ready: a calm status line and the loaded filament.
+    const ready = el('p', 'printer-ready'); ready.append(el('i', 'printer-ready-dot'), document.createTextNode('Ready to print')); detail.append(ready);
+    const spools = filamentSpools(data); if (spools) detail.append(spools);
+  } else {
+    if (data.message) detail.append(el('p', 'printer-note', data.message));
+  }
+  const disclosure = el('span', 'printer-disclosure'); disclosure.setAttribute('aria-hidden', 'true'); disclosure.append(icon('right'));
+  row.append(detail, disclosure); return row;
 }
 // PC stats: CPU, GPU, memory and video memory as rings, the busiest apps, uptime
 // and an internet speed test. While a game is full screen it shows only the rings
@@ -1245,7 +1341,7 @@ async function closePrinterConsole() {
 const CONNECTION_TABS = [['music', 'Music'], ['weather', 'Weather'], ['printers', 'Printers'], ['agents', 'Agents']];
 let lastConnectionTab = 'music';
 // Long-press a card (about 0.6 s) to open its own settings.
-const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps' };
+const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps', gauge: 'display', switch: 'display', machine: 'printers' };
 let pressTimer = null, pressStart = null, pressedCard = null, suppressClick = false;
 function cancelPress() { clearTimeout(pressTimer); pressTimer = null; pressedCard?.classList.remove('is-pressing'); pressedCard = null; }
 document.addEventListener('pointerdown', event => {

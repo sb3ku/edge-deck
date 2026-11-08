@@ -677,3 +677,129 @@ html, body { height: 100%; overflow: clip; }
 .container-card[data-stacked=true].printers .printer-topline .badge { font-size: 13px; }
 .container-card[data-stacked=true].printers .printer-model, .container-card[data-stacked=true].printers .printer-disclosure { display: none; }
 .container-card[data-stacked=true].printers .printer-camera-toggle { width: 30px; height: 30px; }
+
+/* ---- Widgets: iOS-style grid ----------------------------------------------------- */
+.widgets[data-layout=widgets] { display: grid; grid-template-columns: repeat(var(--widget-columns, 8), minmax(0, 1fr)); grid-template-rows: repeat(var(--widget-rows, 2), minmax(0, 1fr)); gap: 14px; }
+.widgets[data-layout=widgets] > .container-card { min-width: 0; min-height: 0; }
+.widgets[data-layout=widgets] > .container-card[hidden] { display: none; }
+.widgets.is-editing[data-layout=widgets] > .container-card[data-overflow=true] { opacity: .45; outline-style: dashed; }
+/* Small widgets keep the essentials of today's cards until each gets its own design. */
+.widgets[data-layout=widgets] > .container-card[data-size=small] { padding: 14px 16px; }
+.widget-sizes { display: inline-flex; gap: 3px; margin-left: auto; padding: 3px; border-radius: 12px; background: rgb(0 0 0 / 35%); }
+.widget-size { min-width: 36px; min-height: 32px; padding: 0 8px; border: 0; border-radius: 9px; background: transparent; color: var(--label-2, #aaa); font-size: 14px; font-weight: 700; }
+.widget-size.is-active { background: var(--accent, #0a84ff); color: #fff; }
+.widget-notice { margin: 6px 0 0; text-align: center; font-size: 14px; color: #ffd60a; }
+.widget-notice[hidden] { display: none; }
+.layout-preview.widgets { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; gap: 3px; }
+.layout-preview.widgets i:nth-child(1) { grid-column: span 2; grid-row: span 2; } .layout-preview.widgets i:nth-child(3) { grid-column: span 2; }
+.widgets.is-editing[data-layout=widgets] > .container-card:is([data-size=small], [data-size=tall]) .card-title { display: none; }
+.widgets.is-editing[data-layout=widgets] > .container-card:is([data-size=small], [data-size=tall]) .widget-size { min-width: 30px; padding: 0 4px; }
+
+/* ==== Widget designs per size (Widgets layout) ======================================= */
+.weather-week { display: none; }
+/* -- Clock -- */
+.widgets[data-layout=widgets] > .clock[data-size=small] .clock-time { font-size: clamp(56px, 30cqw, 96px); margin-top: 6px; }
+.widgets[data-layout=widgets] > .clock[data-size=small] .up-next, .widgets[data-layout=widgets] > .clock[data-size=small] .clock-bottom { display: none; }
+.widgets[data-layout=widgets] > .clock[data-size=medium] .card-body { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 28px; }
+.widgets[data-layout=widgets] > .clock[data-size=medium] .clock-day, .widgets[data-layout=widgets] > .clock[data-size=medium] .clock-time, .widgets[data-layout=widgets] > .clock[data-size=medium] .clock-date { grid-column: 1; }
+.widgets[data-layout=widgets] > .clock[data-size=medium] .up-next { grid-column: 2; grid-row: 1 / span 3; margin-top: 0; }
+.widgets[data-layout=widgets] > .clock[data-size=medium] .clock-bottom { display: none; }
+.widgets[data-layout=widgets] > .clock[data-size=large] .clock-time { font-size: clamp(96px, 26cqw, 150px); }
+/* -- Time & weather -- */
+.widgets[data-layout=widgets] > .today[data-size=small] .today-forecast, .widgets[data-layout=widgets] > .today[data-size=small] .today-footnote, .widgets[data-layout=widgets] > .today[data-size=small] .today-range { display: none; }
+.widgets[data-layout=widgets] > .today[data-size=small] .today-time { font-size: clamp(54px, 28cqw, 92px); }
+.widgets[data-layout=widgets] > .today[data-size=small] .today-temp { font-size: clamp(30px, 14cqw, 48px); }
+.widgets[data-layout=widgets] > .today[data-size=medium] .today-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-rows: 1fr auto; column-gap: 20px; }
+.widgets[data-layout=widgets] > .today[data-size=medium] .today-clock { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+.widgets[data-layout=widgets] > .today[data-size=medium] .today-weather { grid-column: 2; grid-row: 1; align-self: center; }
+.widgets[data-layout=widgets] > .today[data-size=medium] .today-footnote { grid-column: 2; grid-row: 2; }
+.widgets[data-layout=widgets] > .today[data-size=medium] .today-summary { display: none; }
+.widgets[data-layout=widgets] > .today:is([data-size=large], [data-size=tall]) .weather-week { display: flex; }
+/* -- Weather -- */
+.widgets[data-layout=widgets] > .weather[data-size=small] .weather-card-hours, .widgets[data-layout=widgets] > .weather[data-size=small] .weather-card-note, .widgets[data-layout=widgets] > .weather[data-size=small] .weather-card-source, .widgets[data-layout=widgets] > .weather[data-size=small] .weather-eyebrow { display: none; }
+.widgets[data-layout=widgets] > .weather[data-size=small] .weather-card-temperature { font-size: clamp(54px, 30cqw, 84px); }
+.widgets[data-layout=widgets] > .weather[data-size=medium] .weather-widget { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); grid-template-rows: auto 1fr auto; column-gap: 20px; }
+.widgets[data-layout=widgets] > .weather[data-size=medium] .weather-card-heading, .widgets[data-layout=widgets] > .weather[data-size=medium] .weather-card-city, .widgets[data-layout=widgets] > .weather[data-size=medium] .weather-card-main { grid-column: 1; }
+.widgets[data-layout=widgets] > .weather[data-size=medium] .weather-card-hours { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+.widgets[data-layout=widgets] > .weather[data-size=medium] .weather-card-note { grid-column: 1; }
+.widgets[data-layout=widgets] > .weather:is([data-size=large], [data-size=tall]) .weather-week { display: flex; }
+/* The week list. */
+.weather-week { flex-direction: column; gap: 4px; margin-top: 12px; position: relative; z-index: 3; }
+.weather-week-day { display: grid; grid-template-columns: 60px 28px 1fr auto; align-items: center; gap: 10px; min-height: 30px; font-size: 15px; font-weight: 600; }
+.weather-week-day svg { width: 22px; height: 22px; }
+.weather-week-low { justify-self: end; color: rgb(255 255 255 / 60%); }
+.weather-week-high { min-width: 36px; text-align: right; }
+/* -- Printers -- */
+/* Medium: both printers side by side, compact. */
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer + .printer { border-top: 0; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer.is-rich { gap: 10px; padding: 6px 10px 6px 0; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-figure { width: 64px; max-width: 64px; margin: 0 2px 0 4px; padding: 4px; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-name { font-size: 18px; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-model, .widgets[data-layout=widgets] > .printers[data-size=medium] .printer-disclosure, .widgets[data-layout=widgets] > .printers[data-size=medium] .printer-spools { display: none; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-camera-toggle { width: 30px; height: 30px; }
+/* Small: progress rings. */
+.printer-mini-list { display: flex; flex-direction: column; justify-content: center; gap: 12px; flex: 1; min-height: 0; }
+.printer-mini { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; }
+.printer-mini-list[data-count="1"] .printer-mini { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+.printer-mini-dial { position: relative; display: grid; place-items: center; width: 92px; height: 92px; }
+.printer-mini-list[data-count="1"] .printer-mini-dial { width: 150px; height: 150px; }
+.printer-mini-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mini-ring-track { fill: none; stroke: rgb(255 255 255 / 10%); stroke-width: 10; }
+.mini-ring-fill { fill: none; stroke: #9be15d; stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray 900ms var(--ease); }
+.mini-ring-fill.is-paused { stroke: #ffd60a; } .mini-ring-fill.is-error { stroke: #ff453a; } .mini-ring-fill.is-done { stroke: #30d158; }
+.printer-mini-value { position: relative; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.printer-mini-list[data-count="1"] .printer-mini-value { font-size: 36px; }
+.printer-mini-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.printer-mini-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; font-weight: 700; }
+.printer-mini-status { font-size: 14px; color: var(--label-2, #aaa); }
+.printer-mini.is-printing .printer-mini-status { color: #9be15d; }
+/* Clock widgets look like every other widget in the grid. */
+.widgets[data-layout=widgets] > .container-card.clock { background: linear-gradient(180deg, #212123 0%, #1c1c1e 60%); border-color: rgb(255 255 255 / 6%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 10px 30px rgb(0 0 0 / 35%); padding: 18px 22px; }
+/* Printers, Tall: one printer above the other, compact, the status under the name. */
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer.is-rich { gap: 10px; padding: 6px 8px 6px 0; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-figure { width: 58px; max-width: 58px; margin: 0 2px 0 4px; padding: 4px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-topline { flex-direction: column; align-items: flex-start; gap: 2px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-name { font-size: 19px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-model, .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-disclosure { display: none; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .print-progress-facts span + span { display: none; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-camera-toggle { width: 30px; height: 30px; }
+/* -- Music -- */
+/* Small: the cover, the song and the controls; no top bar. */
+.widgets[data-layout=widgets] > .media:is([data-size=small], [data-size=medium]) .emw-now-top { display: none; }
+.widgets[data-layout=widgets] > .media[data-size=small] .emw-now { justify-content: space-between; gap: 8px; }
+.widgets[data-layout=widgets] > .media[data-size=small] .emw-hero { flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 0; }
+.widgets[data-layout=widgets] > .media[data-size=small] .emw-art { width: 96px; border-radius: 12px; }
+.widgets[data-layout=widgets] > .media[data-size=small] .emw-copy { width: 100%; }
+.widgets[data-layout=widgets] > .media[data-size=small] :is(.emw-source, .emw-like, .emw-progress, .emw-mode) { display: none; }
+.widgets[data-layout=widgets] > .media[data-size=small] .emw-transport { margin: 0; justify-content: space-between; }
+/* Medium: a large cover on the left, the song and controls on the right. */
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-now { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto auto auto 1fr; column-gap: 22px; row-gap: 10px; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-hero { display: contents; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-art { grid-column: 1; grid-row: 1 / -1; align-self: center; width: auto; height: min(100%, 230px); max-height: 230px; border-radius: 14px; }
+.widgets[data-layout=widgets] > .media[data-size=medium] :is(.emw-copy, .emw-progress, .emw-transport) { grid-column: 2; min-width: 0; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-copy { grid-row: 2; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-progress { grid-row: 3; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-transport { grid-row: 4; margin: 0; justify-content: space-between; max-width: none; }
+.widgets[data-layout=widgets] > .media[data-size=medium] .emw-mode { display: none; }
+/* -- PC stats -- */
+/* Small: four compact rings, no details. */
+.widgets[data-layout=widgets] > .stats[data-size=small] .stat-rings { flex: 1; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 6px 10px; }
+.widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring { justify-content: center; min-height: 0; }
+.widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring-dial { width: auto; height: 100%; max-height: 92px; max-width: 92px; }
+.widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring-center strong { font-size: 18px; }
+.widgets[data-layout=widgets] > .stats[data-size=small] :is(.stat-ring-detail, .stat-ring-extra, .pc-stats-footer, .pc-apps) { display: none; }
+/* Medium: the four rings and the speed test; no app list. */
+.widgets[data-layout=widgets] > .stats[data-size=medium] .pc-apps { display: none; }
+/* -- Quick controls -- */
+/* Small: four round toggles (Wi-Fi, Bluetooth, sound, microphone) and the volume. */
+.widgets[data-layout=widgets] > .actions[data-size=small] .qa-tiles { flex: 1; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.widgets[data-layout=widgets] > .actions[data-size=small] .qa-tile { justify-content: center; min-height: 0; padding: 0; }
+.widgets[data-layout=widgets] > .actions[data-size=small] .qa-tile-main { flex: 1; justify-content: center; height: 100%; padding: 0; }
+.widgets[data-layout=widgets] > .actions[data-size=small] .qa-tile-glyph { width: 52px; height: 52px; }
+.widgets[data-layout=widgets] > .actions[data-size=small] :is(.qa-tile-copy, .qa-tile-more, .qa-tile[data-key=dark], .qa-tile[data-key=nightlight], .qa-volume-value, .qa-volume-more, .qa-power-row) { display: none; }
+/* Medium: six tiles in three columns, the volume and compact power buttons. */
+.widgets[data-layout=widgets] > .actions[data-size=medium] .qa-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.widgets[data-layout=widgets] > .actions[data-size=medium] .qa-main { gap: 8px; }
+.widgets[data-layout=widgets] > .actions[data-size=medium] .qa-tile { min-height: 56px; }
+.widgets[data-layout=widgets] > .actions[data-size=medium] .qa-power { min-height: 44px; flex-direction: row; gap: 8px; }

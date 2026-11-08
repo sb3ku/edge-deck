@@ -83,3 +83,21 @@ test('auto arrange shares one row by content and stacks half-height cards when s
   assert.equal(tight.fits, false);
   assert.deepEqual(planAuto(cards(['clock', 'launchers']), { width: 2500 }).columns.map(column => column.ids), [['clock']]);
 });
+
+test('widgets fill an 8×2 grid like iOS, filling gaps, and report what does not fit', () => {
+  const { packWidgets, WIDGET_DEFAULTS } = require('../src/layout-engine.js');
+  const widgets = ['today', 'tasks', 'printers', 'media', 'stats', 'actions'].map(type => ({ id: type, type, size: WIDGET_DEFAULTS[type] }));
+  const plan = packWidgets(widgets, { columns: 8, rows: 2 });
+  assert.deepEqual(plan.overflow, []); assert.equal(plan.free, 1, 'The default sizes fit the deck with one cell to spare');
+  const media = plan.cards.find(card => card.id === 'media'); assert.deepEqual([media.columnSpan, media.rowSpan], [2, 2]);
+  const gap = packWidgets([{ id: 'a', size: 'large' }, { id: 'b', size: 'medium' }, { id: 'c', size: 'small' }], { columns: 4, rows: 2 });
+  // Large, medium, then small: column by column, the small one takes the free cell below the medium one.
+  assert.deepEqual(gap.cards.find(card => card.id === 'c'), { id: 'c', column: 3, row: 2, columnSpan: 1, rowSpan: 1 }, 'A small widget fills the gap under a medium one');
+  const full = packWidgets(Array.from({ length: 5 }, (_, i) => ({ id: `l${i}`, size: 'large' })), { columns: 8, rows: 2 });
+  assert.deepEqual(full.overflow, ['l4']);
+});
+
+test('single-purpose widgets start small and have auto profiles', () => {
+  const { WIDGET_DEFAULTS, AUTO_PROFILES } = require('../src/layout-engine.js');
+  for (const type of ['gauge', 'switch', 'timer', 'machine']) { assert.equal(WIDGET_DEFAULTS[type], 'small', type); assert.ok(AUTO_PROFILES[type]?.min > 0, type); }
+});

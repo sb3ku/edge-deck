@@ -151,6 +151,18 @@
     const button = el('button', `weather-button ${className}`, label); button.type = 'button'; button.disabled = disabled;
     button.addEventListener('click', fn); return button;
   }
+  // The next days, for the larger widget sizes (shown or hidden by size).
+  function weekList(data, count = 5) {
+    const list = el('div', 'weather-week');
+    const days = (Array.isArray(data.daily) ? data.daily : []).slice(0, count);
+    for (const day of days) {
+      const row = el('div', 'weather-week-day');
+      const name = day.date === today(data) ? 'Today' : new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T12:00:00Z`));
+      row.append(el('span', 'weather-week-name', name), icon(condition(day.conditionCode)[1], true), el('span', 'weather-week-low', finite(day.min) ? temp(day.min) : '—'), el('span', 'weather-week-high', finite(day.max) ? temp(day.max) : '—'));
+      list.append(row);
+    }
+    return list;
+  }
   function renderWidget(container, context) {
     const data = weather(context); const configured = Boolean(data.configured && data.location);
     const card = scene(data, 'weather-widget', container.querySelector(':scope > .weather-widget > .sky'));
@@ -164,7 +176,7 @@
       const city = el('h3', 'weather-card-city', data.location.name); city.title = data.location.name; card.append(city);
       const main = el('div', 'weather-card-main');
       main.append(el('p', 'weather-card-temperature', temp(data.current?.temp)), el('p', 'weather-card-condition', data.current ? condition(data.current.conditionCode)[0] : 'Forecast unavailable'), range(data));
-      card.append(main, hourStrip(data, 4, true));
+      card.append(main, hourStrip(data, 6, true), weekList(data));
       const note = el('p', `weather-card-note${data.error ? ' has-error' : ''}`, data.error ? (data.current ? 'Saved forecast · connection unavailable' : 'Weather unavailable · tap for details') : updated(data));
       card.append(note);
     }
@@ -337,6 +349,7 @@
       view.panel.hidden = false;
       view.summary.textContent = forecastSummary(data); view.summary.hidden = !view.summary.textContent;
       const strip = hourStrip(data, 6, true); strip.classList.add('today-hours'); view.strip.replaceWith(strip); view.strip = strip;
+      const week = weekList(data); if (view.week) view.week.replaceWith(week); else view.panel.append(week); view.week = week;
       view.footnote.textContent = data.error ? (data.current ? 'Saved forecast · connection unavailable' : 'Weather unavailable · tap for details') : `${updated(data)} · Open-Meteo`;
       view.footnote.classList.toggle('has-error', Boolean(data.error));
       view.open.setAttribute('aria-label', `${data.location.name}: ${temp(data.current?.temp)}, ${now}. Open forecast`);

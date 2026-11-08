@@ -10,7 +10,22 @@
     { type: 'media', title: 'Music', detail: 'Now playing and playlists', symbol: 'music' },
     { type: 'actions', title: 'Quick actions', detail: 'Audio output, microphone and mute', symbol: 'actions' },
     { type: 'stats', title: 'PC stats', detail: 'CPU, GPU, memory, busiest apps and internet speed', symbol: 'stats' },
+    { type: 'gauge', title: 'Gauge', detail: 'One ring: CPU, GPU, memory or video memory', symbol: 'gauge' },
+    { type: 'switch', title: 'Switch', detail: 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode', symbol: 'toggle' },
+    { type: 'timer', title: 'Timer', detail: 'A countdown with presets', symbol: 'timer' },
+    { type: 'machine', title: 'Printer', detail: 'One printer at a glance', symbol: 'printer' },
   ];
+  // Views with a choice: which reading, which control, which printer.
+  const OPTIONS = {
+    gauge: { field: 'metric', label: 'Reading', choices: () => [['cpu', 'CPU'], ['gpu', 'GPU'], ['memory', 'Memory'], ['vram', 'Video memory'], ['cpu-temp', 'CPU temperature'], ['gpu-temp', 'GPU temperature']] },
+    switch: { field: 'control', label: 'Control', choices: () => [['wifi', 'Wi-Fi'], ['bluetooth', 'Bluetooth'], ['sound', 'Sound'], ['mic', 'Microphone'], ['dark', 'Dark mode'], ['night', 'Night light']] },
+    machine: { field: 'printerId', label: 'Printer', choices: cfg => (cfg.printers || []).map(printer => [printer.id, printer.name || printer.model || printer.id]) },
+  };
+  function optionLabel(item, cfg) {
+    const option = OPTIONS[item?.type]; if (!option) return '';
+    const choices = option.choices(cfg); const value = item[option.field] ?? choices[0]?.[0];
+    return choices.find(([id]) => id === value)?.[1] || '';
+  }
   const sizes = [['small', 'Small'], ['medium', 'Medium'], ['wide', 'Wide'], ['tall', 'Tall'], ['large', 'Large']];
   const icons = {
     clock: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M12 7v5l4 2'],
@@ -24,6 +39,10 @@
     app: ['M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z'],
     website: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M3 12h18', 'M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z'],
     empty: ['M4 4h16v16H4Z', 'M8 12h8', 'M12 8v8'],
+    gauge: ['M5 17a8 8 0 1 1 14 0', 'm12 13 4-4'],
+    switch: ['M7 7h10a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10Z', 'M15 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z'],
+    timer: ['M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z', 'M12 9v4l2 2', 'M9 2h6'],
+    machine: ['M5 3h14v18H5Z', 'M8 6h8v11H8Z', 'M9 19h6', 'M12 6v5'],
     plus: ['M12 4v16', 'M4 12h16'], up: ['m5 15 7-7 7 7'], down: ['m5 9 7 7 7-7'],
     edit: ['m4 16 12-12 4 4L8 20H4Z', 'm13 7 4 4'],
     remove: ['M5 7h14l-1 14H6Z', 'M3 7h18', 'M9 7V3h6v4', 'M10 11v6', 'M14 11v6'],
@@ -55,6 +74,7 @@
     return catalog.some(item => item.type === card.type) ? [{ id: `${card.id}-main`, type: card.type }] : [];
   }
   function contentName(item, cfg) {
+    if (!item?.label && OPTIONS[item?.type]) { const choice = optionLabel(item, cfg); if (choice) return item.type === 'machine' ? choice : `${choice} ${catalog.find(entry => entry.type === item.type).title.toLowerCase()}`; }
     return item?.label || catalog.find(entry => entry.type === item?.type)?.title ||
       (cfg.launchers || []).find(app => app.id === item?.launcherId)?.name || (item?.type === 'website' ? 'Website' : item?.type === 'app' ? 'App shortcut' : 'Empty card');
   }
@@ -96,6 +116,7 @@
     const select = el('select'); select.setAttribute('aria-label', `Size of ${cardName(card, config(view))}`);
     for (const [value, name] of sizes) { const option = el('option', '', name); option.value = value; select.append(option); }
     select.value = card.size || 'medium'; select.disabled = view.busy || ['focus', 'auto'].includes(config(view).layout?.mode);
+    if (config(view).layout?.mode === 'widgets') for (const option of select.options) option.hidden = !['small', 'medium', 'large', 'tall'].includes(option.value);
     if(['focus','auto'].includes(config(view).layout?.mode))select.title='This layout sizes cards automatically. Choose Overview or Bento to change sizes.';
     select.addEventListener('change', () => save(view, cfg => { findCard(cfg, card.id).size = select.value; }, 'Card size saved.'));
     field.append(select); return field;
@@ -186,7 +207,7 @@
   function renderModePicker(view, root) {
     root.append(el('p', 'layout-intro', 'Choose an arrangement, then make each card your own. A card can hold up to six views.'));
     const chooser = el('div', 'layout-mode-picker'); chooser.setAttribute('aria-label', 'Dashboard layout');
-    for (const [mode, name, description] of [['auto', 'Auto', 'Fits every card to its content'], ['overview', 'Overview', 'A balanced row of cards'], ['bento', 'Bento', 'Mix compact and larger cards'], ['focus', 'Focus', 'Give your main card more room']]) {
+    for (const [mode, name, description] of [['widgets', 'Widgets', 'Small, medium and large, like iOS'], ['auto', 'Auto', 'Fits every card to its content'], ['overview', 'Overview', 'A balanced row of cards'], ['bento', 'Bento', 'Mix compact and larger cards'], ['focus', 'Focus', 'Give your main card more room']]) {
       const choice = button(view, `${name} layout`, () => save(view, cfg => {
         const current = cards(cfg);
         const types = current.map(card => items(card)[0]?.type);
@@ -197,13 +218,17 @@
           const compact = types.includes('actions') ? ['today', 'clock', 'weather', 'tasks', 'actions'] : ['today', 'clock', 'weather'];
           for (const card of current) card.size = compact.includes(items(card)[0].type) ? 'medium' : 'wide';
         }
+        // Widgets: each card starts at the size that suits what it shows.
+        if (mode === 'widgets' && (cfg.layout?.mode || 'overview') !== 'widgets' && window.EdgeLayout?.WIDGET_DEFAULTS) {
+          for (const card of current) card.size = window.EdgeLayout.WIDGET_DEFAULTS[items(card)[0]?.type] || 'medium';
+        }
         cfg.layout = { ...cfg.layout, mode };
       }, `${name} layout saved.`), null, false, 'layout-mode');
       choice.setAttribute('aria-pressed', String((config(view).layout?.mode || 'overview') === mode));
       const preview = el('span', `layout-preview ${mode}`); preview.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 5; i++) preview.append(el('i'));
       choice.replaceChildren(preview, el('strong', '', name), el('span', '', description)); chooser.append(choice);
     }
-    root.append(chooser, el('p', 'layout-help', 'Auto sizes every card for its content and stacks small ones when space runs out. Adjust card sizes yourself in Overview or Bento; Focus enlarges the first card.'));
+    root.append(chooser, el('p', 'layout-help', 'Widgets: choose Small, Medium or Large for each card in Edit layout. Auto sizes every card for its content and stacks small ones when space runs out. Adjust card sizes yourself in Overview or Bento; Focus enlarges the first card.'));
   }
   function settings(view, root) {
     const cfg = config(view); const listCards = cards(cfg); renderModePicker(view, root); feedback(view, root);
@@ -254,6 +279,17 @@
       const name = contentName(item, cfg); const row = el('article', 'layout-content-row'); row.dataset.itemId = item.id;
       const info = el('div', 'layout-card-info'); const visual = el('span', 'layout-card-icon'); visual.append(icon(item.type));
       const copy = el('div'); copy.append(el('h4', '', name), el('p', '', item.type === 'website' ? 'Website preview' : item.type === 'app' ? 'App shortcut' : 'Dashboard view'));
+      const option = OPTIONS[item.type];
+      if (option) {
+        const choices = option.choices(cfg);
+        const field = el('label', 'layout-form-field layout-item-option'); field.append(el('span', '', option.label));
+        const select = el('select'); select.setAttribute('aria-label', `${option.label} for ${name}`);
+        if (!choices.length) { const none = el('option', '', 'No printers set up'); none.value = ''; select.append(none); }
+        for (const [value, label] of choices) { const choice = el('option', '', label); choice.value = String(value); select.append(choice); }
+        select.value = String(item[option.field] ?? choices[0]?.[0] ?? ''); select.disabled = view.busy || !choices.length;
+        select.addEventListener('change', () => save(view, next => { const target = findCard(next, card.id).items.find(entry => entry.id === item.id); if (!target) throw new Error('This view was removed.'); target[option.field] = select.value; }, `${option.label} saved.`));
+        field.append(select); copy.append(field);
+      }
       info.append(visual, copy); row.append(info);
       const actions = el('div', 'layout-content-actions');
       const defaultButton = button(view, `Make ${name} the default view`, () => save(view, next => { const target = findCard(next, card.id); if (!target.items.some(entry => entry.id === item.id)) throw new Error('This view was removed.'); target.activeItemId = item.id; normalizeCard(target); }, 'Default view saved.'), null, false, 'layout-default');

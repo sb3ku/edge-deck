@@ -54,10 +54,10 @@ let pcStats=null,pcStatsTimer=null;
 // The stats helpers run only while a PC stats card is shown.
 function syncPcStats(){
   if(!pcStats)return;
-  const shown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='stats'||(card.items||[]).some(item=>item.type==='stats')));
+  const shown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(['stats','gauge'].includes(card.type)||(card.items||[]).some(item=>['stats','gauge'].includes(item.type))));
   if(shown)pcStats.start();else pcStats.stop();
-  // Quick controls (Wi-Fi, Bluetooth, dark mode) are read only while a Quick actions card is shown.
-  const controls=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='actions'||(card.items||[]).some(item=>item.type==='actions')));
+  // Quick controls (Wi-Fi, Bluetooth, dark mode) are read only while a Quick actions card or a Switch widget is shown.
+  const controls=config.publicConfig().widgets.some(card=>card.enabled!==false&&(['actions','switch'].includes(card.type)||(card.items||[]).some(item=>['actions','switch'].includes(item.type))));
   if(systemControls){if(controls)systemControls.start();else systemControls.stop();}
 }
 const {createToastLines}=require('./lib/toast.cjs');
@@ -380,6 +380,12 @@ async function startBrowser() {
   if(!verify){
     // Edge Deck lives in the tray: no taskbar button for the dashboard window.
     const tuck=()=>dashboardWindow?.hideFromTaskbar().catch(error=>console.error(error.message));
+    // Keep the deck full screen: every 15 s, put it back if something took it
+    // out. Never while a game is full screen (it waits until the game closes).
+    setInterval(()=>{
+      if(!dashboardWindow||mediaState.presence==='fullscreen')return;
+      dashboardWindow.keepFullScreen().then(restored=>{if(restored){tuck();broadcast();}}).catch(()=>{});
+    },15000).unref?.();
     tuck();
     tray=createTray({onAction:word=>{
       if(word==='quit')return app.quit();

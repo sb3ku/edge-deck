@@ -210,3 +210,14 @@ test('cards are grouped into pages; older settings become one Home page', () => 
   assert.throws(() => cleanConfig({ pages: Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` })) }, next), /six pages/);
   assert.equal(cleanConfig({ pages: [{ id: 'a', name: '' }] }, next).pages[0].name, 'Page');
 });
+
+test('single-purpose widgets keep their reading, control, printer and length, with safe defaults',()=>{
+  const before=defaults();
+  const saved=cleanConfig({widgets:[card('one',[{id:'g',type:'gauge',metric:'gpu'},{id:'t',type:'switch',control:'bluetooth'},{id:'p',type:'machine',printerId:'p1s'},{id:'m',type:'timer',minutes:25}])]},before);
+  assert.deepEqual(saved.widgets[0].items,[{id:'g',type:'gauge',metric:'gpu'},{id:'t',type:'switch',control:'bluetooth'},{id:'p',type:'machine',printerId:'p1s'},{id:'m',type:'timer',minutes:25}]);
+  const plain=cleanConfig({widgets:[card('two',[{id:'g',type:'gauge'},{id:'t',type:'switch'},{id:'p',type:'machine',printerId:'gone'},{id:'m',type:'timer',minutes:0}])]},before);
+  assert.deepEqual(plain.widgets[0].items,[{id:'g',type:'gauge',metric:'cpu'},{id:'t',type:'switch',control:'wifi'},{id:'p',type:'machine'},{id:'m',type:'timer'}]);
+  assert.throws(()=>cleanConfig({widgets:[card('bad',[{id:'g',type:'gauge',metric:'disk'}])]},before),/gauge/);
+  assert.throws(()=>cleanConfig({widgets:[card('bad',[{id:'t',type:'switch',control:'volume'}])]},before),/quick control/);
+  assert.equal(cleanConfig({widgets:[card('old',[{id:'g',type:'gauge',metric:'disk'}])]},before,{loading:true}).widgets[0].items[0].metric,'cpu');
+});

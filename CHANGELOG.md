@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Widgets, like iOS.** A new Widgets layout: an 8 × 2 grid where every card is Small (1 × 1), Medium (2 × 1), Large (2 × 2) or Tall (1 × 2), chosen with one tap in Edit layout. Each card has a design for each size instead of stretching one layout: Clock, Time & weather, Weather, Printers, Music, PC stats, Agent chats and Quick controls. Widgets that do not fit the page are listed so you can shrink or move them.
+- **Four single-purpose widgets** for the gaps: **Gauge** (one CPU, GPU, memory or video-memory ring, with a history line and the busiest apps at larger sizes), **Switch** (one quick control such as Wi-Fi, Bluetooth, sound, microphone, dark mode or Night light, with its networks or devices at larger sizes), **Timer** (a countdown with presets that rings and makes the card glow when done, and survives a restart) and **Printer** (one printer at a glance: a progress ring, the full row, or the job details). Choose the reading, control or printer in the card's editor.
+- The dashboard window is kept full screen on its display: if Windows or another app moves or resizes it, it is put back within 15 seconds (never while a game is in front).
+
 ## 0.14.0
 
 - **Pages.** Group cards into pages: tabs at the bottom right (with + to add one), or swipe across the cards. Your current cards become the Home page.
