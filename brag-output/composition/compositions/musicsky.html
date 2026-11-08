@@ -1,0 +1,145 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Deck UI";
+      src: local("Segoe UI Variable Display"), local("SegoeUIVariable-Display"), local("Segoe UI");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: var(--font-display, "Deck UI"), "Segoe UI", sans-serif;
+      color: #f5f5f7;
+    }
+    /* Music card: real screenshots (sample data), 409 × 556 shown at 552 × 750 */
+    #s5-phone {
+      position: absolute; left: 220px; top: 165px; width: 552px; height: 750px;
+      border-radius: 36px; overflow: hidden;
+      border: 1px solid rgb(255 255 255 / 10%);
+      box-shadow: 0 30px 80px rgb(0 0 0 / 55%);
+      background: #121212;
+    }
+    #s5-phone img { position: absolute; left: 0; top: 0; width: 552px; height: 750px; }
+    #s5-touch {
+      position: absolute; left: 31px; top: 33px; width: 60px; height: 60px; border-radius: 50%;
+      background: rgb(255 255 255 / 35%); border: 2px solid rgb(255 255 255 / 55%);
+    }
+    /* Weather card with the app's own sky palettes (weather-sky.js) */
+    #s5-weather {
+      position: absolute; left: 880px; top: 165px; width: 820px; height: 470px;
+      border-radius: 44px; overflow: hidden;
+      border: 1px solid rgb(255 255 255 / 10%);
+      box-shadow: 0 30px 80px rgb(0 0 0 / 55%);
+    }
+    .s5-sky { position: absolute; inset: 0; overflow: hidden; }
+    #s5-sky-day { background: linear-gradient(180deg, #0d58c2 0%, #3a8de0 55%, #80c0f2 100%); }
+    #s5-sky-partly { background: linear-gradient(180deg, #2a6cc0 0%, #5a98d6 55%, #a0c7eb 100%); }
+    #s5-sky-dusk { background: linear-gradient(180deg, #141f47 0%, #6b4c86 55%, #e57d5a 100%); }
+    #s5-sky-night { background: linear-gradient(180deg, #02040d 0%, #0a1530 55%, #1b2d55 100%); }
+    .s5-sun {
+      position: absolute; width: 520px; height: 520px; border-radius: 50%;
+      background:
+        radial-gradient(circle, rgb(255 253 235 / 100%) 0 7%, rgb(255 244 200 / 55%) 11%, rgb(255 236 170 / 18%) 26%, transparent 50%),
+        repeating-conic-gradient(from 0deg, rgb(255 255 255 / 10%) 0deg 5deg, transparent 5deg 16deg);
+      -webkit-mask: radial-gradient(circle, #000 0 22%, transparent 50%);
+              mask: radial-gradient(circle, #000 0 22%, transparent 50%);
+    }
+    #s5-sun-day { right: -150px; top: -190px; }
+    #s5-sun-partly { right: -150px; top: -190px; opacity: 0.8; }
+    #s5-sun-dusk { right: 30px; bottom: -300px;
+      background:
+        radial-gradient(circle, rgb(255 236 200 / 100%) 0 7%, rgb(255 190 120 / 60%) 12%, rgb(255 150 90 / 22%) 28%, transparent 50%),
+        repeating-conic-gradient(from 0deg, rgb(255 220 180 / 14%) 0deg 5deg, transparent 5deg 16deg); }
+    .s5-cloud { position: absolute; width: 380px; height: 150px; }
+    .s5-cloud i { position: absolute; border-radius: 50%;
+      background: radial-gradient(closest-side, rgb(255 255 255 / 95%) 0%, rgb(236 242 250 / 85%) 62%, transparent 100%); }
+    .s5-cloud i:nth-child(1) { left: 0; bottom: 0; width: 100%; height: 50%; }
+    .s5-cloud i:nth-child(2) { left: 8%; bottom: 18%; width: 38%; height: 72%; }
+    .s5-cloud i:nth-child(3) { left: 30%; bottom: 24%; width: 46%; height: 94%; }
+    .s5-cloud i:nth-child(4) { left: 58%; bottom: 16%; width: 34%; height: 66%; }
+    #s5-moon {
+      position: absolute; right: 120px; top: 70px; width: 70px; height: 70px; border-radius: 50%;
+      background: radial-gradient(circle at 36% 36%, #f4f6ff, #cdd6ee 70%);
+      box-shadow: 0 0 60px 18px rgb(190 205 255 / 22%);
+    }
+    #s5-stars {
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(2px 2px at 8% 20%, #fff, transparent), radial-gradient(1.5px 1.5px at 18% 62%, #fff, transparent),
+        radial-gradient(2px 2px at 27% 34%, #fff, transparent), radial-gradient(1.5px 1.5px at 36% 12%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 44% 70%, #fff, transparent), radial-gradient(2px 2px at 52% 26%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 61% 52%, #fff, transparent), radial-gradient(2px 2px at 68% 14%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 74% 64%, #fff, transparent), radial-gradient(1.5px 1.5px at 83% 40%, #fff, transparent),
+        radial-gradient(2px 2px at 91% 76%, #fff, transparent), radial-gradient(1.5px 1.5px at 13% 84%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 31% 88%, #fff, transparent), radial-gradient(2px 2px at 57% 82%, #fff, transparent);
+    }
+    .s5-shade { position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgb(0 0 0 / 14%) 0%, rgb(0 0 0 / 0%) 26%, rgb(0 0 0 / 0%) 60%, rgb(0 0 0 / 22%) 100%); }
+    .s5-city { position: absolute; left: 40px; top: 32px; font-size: 40px; font-weight: 600; text-shadow: 0 1px 8px rgb(0 0 0 / 30%); }
+    .s5-temp { position: absolute; left: 34px; top: 84px; font-size: 150px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; text-shadow: 0 2px 12px rgb(0 0 0 / 25%); }
+    #s5-caption {
+      position: absolute; left: 880px; top: 690px; width: 900px;
+      font-size: 66px; font-weight: 600; letter-spacing: -0.028em; line-height: 1.08;
+    }
+    #s5-caption .line span { display: inline-block; margin-right: 18px; }
+    #s5-caption .accent { color: #64a8ff; }
+  </style>
+  <div id="root" data-composition-id="musicsky" data-width="1920" data-height="1080">
+    <div id="s5-phone" data-layout-allow-overflow>
+      <img id="s5-home" src="assets/img/music-home.png" alt="Music home with a mini player above Home, Search and Your Library" />
+      <img id="s5-player" src="assets/img/music-player.png" alt="Full-screen player: Golden Hour by Sample Artist" />
+      <div id="s5-touch"></div>
+    </div>
+
+    <div id="s5-weather" data-layout-allow-overflow>
+      <div id="s5-sky-day" class="s5-sky"><div id="s5-sun-day" class="s5-sun"></div></div>
+      <div id="s5-sky-partly" class="s5-sky">
+        <div id="s5-sun-partly" class="s5-sun"></div>
+        <div id="s5-cloudA" class="s5-cloud" style="left: 40px; top: 210px"><i></i><i></i><i></i><i></i></div>
+        <div id="s5-cloudB" class="s5-cloud" style="left: 430px; top: 120px"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div id="s5-sky-dusk" class="s5-sky"><div id="s5-sun-dusk" class="s5-sun"></div></div>
+      <div id="s5-sky-night" class="s5-sky"><div id="s5-stars"></div><div id="s5-moon"></div></div>
+      <div class="s5-shade"></div>
+      <div class="s5-city">Berlin</div>
+      <div class="s5-temp">10°</div>
+    </div>
+
+    <div id="s5-caption">
+      <div class="line"><span>An</span><span>animated</span><span>sky</span></div>
+      <div class="line"><span>for</span><span class="accent">24</span><span class="accent">conditions.</span></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      // Both cards arrive by blurring in on the same stage.
+      tl.fromTo(["#s5-phone", "#s5-weather"], { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", stagger: 0.06 }, 0);
+
+      // Simulated tap on the chevron, then the player slides down into the mini player.
+      tl.fromTo("#s5-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.15, ease: "power2.out" }, 0.22);
+      tl.to("#s5-touch", { scale: 0.85, duration: 0.1, ease: "power2.inOut" }, 0.38);
+      tl.to("#s5-touch", { y: 220, opacity: 0, duration: 0.3, ease: "power2.in" }, 0.48);
+      tl.fromTo("#s5-player", { y: 0, opacity: 1 }, { y: 600, duration: 0.6, ease: "power3.inOut" }, 0.45);
+      tl.to("#s5-player", { opacity: 0, duration: 0.18, ease: "power2.in" }, 0.87);
+
+      // The sky turns: clear day → partly cloudy → sunset → night (accents on 16.86, 17.91, 18.96 s).
+      tl.fromTo("#s5-sky-partly", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 0.4);
+      tl.fromTo("#s5-sky-dusk", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "power2.inOut" }, 1.45);
+      tl.fromTo("#s5-sky-night", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "power2.inOut" }, 2.5);
+      tl.fromTo("#s5-cloudA", { x: -120 }, { x: 60, duration: 3.68, ease: "none" }, 0);
+      tl.fromTo("#s5-cloudB", { x: 60, scale: 0.8 }, { x: -40, scale: 0.8, duration: 3.68, ease: "none" }, 0);
+      tl.fromTo("#s5-sun-dusk", { y: -30 }, { y: 30, duration: 1.6, ease: "power1.inOut" }, 1.4);
+      tl.fromTo("#s5-moon", { y: 24 }, { y: 0, duration: 1.2, ease: "power2.out" }, 2.5);
+
+      // Caption: 6 words, settled ~1.05 → 3.44 (~2.4 s).
+      gsap.utils.toArray("#s5-caption span").forEach((w, i) => {
+        tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.55 + i * 0.07);
+      });
+      // Exit: blur out together into the outro.
+      tl.to(["#s5-caption", "#s5-phone", "#s5-weather"], { opacity: 0, filter: "blur(8px)", duration: 0.22, ease: "power2.in" }, 3.44);
+      window.__timelines["musicsky"] = tl;
+    })();
+  </script>
+</template>

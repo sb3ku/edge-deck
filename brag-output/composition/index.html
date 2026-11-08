@@ -1,0 +1,110 @@
+<!doctype html>
+<html
+  lang="en"
+  data-composition-variables='[
+    {"id":"color-ground","type":"color","label":"Background","default":"#000000"},
+    {"id":"color-ink","type":"color","label":"Text","default":"#f5f5f7"},
+    {"id":"color-accent","type":"color","label":"Accent","default":"#0a84ff"},
+    {"id":"font-display","type":"string","label":"Display font","default":"Deck UI"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Edge Deck brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --color-ground: #000000;
+        --color-ink: #f5f5f7;
+        --color-accent: #0a84ff;
+        --font-display: "Deck UI";
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--color-ground);
+      }
+      #root { width: 100%; height: 100%; position: relative; }
+      /* theme.css ground: black with two faint local glows (radial, so no banding) */
+      #ground {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(1400px 620px at 12% -8%, rgb(10 132 255 / 18%), transparent 62%),
+          radial-gradient(1100px 620px at 96% 112%, rgb(191 90 242 / 15%), transparent 62%),
+          var(--color-ground);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="23.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="ground" data-layout-ignore></div>
+
+      <!-- Scenes -->
+      <div id="strip" data-composition-id="strip" data-composition-src="compositions/strip.html"
+        data-start="0" data-duration="3.7" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 2"></div>
+      <div id="deck" data-composition-id="deck" data-composition-src="compositions/deck.html"
+        data-start="3.7" data-duration="5.26" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 3"></div>
+      <div id="agents" data-composition-id="agents" data-composition-src="compositions/agents.html"
+        data-start="8.96" data-duration="3.69" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 4"></div>
+      <div id="print" data-composition-id="print" data-composition-src="compositions/print.html"
+        data-start="12.65" data-duration="3.69" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 5"></div>
+      <div id="musicsky" data-composition-id="musicsky" data-composition-src="compositions/musicsky.html"
+        data-start="16.34" data-duration="3.68" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 6"></div>
+      <div id="outro" data-composition-id="outro" data-composition-src="compositions/outro.html"
+        data-start="20.02" data-duration="3.48" data-track-index="1" data-track-kind="graphics"
+        data-width="1920" data-height="1080" style="z-index: 7"></div>
+
+      <!-- Music: Sascha Ende, ende.app (CC BY 4.0) -->
+      <audio id="music" class="clip" data-start="0" data-duration="23.5" data-track-index="2"
+        data-volume="0.87" data-fade-in="0.3" data-fade-out="1.2"
+        src="assets/music/happy-beats-business-moves-vol-11-by-ende-dot-app.mp3"></audio>
+
+      <!-- SFX: Kenney (CC0). Each sits where its picture lands. -->
+      <audio id="sfx-open" class="clip" data-start="1.6" data-duration="0.18" data-track-index="3"
+        data-volume="0.55" src="assets/sfx/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-card1" class="clip" data-start="4.27" data-duration="0.14" data-track-index="3"
+        data-volume="0.22" src="assets/sfx/impactSoft_medium_002.ogg"></audio>
+      <audio id="sfx-card2" class="clip" data-start="4.79" data-duration="0.15" data-track-index="4"
+        data-volume="0.22" src="assets/sfx/impactSoft_medium_004.ogg"></audio>
+      <audio id="sfx-card3" class="clip" data-start="5.32" data-duration="0.14" data-track-index="3"
+        data-volume="0.22" src="assets/sfx/impactSoft_medium_002.ogg"></audio>
+      <audio id="sfx-card4" class="clip" data-start="5.84" data-duration="0.15" data-track-index="4"
+        data-volume="0.22" src="assets/sfx/impactSoft_medium_004.ogg"></audio>
+      <audio id="sfx-card5" class="clip" data-start="6.38" data-duration="0.18" data-track-index="3"
+        data-volume="0.22" src="assets/sfx/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-check1" class="clip" data-start="10.04" data-duration="0.05" data-track-index="3"
+        data-volume="0.5" src="assets/sfx/click_003.ogg"></audio>
+      <audio id="sfx-check2" class="clip" data-start="11.09" data-duration="0.05" data-track-index="4"
+        data-volume="0.5" src="assets/sfx/click_002.ogg"></audio>
+      <audio id="sfx-done" class="clip" data-start="14.68" data-duration="0.12" data-track-index="3"
+        data-volume="0.5" src="assets/sfx/bong_001.ogg"></audio>
+      <audio id="sfx-slide" class="clip" data-start="16.9" data-duration="0.6" data-track-index="3"
+        data-volume="0.35" src="assets/sfx/card-slide-1.ogg"></audio>
+      <audio id="sfx-logo" class="clip" data-start="20.57" data-duration="1.48" data-track-index="3"
+        data-volume="0.32" src="assets/sfx/impactBell_heavy_000.ogg"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

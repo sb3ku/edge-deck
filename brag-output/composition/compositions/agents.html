@@ -1,0 +1,196 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Deck UI";
+      src: local("Segoe UI Variable Display"), local("SegoeUIVariable-Display"), local("Segoe UI");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: var(--font-display, "Deck UI"), "Segoe UI", sans-serif;
+      color: #f5f5f7;
+      font-variant-numeric: tabular-nums;
+    }
+    #s3-wrap { position: absolute; left: 150px; top: 0; bottom: 0; width: 900px; display: flex; align-items: center; }
+    #s3-card {
+      width: 900px;
+      padding: 26px 28px 28px;
+      border-radius: 44px;
+      border: 1px solid rgb(255 255 255 / 9%);
+      background: linear-gradient(180deg, #212123 0%, #1c1c1e 60%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 30px 80px rgb(0 0 0 / 55%);
+    }
+    .s3-head { display: flex; justify-content: flex-end; font-size: 21px; font-weight: 600; color: #64a8ff; margin-bottom: 12px; }
+    .s3-chat {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 0 22px;
+      padding: 24px 28px;
+      border-radius: 28px;
+      background: #2a2a2d;
+      margin-bottom: 14px;
+    }
+    .s3-orb { width: 84px; height: 84px; }
+    .s3-meta { display: flex; align-items: center; gap: 12px; font-size: 19px; color: rgb(235 235 245 / 62%); }
+    .s3-badge { padding: 3px 12px; border-radius: 10px; font-weight: 600; font-size: 18px; }
+    .s3-badge.codex { background: rgb(16 163 127 / 20%); color: #34d6a8; }
+    .s3-badge.claude { background: rgb(217 119 87 / 20%); color: #f2a183; }
+    .s3-title { font-size: 31px; font-weight: 600; letter-spacing: -0.01em; margin-top: 8px; }
+    .s3-activity { font-size: 26px; color: rgb(235 235 245 / 66%); margin-top: 8px; }
+    .s3-detail { font-size: 21px; color: rgb(235 235 245 / 62%); margin-top: 6px; }
+    .s3-foot {
+      display: flex; justify-content: space-between;
+      margin-top: 16px; padding-top: 14px;
+      border-top: 1px solid rgb(255 255 255 / 10%);
+      font-size: 21px; color: rgb(235 235 245 / 62%);
+    }
+    .s3-steps { margin-top: 14px; padding: 8px 18px; border-radius: 18px; border: 1px solid rgb(255 255 255 / 10%); }
+    .s3-step { position: relative; display: flex; align-items: center; gap: 14px; height: 44px; font-size: 22px; }
+    .s3-step-label { color: #f5f5f7; }
+    .s3-icon { position: relative; width: 26px; height: 26px; flex: none; }
+    .s3-spin, .s3-done { position: absolute; inset: 0; }
+    .s3-spin { border-radius: 50%; border: 3px solid rgb(10 132 255 / 25%); border-top-color: #0a84ff; }
+    .s3-done { border-radius: 50%; background: #c7c7cc; display: grid; place-items: center; }
+    .s3-done svg { width: 16px; height: 16px; }
+    .s3-usage {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 22px; border-radius: 18px; margin-top: 10px;
+      border: 1px solid rgb(255 255 255 / 8%); background: #19191b;
+      font-size: 21px; color: #f5f5f7;
+    }
+    .s3-usage .who { font-weight: 600; }
+    .s3-usage .dim { color: rgb(235 235 245 / 62%); font-size: 18px; }
+    .s3-usage .right { margin-left: auto; font-weight: 600; }
+    #s3-caption {
+      position: absolute; left: 1150px; top: 0; bottom: 0; width: 700px;
+      display: flex; flex-direction: column; justify-content: center;
+      font-size: 86px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.06;
+    }
+    #s3-caption .line span { display: inline-block; margin-right: 22px; }
+    #s3-caption .accent { color: #64a8ff; }
+  </style>
+  <div id="root" data-composition-id="agents" data-width="1920" data-height="1080">
+    <div id="s3-wrap">
+      <div id="s3-card">
+        <div class="s3-head">● 2 working</div>
+
+        <div class="s3-chat">
+          <svg id="s3-orb-codex" class="s3-orb" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
+          <div>
+            <div class="s3-meta"><span class="s3-badge codex">Codex</span><span>shop</span></div>
+            <div class="s3-title">Fix checkout totals</div>
+            <div class="s3-activity">Running commands</div>
+            <div class="s3-detail">Running the checkout tests.</div>
+            <div class="s3-foot"><span>Working for</span><span id="s3-timer">5m 2s</span></div>
+          </div>
+        </div>
+
+        <div class="s3-chat">
+          <svg id="s3-orb-claude" class="s3-orb" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
+          <div>
+            <div class="s3-meta"><span class="s3-badge claude">Claude Code</span><span>weather-app</span></div>
+            <div class="s3-title">Add hourly forecast</div>
+            <div class="s3-activity">Editing files</div>
+            <div class="s3-detail">Wiring the hourly forecast into the main view.</div>
+            <div class="s3-steps">
+              <div class="s3-step">
+                <div class="s3-icon"><div id="s3-spin1" class="s3-spin"></div>
+                  <div id="s3-done1" class="s3-done"><svg viewBox="0 0 16 16"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="#1c1c1e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                <span id="s3-label1" class="s3-step-label">Read the forecast API</span>
+              </div>
+              <div class="s3-step">
+                <div class="s3-icon"><div id="s3-spin2" class="s3-spin"></div>
+                  <div id="s3-done2" class="s3-done"><svg viewBox="0 0 16 16"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="#1c1c1e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                <span id="s3-label2" class="s3-step-label">Add the hourly strip</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="s3-usage"><span class="who" style="color:#34d6a8">Codex</span><span>Weekly limit</span><span class="dim">resets Wed 05:50</span><span class="right">42%</span></div>
+        <div class="s3-usage"><span class="who" style="color:#f2a183">Claude</span><span>Today</span><span class="dim">312k tokens written</span><span class="right">186 replies</span></div>
+      </div>
+    </div>
+
+    <div id="s3-caption">
+      <div class="line"><span>Your</span><span>AI</span><span>agents,</span></div>
+      <div class="line"><span class="accent">at</span><span class="accent">a</span><span class="accent">glance.</span></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const NS = "http://www.w3.org/2000/svg";
+      // Codex orb: dots on a sphere (golden-angle spiral), turned by the timeline.
+      const codex = document.querySelector("#s3-orb-codex");
+      const dots = [];
+      const N = 70;
+      for (let i = 0; i < N; i++) {
+        const y = 1 - (i / (N - 1)) * 2;
+        const r = Math.sqrt(1 - y * y);
+        const c = document.createElementNS(NS, "circle");
+        c.setAttribute("fill", "#10a37f");
+        codex.appendChild(c);
+        dots.push({ el: c, y, r, a: i * 2.39996 });
+      }
+      // Claude orb: meridian rings of a sphere, turned by the timeline.
+      const claude = document.querySelector("#s3-orb-claude");
+      const rings = [];
+      for (let i = 0; i < 9; i++) {
+        const e = document.createElementNS(NS, "ellipse");
+        e.setAttribute("cx", 0); e.setAttribute("cy", 0); e.setAttribute("ry", 40);
+        e.setAttribute("fill", "none"); e.setAttribute("stroke", "#d97757"); e.setAttribute("stroke-width", 2.2);
+        claude.appendChild(e);
+        rings.push({ el: e, phase: (i / 9) * Math.PI });
+      }
+      function drawOrbs(t) {
+        const turn = t * 0.9;
+        dots.forEach((d) => {
+          const a = d.a + turn;
+          const x = Math.cos(a) * d.r * 40, z = Math.sin(a) * d.r;
+          d.el.setAttribute("cx", x.toFixed(2));
+          d.el.setAttribute("cy", (-d.y * 40).toFixed(2));
+          d.el.setAttribute("r", (1.4 + 1.3 * (z + 1) / 2).toFixed(2));
+          d.el.setAttribute("opacity", (0.25 + 0.75 * (z + 1) / 2).toFixed(2));
+        });
+        rings.forEach((g) => {
+          const c = Math.cos(g.phase + turn);
+          g.el.setAttribute("rx", Math.abs(c * 40).toFixed(2));
+          g.el.setAttribute("opacity", (0.35 + 0.65 * Math.abs(Math.sin(g.phase + turn))).toFixed(2));
+        });
+      }
+      const timer = document.querySelector("#s3-timer");
+      const clock = { t: 0 };
+      function tick() {
+        drawOrbs(clock.t);
+        timer.textContent = "5m " + (2 + Math.floor(clock.t)) + "s";
+      }
+      tick();
+
+      const tl = gsap.timeline({ paused: true });
+      // Seek-safe continuous motion: orbs turn and the timer counts with timeline time.
+      tl.fromTo(clock, { t: 0 }, { t: 3.69, duration: 3.69, ease: "none", onUpdate: tick }, 0);
+      tl.fromTo(["#s3-spin1", "#s3-spin2"], { rotation: 0 }, { rotation: 1440, duration: 3.69, ease: "none" }, 0);
+
+      // Carried in from the deck's push-in: arrives blurred and slightly right, settles.
+      tl.fromTo("#s3-card", { x: 257, scale: 1.06, filter: "blur(10px)", opacity: 0.6 },
+        { x: 0, scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.55, ease: "expo.out" }, 0);
+
+      // beat-grid: checkmarks on every other beat, 10.01 s and 11.06 s (local 1.05, 2.10)
+      [[1.05, 1], [2.1, 2]].forEach(([at, n]) => {
+        tl.fromTo("#s3-spin" + n, { opacity: 1 }, { opacity: 0, duration: 0.12, ease: "power2.out" }, at);
+        tl.fromTo("#s3-done" + n, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "expo.out" }, at);
+        tl.fromTo("#s3-label" + n, { color: "rgb(245,245,247)" }, { color: "rgba(235,235,245,0.62)", duration: 0.3, ease: "power2.out" }, at);
+      });
+
+      // Caption: per word from blur; 6 words, settled ~0.95 → 3.36 (~2.4 s).
+      gsap.utils.toArray("#s3-caption span").forEach((w, i) => {
+        tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.45 + i * 0.08);
+      });
+      // Exit: a whip left into the printers scene.
+      tl.to("#s3-caption", { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power2.in" }, 3.36);
+      tl.to("#s3-card", { x: -320, opacity: 0, filter: "blur(12px)", duration: 0.3, ease: "power3.in" }, 3.38);
+      window.__timelines["agents"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,101 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Deck UI";
+      src: local("Segoe UI Variable Display"), local("SegoeUIVariable-Display"), local("Segoe UI");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: var(--font-display, "Deck UI"), "Segoe UI", sans-serif;
+      color: #f5f5f7;
+    }
+    #s2-cam { position: absolute; inset: 0; transform-origin: 857px 536px; }
+    #s2-band {
+      position: absolute;
+      left: 60px;
+      top: 287px;
+      width: 1800px;
+      height: 506px;
+      border-radius: 22px;
+      background: #000;
+      overflow: hidden;
+    }
+    #s2-bezel {
+      position: absolute;
+      left: 60px;
+      top: 287px;
+      width: 1800px;
+      height: 506px;
+      border-radius: 22px;
+      border: 2px solid rgb(10 132 255 / 70%);
+      box-shadow: 0 0 80px rgb(10 132 255 / 22%);
+    }
+    /* A slice of the real 2560 × 720 dashboard screenshot (sample data), at 0.703125 scale.
+       --x/--y/--w/--h are in screenshot pixels. */
+    .s2-piece {
+      position: absolute;
+      left: calc(var(--x) * 0.703125px);
+      top: calc(var(--y) * 0.703125px);
+      width: calc(var(--w) * 0.703125px);
+      height: calc(var(--h) * 0.703125px);
+      background-image: url("assets/img/dashboard.png");
+      background-size: 1800px 506.25px;
+      background-position: calc(var(--x) * -0.703125px) calc(var(--y) * -0.703125px);
+      border-radius: 20px;
+    }
+    #s2-caption {
+      position: absolute;
+      left: 60px;
+      width: 1800px;
+      top: 128px;
+      text-align: center;
+      font-size: 64px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    #s2-caption span { display: inline-block; margin: 0 9px; }
+  </style>
+  <div id="root" data-composition-id="deck" data-width="1920" data-height="1080">
+    <div id="s2-cam">
+      <div id="s2-caption">
+        <span>Music,</span><span>3D</span><span>printers,</span><span>weather</span><span>and</span><span>AI</span><span>agents.</span>
+      </div>
+      <div id="s2-band">
+        <div id="s2-top" class="s2-piece" style="--x: 0; --y: 0; --w: 2560; --h: 72"></div>
+        <div id="s2-c1" class="s2-piece" style="--x: 22; --y: 74; --w: 491; --h: 560"></div>
+        <div id="s2-c2" class="s2-piece" style="--x: 523; --y: 74; --w: 361; --h: 560"></div>
+        <div id="s2-c3" class="s2-piece" style="--x: 895; --y: 74; --w: 478; --h: 560"></div>
+        <div id="s2-c4" class="s2-piece" style="--x: 1383; --y: 74; --w: 601; --h: 560"></div>
+        <div id="s2-c5" class="s2-piece" style="--x: 1994; --y: 74; --w: 544; --h: 560"></div>
+        <div id="s2-add" class="s2-piece" style="--x: 1206; --y: 644; --w: 149; --h: 66"></div>
+      </div>
+      <div id="s2-bezel"></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      // The strip's blue rim cools to a quiet bezel as the screen comes on.
+      tl.fromTo("#s2-bezel", { borderColor: "rgba(10,132,255,0.7)", boxShadow: "0 0 80px rgba(10,132,255,0.22)" },
+        { borderColor: "rgba(255,255,255,0.16)", boxShadow: "0 0 60px rgba(10,132,255,0.10)", duration: 0.8, ease: "power2.inOut" }, 0.1);
+      tl.fromTo("#s2-top", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 0.15);
+      // beat-grid: cards at 4.23, 4.75, 5.28, 5.80, 6.34 s (local 0.53, 1.05, 1.58, 2.10, 2.64)
+      ["#s2-c1", "#s2-c2", "#s2-c3", "#s2-c4", "#s2-c5"].forEach((id, i) => {
+        const at = [0.53, 1.05, 1.58, 2.1, 2.64][i];
+        tl.fromTo(id, { opacity: 0, y: 34, filter: "blur(6px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, at - 0.04);
+      });
+      tl.fromTo("#s2-add", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 2.95);
+      // Caption overlaps the last two cards: 7 words, settled ~2.33 → 4.84 (~2.5 s).
+      gsap.utils.toArray("#s2-caption span").forEach((w, i) => {
+        tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 1.78 + i * 0.07);
+      });
+      tl.to("#s2-caption", { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power2.in" }, 4.84);
+      // Push in to the agents card; cut at the fastest frame into the agents scene.
+      tl.fromTo("#s2-cam", { scale: 1, filter: "blur(0px)" }, { scale: 2.3, filter: "blur(10px)", duration: 0.34, ease: "power3.in" }, 4.92);
+      window.__timelines["deck"] = tl;
+    })();
+  </script>
+</template>

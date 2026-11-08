@@ -1,0 +1,4 @@
+Introducing Edge Deck: a touchscreen dashboard for the Corsair XENEON EDGE that puts my music, Bambu Lab printers, weather and AI coding agents on one 2560 × 720 strip. Open source, Windows, no telemetry.
+github.com/sb3ku/edge-deck
+
+Music: Sascha Ende, ende.app (CC BY 4.0)

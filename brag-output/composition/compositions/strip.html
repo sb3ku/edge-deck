@@ -1,0 +1,106 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Deck UI";
+      src: local("Segoe UI Variable Display"), local("SegoeUIVariable-Display"), local("Segoe UI");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: var(--font-display, "Deck UI"), "Segoe UI", sans-serif;
+      color: #f5f5f7;
+    }
+    /* The XENEON EDGE strip: 2560 × 720 shown at 1800 × 506 */
+    #s1-line {
+      position: absolute;
+      left: 60px;
+      top: 539px;
+      width: 1800px;
+      height: 3px;
+      border-radius: 2px;
+      background: #0a84ff;
+      box-shadow: 0 0 18px 2px rgb(10 132 255 / 70%), 0 0 60px 8px rgb(10 132 255 / 30%);
+    }
+    #s1-band {
+      position: absolute;
+      left: 60px;
+      top: 287px;
+      width: 1800px;
+      height: 506px;
+      border-radius: 22px;
+      border: 2px solid rgb(10 132 255 / 70%);
+      background: radial-gradient(900px 300px at 50% 50%, rgb(10 132 255 / 16%), rgb(10 132 255 / 4%) 70%), #000;
+      box-shadow: 0 0 80px rgb(10 132 255 / 22%);
+    }
+    #s1-dims {
+      position: absolute;
+      right: 60px;
+      top: 236px;
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-variant-numeric: tabular-nums;
+      color: #64a8ff;
+    }
+    #s1-caption {
+      position: absolute;
+      left: 60px;
+      top: 287px;
+      width: 1800px;
+      height: 506px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0 34px;
+      font-size: 132px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+    #s1-caption span { display: inline-block; }
+    /* Glow behind the strip; its strength follows the music (audio-reactive, subtle). */
+    #s1-glow-wrap { position: absolute; inset: 0; }
+    #s1-glow { position: absolute; left: 0; top: 240px; width: 1920px; height: 600px;
+      background: radial-gradient(50% 50% at 50% 50%, rgb(10 132 255 / 30%), rgb(10 132 255 / 8%) 55%, transparent 75%); }
+  </style>
+  <div id="root" data-composition-id="strip" data-width="1920" data-height="1080">
+    <div id="s1-glow-wrap" data-layout-ignore><div id="s1-glow"></div></div>
+    <div id="s1-band"></div>
+    <div id="s1-line"></div>
+    <div id="s1-dims">2560 × 720</div>
+    <div id="s1-caption">
+      <span>One</span><span>strip.</span>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      // Hairline draws out from the centre.
+      tl.fromTo("#s1-line", { scaleX: 0, opacity: 1 }, { scaleX: 1, duration: 1.0, ease: "expo.out" }, 0.2);
+      // beat-locked: 1.60s — the strip opens on the first strong cue.
+      tl.fromTo(
+        "#s1-band",
+        { clipPath: "inset(252px 0px 252px 0px round 22px)", opacity: 0 },
+        { clipPath: "inset(0px 0px 0px 0px round 22px)", opacity: 1, duration: 0.42, ease: "power3.inOut" },
+        1.18,
+      );
+      tl.to("#s1-line", { opacity: 0, duration: 0.2, ease: "power2.in" }, 1.4);
+      tl.fromTo("#s1-dims", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.75);
+      // Per-word blur in, then a dead-still hold (2 words: ~1.1 s floor; settled 1.92 → 3.44 ≈ 1.5 s).
+      const words = gsap.utils.toArray("#s1-caption span");
+      words.forEach((w, i) => {
+        tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 1.72 + i * 0.07);
+      });
+      // Exit: caption and label blur out; the band stays for the deck.
+      tl.to(["#s1-caption", "#s1-dims"], { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in" }, 3.44);
+      // audio-reactive: music RMS per frame (30 fps) from 0.0 s, extracted with media-use extract-audio-data.py
+      const RMS = [0.781,0.749,0.487,0.436,0.369,0.335,0.342,0.358,0.481,0.439,0.445,0.431,0.437,0.373,0.339,0.327,1.0,0.61,0.419,0.331,0.322,0.307,0.303,0.289,0.323,0.324,0.301,0.283,0.269,0.266,0.262,0.423,0.883,0.559,0.418,0.392,0.31,0.286,0.271,0.277,0.283,0.268,0.262,0.265,0.348,0.31,0.246,0.666,0.774,0.55,0.404,0.31,0.242,0.241,0.215,0.347,0.49,0.436,0.423,0.388,0.314,0.22,0.178,0.744,0.715,0.546,0.41,0.347,0.346,0.334,0.326,0.445,0.388,0.351,0.328,0.275,0.274,0.253,0.238,0.807,0.695,0.411,0.325,0.294,0.321,0.287,0.324,0.248,0.258,0.235,0.252,0.246,0.269,0.238,0.278,0.837,0.637,0.472,0.394,0.276,0.29,0.26,0.249,0.278,0.223,0.202,0.192,0.295,0.244,0.187,0.489,0.865];
+      const glow = document.querySelector("#s1-glow");
+      const meter = { t: 0 };
+      const pulse = () => { const v = RMS[Math.min(RMS.length - 1, Math.floor(meter.t * 30))] || 0; glow.style.opacity = (0.45 + 0.55 * v).toFixed(3); };
+      tl.fromTo(meter, { t: 0 }, { t: 3.7, duration: 3.7, ease: "none", onUpdate: pulse }, 0);
+      tl.fromTo("#s1-glow-wrap", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 1.3);
+      window.__timelines["strip"] = tl;
+    })();
+  </script>
+</template>

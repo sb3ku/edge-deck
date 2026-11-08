@@ -1,0 +1,162 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Deck UI";
+      src: local("Segoe UI Variable Display"), local("SegoeUIVariable-Display"), local("Segoe UI");
+      font-weight: 100 900;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: var(--font-display, "Deck UI"), "Segoe UI", sans-serif;
+      color: #f5f5f7;
+      font-variant-numeric: tabular-nums;
+    }
+    #s4-caption {
+      position: absolute; left: 150px; top: 0; bottom: 0; width: 600px;
+      display: flex; flex-direction: column; justify-content: center;
+      font-size: 86px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.06;
+    }
+    #s4-caption .line span { display: inline-block; margin-right: 22px; }
+    #s4-caption .accent { color: #30d158; }
+    #s4-wrap { position: absolute; left: 770px; top: 0; bottom: 0; width: 1000px; display: flex; align-items: center; }
+    #s4-card {
+      position: relative;
+      width: 1000px;
+      padding: 30px 44px 36px;
+      border-radius: 48px;
+      border: 1px solid rgb(255 255 255 / 9%);
+      background: linear-gradient(180deg, #212123 0%, #1c1c1e 60%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 30px 80px rgb(0 0 0 / 55%);
+    }
+    .s4-head { text-align: right; font-size: 21px; font-weight: 600; color: rgb(235 235 245 / 62%); }
+    .s4-row { display: grid; grid-template-columns: 220px 1fr; gap: 0 36px; align-items: center; padding: 26px 0; }
+    .s4-row + .s4-row { border-top: 1px solid rgb(255 255 255 / 10%); }
+    .s4-art { display: grid; place-items: center; height: 220px; }
+    .s4-top { display: flex; justify-content: space-between; align-items: baseline; }
+    .s4-name { font-size: 44px; font-weight: 600; letter-spacing: -0.01em; }
+    .s4-status { position: relative; font-size: 27px; font-weight: 600; min-width: 170px; height: 36px; }
+    .s4-status span { position: absolute; right: 0; top: 0; white-space: nowrap; }
+    .s4-model { font-size: 25px; color: rgb(235 235 245 / 62%); margin-top: 4px; }
+    .s4-job { font-size: 25px; font-weight: 600; margin-top: 14px; }
+    .s4-progress { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px; }
+    #s4-pct { font-size: 42px; font-weight: 600; }
+    #s4-layers { font-size: 24px; font-weight: 600; color: rgb(235 235 245 / 80%); }
+    .s4-bar { position: relative; height: 12px; border-radius: 6px; background: rgb(255 255 255 / 12%); margin-top: 10px; overflow: hidden; }
+    #s4-fill { position: absolute; inset: 0; border-radius: 6px; background: #30d158; transform-origin: 0 50%; }
+    .s4-phase { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; }
+    .s4-phase-name { position: relative; height: 34px; min-width: 260px; font-size: 26px; font-weight: 600; }
+    .s4-phase-name span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+    .s4-done { font-size: 21px; color: rgb(235 235 245 / 62%); }
+    .s4-ready { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 600; margin-top: 14px; }
+    .s4-dot { width: 18px; height: 18px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 4px rgb(48 209 88 / 25%); }
+    .s4-spools { display: flex; gap: 26px; margin-top: 18px; }
+    .s4-spool { display: grid; justify-items: center; gap: 8px; font-size: 17px; font-weight: 600; color: rgb(235 235 245 / 62%); }
+    .s4-spool i { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 3px solid rgb(255 255 255 / 85%); }
+    .s4-spool i::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #1c1c1e; }
+  </style>
+  <div id="root" data-composition-id="print" data-width="1920" data-height="1080">
+    <div id="s4-caption">
+      <div class="line"><span>Bambu</span><span>Lab</span></div>
+      <div class="line"><span>printers,</span><span class="accent">live.</span></div>
+    </div>
+
+    <div id="s4-wrap">
+      <div id="s4-card">
+        <div class="s4-head">2 printers</div>
+
+        <div class="s4-row">
+          <div class="s4-art">
+            <!-- The printer's own model preview: an isometric desk organiser -->
+            <svg width="200" height="200" viewBox="-100 -100 200 200" aria-hidden="true">
+              <rect x="-11" y="-92" width="22" height="58" fill="#b9892c" />
+              <polygon points="0,-40 80,0 0,40 -80,0" fill="#f2c45e" />
+              <polygon points="-80,0 0,40 0,78 -80,38" fill="#e2ad45" />
+              <polygon points="80,0 0,40 0,78 80,38" fill="#cf9733" />
+              <polygon points="0,-24 52,2 0,28 -52,2" fill="#e8b850" />
+            </svg>
+          </div>
+          <div>
+            <div class="s4-top">
+              <div class="s4-name">Studio H2D</div>
+              <div class="s4-status" data-layout-allow-overlap>
+                <span id="s4-printing" style="color:#64a8ff">● Printing</span>
+                <span id="s4-finished" style="color:#30d158">● Finished</span>
+              </div>
+            </div>
+            <div class="s4-model">Bambu Lab H2D</div>
+            <div class="s4-job">Desk organiser</div>
+            <div class="s4-progress"><span id="s4-pct">63%</span><span id="s4-layers">118/186 | -48m</span></div>
+            <div class="s4-bar"><div id="s4-fill"></div></div>
+            <div class="s4-phase">
+              <div class="s4-phase-name" data-layout-allow-overlap><span id="s4-phase-a">Printing</span><span id="s4-phase-b" style="color:#30d158">Print finished</span></div>
+              <span class="s4-done">Done 01:50</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="s4-row">
+          <div class="s4-art">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="rgb(235 235 245 / 70%)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M7 9V3h10v6" /><rect x="3" y="9" width="18" height="8" rx="2" /><rect x="7" y="14" width="10" height="7" rx="1" />
+            </svg>
+          </div>
+          <div>
+            <div class="s4-top">
+              <div class="s4-name">Desk P1S</div>
+              <div class="s4-status" data-layout-allow-overlap><span style="color:#30d158">● Ready</span></div>
+            </div>
+            <div class="s4-model">Bambu Lab P1S</div>
+            <div class="s4-ready"><span class="s4-dot"></span>Ready to print</div>
+            <div class="s4-spools">
+              <div class="s4-spool"><i style="background:#f5f5f7"></i>PLA</div>
+              <div class="s4-spool"><i style="background:#2c2c2e"></i>PETG</div>
+              <div class="s4-spool"><i style="background:#ff453a"></i>PLA</div>
+              <div class="s4-spool"><i style="background:#0a84ff"></i>ABS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const pct = document.querySelector("#s4-pct");
+      const layers = document.querySelector("#s4-layers");
+      const job = { p: 0.63 };
+      function show() {
+        const p = job.p;
+        pct.textContent = Math.round(p * 100) + "%";
+        const done = Math.min(186, Math.round(186 * p));
+        const mins = Math.max(0, Math.round((48 * (1 - p)) / 0.37));
+        layers.textContent = p >= 0.999 ? "186/186" : done + "/186 | -" + mins + "m";
+      }
+      show();
+
+      const tl = gsap.timeline({ paused: true });
+      // Arrives from the right, matching the agents card's whip out.
+      tl.fromTo("#s4-card", { x: 340, opacity: 0, filter: "blur(12px)" },
+        { x: 0, opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" }, 0);
+
+      // The print runs 63% → 100%: number, layers and bar from one value.
+      tl.fromTo(job, { p: 0.63 }, { p: 1, duration: 1.45, ease: "power2.inOut", onUpdate: show }, 0.55);
+      tl.fromTo("#s4-fill", { scaleX: 0.63 }, { scaleX: 1, duration: 1.45, ease: "power2.inOut" }, 0.55);
+
+      // Finished at 14.68 s (local 2.03): status and phase flip to green.
+      tl.fromTo("#s4-printing", { opacity: 1 }, { opacity: 0, duration: 0.15, ease: "power2.in" }, 2.0);
+      tl.fromTo("#s4-finished", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "expo.out" }, 2.03);
+      tl.fromTo("#s4-phase-a", { opacity: 1 }, { opacity: 0, duration: 0.15, ease: "power2.in" }, 2.0);
+      tl.fromTo("#s4-phase-b", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "expo.out" }, 2.03);
+      tl.fromTo("#s4-fill", { boxShadow: "0 0 0px rgba(48,209,88,0)" }, { boxShadow: "0 0 22px rgba(48,209,88,0.9)", duration: 0.25, ease: "power2.out" }, 2.03);
+      tl.to("#s4-fill", { boxShadow: "0 0 6px rgba(48,209,88,0.4)", duration: 0.8, ease: "power2.out" }, 2.3);
+
+      // Caption: 4 words, settled ~0.85 → 3.4 (~2.5 s).
+      gsap.utils.toArray("#s4-caption span").forEach((w, i) => {
+        tl.fromTo(w, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out" }, 0.45 + i * 0.09);
+      });
+      // Exit: blur swap on one stage.
+      tl.to(["#s4-caption", "#s4-card"], { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in" }, 3.42);
+      window.__timelines["print"] = tl;
+    })();
+  </script>
+</template>
