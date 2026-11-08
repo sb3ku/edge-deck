@@ -136,3 +136,15 @@ test('closing while configuration loads cannot create a new connection', async (
   const pending = bridge.getFrame('p1s'); bridge.close(); resolveConfig(config);
   assert.equal((await pending).connected, false); assert.equal(connects, 0);
 });
+
+test('a live view asking with the frame it shows waits for the next frame', async t => {
+  let clock = 1000;
+  const { bridge, sockets } = p1Fixture({}, { now: () => clock }); t.after(() => bridge.close());
+  const first = bridge.getFrame('p1s'); await until(() => sockets.length);
+  sockets[0].emit('secureConnect'); sockets[0].emit('data', wire()); const shown = await first;
+  let settled = false;
+  const next = bridge.getFrame('p1s', shown.updatedAt).then(frame => { settled = true; return frame; });
+  await new Promise(resolve => setImmediate(resolve)); assert.equal(settled, false, 'The same frame is not sent again');
+  clock = 1100; sockets[0].emit('data', wire());
+  const frame = await next; assert.notEqual(frame.updatedAt, shown.updatedAt);
+});

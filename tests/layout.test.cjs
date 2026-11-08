@@ -68,3 +68,18 @@ test('invalid grid inputs cannot create an unbounded packing loop',()=>{
   assert.throws(()=>packCards([card('same'),card('same')]));
   for(const size of ['unknown','constructor','__proto__'])assert.throws(()=>packCards([card('bad',size)]));
 });
+
+test('auto arrange shares one row by content and stacks half-height cards when space runs out', () => {
+  const { planAuto } = require('../src/layout-engine.js');
+  const cards = types => types.map(type => ({ id: type, type }));
+  const roomy = planAuto(cards(['clock', 'weather', 'media']), { width: 2500 });
+  assert.deepEqual(roomy.columns.map(column => column.ids), [['clock'], ['weather'], ['media']]);
+  assert.ok(roomy.columns[0].weight < roomy.columns[1].weight, 'The clock is narrower than the weather');
+  const crowded = planAuto(cards(['today', 'tasks', 'printers', 'media', 'stats', 'actions']), { width: 2512 });
+  assert.deepEqual(crowded.columns.map(column => column.ids), [['today'], ['tasks', 'printers'], ['media'], ['stats'], ['actions']]);
+  // The music player and the controls are never stacked.
+  const tight = planAuto(cards(['media', 'actions', 'weather', 'today']), { width: 600 });
+  assert.ok(tight.columns.every(column => column.ids.length === 1));
+  assert.equal(tight.fits, false);
+  assert.deepEqual(planAuto(cards(['clock', 'launchers']), { width: 2500 }).columns.map(column => column.ids), [['clock']]);
+});

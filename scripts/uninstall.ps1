@@ -23,6 +23,10 @@ foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::Ge
 }
 Remove-Item -Recurse -Force (Join-Path ([Environment]::GetFolderPath('Programs')) 'Edge Deck') -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\EdgeDeck' -ErrorAction SilentlyContinue
+# The CPU temperature sensor (task and admin-only folder) needs administrator rights to remove.
+if (Test-Path (Join-Path $env:ProgramFiles 'Edge Deck Sensors')) {
+  try { Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f (Join-Path $installDir 'scripts\sensors\enable-cpu-temp.ps1')), '-Disable', '-RemoveDriver' } catch { }
+}
 # Notification name/icon and the edgedeck: link that opens the dashboard.
 Remove-Item -Recurse -Force 'HKCU:\Software\Classes\AppUserModelId\EdgeDeck', 'HKCU:\Software\Classes\edgedeck' -ErrorAction SilentlyContinue
 if ($RemoveSettings) { Remove-Item -Recurse -Force $data -ErrorAction SilentlyContinue }

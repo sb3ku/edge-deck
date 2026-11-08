@@ -34,8 +34,8 @@ async function verifyBrowser({profile,dashboardWindow}) {
   const directory=path.join(__dirname,'..','artifacts');await fs.mkdir(directory,{recursive:true});
   const targetDisplay=(await page.evaluate(()=>window.edge.getDisplays())).find(d=>d.isEdge);
   if(targetDisplay){await page.evaluate(id=>window.edge.moveToDisplay(id),targetDisplay.id);report.checks.push('Native display movement works on the XENEON EDGE');}
-  await page.locator('#fullscreen').click();await page.waitForFunction(async()=>!(await window.edge.getState()).system.fullscreen);
-  await page.locator('#fullscreen').click();await page.waitForFunction(async()=>(await window.edge.getState()).system.fullscreen);
+  await page.locator('#deck-menu').click();await page.locator('#fullscreen').click();await page.waitForFunction(async()=>!(await window.edge.getState()).system.fullscreen);
+  await page.locator('#deck-menu').click();await page.locator('#fullscreen').click();await page.waitForFunction(async()=>(await window.edge.getState()).system.fullscreen);
   await page.waitForFunction(()=>innerWidth===outerWidth && innerHeight===outerHeight);
   report.checks.push('Starts full screen without a title bar; touch toggle exits and restores full screen');
   const printerArt=await page.locator('.printer-figure img').evaluateAll(images=>images.map(image=>({src:image.getAttribute('src'),loaded:image.complete&&image.naturalWidth>0})));
@@ -85,7 +85,7 @@ async function verifyBrowser({profile,dashboardWindow}) {
     await page.screenshot({path:path.join(directory,`dashboard-${width}x${height}.png`)});
   }
   await page.setViewportSize({width:1600,height:700});
-  await page.locator('#customize').click();
+  await page.locator('#deck-menu').click();await page.locator('#customize').click();
   await page.screenshot({path:path.join(directory,'widget-settings.png')});
   await page.locator('#settings-content [role=switch]').first().click();
   await page.waitForFunction(()=>!document.querySelector('.widget.clock'));
@@ -95,7 +95,7 @@ async function verifyBrowser({profile,dashboardWindow}) {
   report.checks.push('Saved visibility survives a full page reload');
   await page.evaluate(config=>window.edge.saveConfig(config),initial.config);
   await page.waitForFunction(()=>document.querySelector('.widget.clock'));
-  await page.locator('#customize').click();await page.getByRole('button',{name:'Printers',exact:true}).click();
+  await page.locator('#deck-menu').click();await page.locator('#customize').click();await page.getByRole('button',{name:'Connections',exact:true}).click();await page.getByRole('button',{name:'Printers',exact:true}).click();
   assert.equal(await page.locator('form.settings-item input[type=password]').count(),2);assert.equal(await page.locator('section.settings-item', { hasText: 'Bambu Lab account' }).locator('input[type=password]').count(),1);
   await page.screenshot({path:path.join(directory,'printer-settings.png')});
   await page.getByRole('button',{name:'Close settings',exact:true}).click();
@@ -128,7 +128,7 @@ async function verifyBrowser({profile,dashboardWindow}) {
   };
   await page.route(integrationApi,integrationRoute);
   const openDisplay=async()=>{
-    await page.locator('#customize').click();
+    await page.locator('#deck-menu').click();await page.locator('#customize').click();
     await page.getByRole('button',{name:'Display',exact:true}).click();
     await page.getByRole('switch',{name:'Start with Windows',exact:true}).waitFor();
   };
@@ -181,7 +181,7 @@ async function verifyBrowser({profile,dashboardWindow}) {
 
     // Low power: the choice saves, freezes decorative motion and is reversible.
     const initialPower=(await page.evaluate(()=>window.edge.getState())).config.power?.mode||'auto';
-    await page.locator('#customize').click();await page.getByRole('button',{name:'Display',exact:true}).click();
+    await page.locator('#deck-menu').click();await page.locator('#customize').click();await page.getByRole('button',{name:'Display',exact:true}).click();
     const powerGroup=page.getByRole('group',{name:'Low power',exact:true});
     for(const label of ['Off','Automatic','On']){const box=await powerGroup.getByRole('button',{name:label,exact:true}).boundingBox();assert.ok(box.width>=47.9&&box.height>=47.9,`${label} is a 48 px target`);}
     const animated=await page.evaluate(()=>[...document.querySelectorAll('.sky-cloud,.task-current-label')].map(node=>getComputedStyle(node).animationName));
@@ -279,89 +279,9 @@ async function verifyBrowser({profile,dashboardWindow}) {
   await page.evaluate(()=>{
     const printer=window.__printerMockState.printers[0];printer.status='idle';
     printer.stage={code:null,label:'Idle',category:'idle',known:true};
-    Object.assign(printer.capabilities,{setNozzleTemperature:true,setBedTemperature:true,moveAxis:true,homeAxes:true});
     Object.assign(window.__printerFixture.style,{inset:'40px auto auto 50%',transform:'translateX(-50%)',width:'1120px',height:'620px',padding:'0',border:'1px solid #3a4c5d',borderRadius:'18px',overflow:'hidden'});
     window.EdgePrinterUI.render(window.__printerFixture,window.__printerContext);
   });
-  const commandCount=()=>page.evaluate(()=>window.__printerCalls.length);
-  const nozzleTarget=fixture.getByRole('spinbutton',{name:'Nozzle target temperature',exact:true});
-  const bedTarget=fixture.getByRole('spinbutton',{name:'Heatbed target temperature',exact:true});
-  await fixture.getByRole('button',{name:'Nozzle temperature controls',exact:true}).click();
-  assert.equal(await fixture.getByRole('button',{name:'Controls',exact:true}).getAttribute('aria-pressed'),'true');
-  assert.equal(await fixture.getByRole('button',{name:'Set nozzle',exact:true}).isDisabled(),true,'No nozzle is selected automatically');
-  await fixture.getByRole('button',{name:'Select Right nozzle for temperature',exact:true}).click();
-  await nozzleTarget.fill('215');await bedTarget.fill('60');
-  assert.equal(await commandCount(),1,'Changing screen, nozzle and draft targets sends nothing');
-  await nozzleTarget.fill('351');
-  assert.equal(await fixture.getByRole('button',{name:'Set nozzle',exact:true}).isDisabled(),true,'Model nozzle maximum is enforced');
-  assert.equal(await commandCount(),1,'Invalid temperature sends nothing');
-  await nozzleTarget.fill('215');await fixture.getByRole('button',{name:'Set nozzle',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===2);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[1]),{id:'ui-test',action:'setNozzleTemperature',params:{target:215,extruderId:0}});
-  await fixture.getByRole('button',{name:'Set heatbed',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===3);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[2]),{id:'ui-test',action:'setBedTemperature',params:{target:60}});
-  await fixture.getByRole('button',{name:'Heatbed off',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===4);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[3]),{id:'ui-test',action:'setBedTemperature',params:{target:0}});
-  report.checks.push('Mock temperature controls: drafts send nothing, nozzle selection is explicit, model limits disable invalid targets, exact nozzle ID/target and bed Off=0 are preserved');
-  await fixture.getByRole('button',{name:'Move X positive',exact:true}).click();
-  assert.equal(await commandCount(),4,'First jog waits for confirmation');
-  await fixture.getByRole('dialog',{name:'Move the printer axes?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();
-  assert.equal(await commandCount(),4,'Cancelling the first jog sends nothing');
-  await fixture.getByRole('button',{name:'0.1 mm',exact:true}).click();
-  await fixture.getByRole('button',{name:'Move X positive',exact:true}).click();
-  await fixture.getByRole('dialog',{name:'Move the printer axes?',exact:true}).getByRole('button',{name:'Enable & move',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===5);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[4]),{id:'ui-test',action:'moveAxis',params:{axis:'X',distance:0.1}});
-  await fixture.getByRole('button',{name:'Move Z negative',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===6);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[5]),{id:'ui-test',action:'moveAxis',params:{axis:'Z',distance:-0.1}});
-  await fixture.getByRole('button',{name:'Home axes',exact:true}).click();
-  assert.equal(await commandCount(),6,'Homing still requires confirmation after jogging is enabled');
-  await fixture.getByRole('dialog',{name:'Home the printer axes?',exact:true}).getByRole('button',{name:'Home axes',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===7);
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[6]),{id:'ui-test',action:'homeAxes',params:{}});
-  await fixture.getByRole('button',{name:'Home axes',exact:true}).click();
-  assert.equal(await commandCount(),7,'Every homing request is confirmed');
-  await fixture.getByRole('dialog',{name:'Home the printer axes?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();
-  await nozzleTarget.fill('205');
-  await page.evaluate(()=>{
-    const nozzle=window.__printerMockState.printers[0].temperatures.nozzles[0];nozzle.current=35;nozzle.target=215;
-    window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true});
-  });
-  assert.equal(await fixture.getByRole('button',{name:'Controls',exact:true}).getAttribute('aria-pressed'),'true');
-  assert.equal(await fixture.getByRole('button',{name:'Select Right nozzle for temperature',exact:true}).getAttribute('aria-pressed'),'true');
-  assert.equal(await nozzleTarget.inputValue(),'205','Live refresh preserves an edited target');
-  assert.equal(await fixture.getByRole('button',{name:'0.1 mm',exact:true}).getAttribute('aria-pressed'),'true');
-  assert.equal(await fixture.locator('[data-temperature-zone=nozzle] .printer-panel-heater-readings strong').textContent(),'35°C');
-  assert.match(await fixture.locator('[data-temperature-zone=nozzle] .printer-panel-heater-readings span').textContent(),/215°C/);
-  assert.equal(await fixture.locator('.printer-panel-screen').first().evaluate(node=>getComputedStyle(node).animationName),'none');
-  await fixture.getByRole('button',{name:'Home axes',exact:true}).click();
-  const refreshDuringConfirmation=await page.evaluate(()=>{
-    window.__printerMockState.printers[0].temperatures.bed.current=28;
-    return window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true});
-  });
-  assert.equal(refreshDuringConfirmation,false,'Caller can retry a deferred live refresh');
-  assert.equal(await fixture.getByRole('dialog',{name:'Home the printer axes?',exact:true}).isVisible(),true,'Telemetry does not dismiss an open confirmation');
-  await fixture.getByRole('dialog',{name:'Home the printer axes?',exact:true}).getByRole('button',{name:'Cancel',exact:true}).click();
-  const refreshed=await page.evaluate(()=>window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true}));
-  assert.equal(refreshed,true);
-  assert.equal(await fixture.locator('[data-temperature-zone=bed] .printer-panel-heater-readings strong').textContent(),'28°C');
-  assert.equal(await commandCount(),7);
-  await fixture.screenshot({path:path.join(directory,'printer-controls.png')});
-  await page.evaluate(()=>{window.__deferPrinterCommand=true;});
-  await fixture.getByRole('button',{name:'Set nozzle',exact:true}).click();
-  await page.waitForFunction(()=>window.__printerCalls.length===8);
-  assert.equal(await fixture.locator('.printer-panel').getAttribute('aria-busy'),'true','Action redraw disables controls even after a live refresh');
-  assert.equal(await fixture.getByRole('button',{name:'Set nozzle',exact:true}).isDisabled(),true);
-  assert.equal(await fixture.getByRole('button',{name:'Select Right nozzle for temperature',exact:true}).isDisabled(),true);
-  assert.equal(await page.evaluate(()=>window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true})),false);
-  await page.evaluate(()=>{window.__deferPrinterCommand=false;window.__finishPrinterCommand();delete window.__finishPrinterCommand;});
-  await page.waitForFunction(()=>document.querySelector('#printer-ui-verification .printer-panel')?.getAttribute('aria-busy')==='false');
-  assert.deepEqual(await page.evaluate(()=>window.__printerCalls[7]),{id:'ui-test',action:'setNozzleTemperature',params:{target:205,extruderId:0}});
-  report.checks.push('Mock movement controls: first jog Cancel sends nothing, confirmed jog uses the selected axis/step, later jog uses the armed session, homing always asks again');
-  report.checks.push('Live printer refresh preserves Controls tab, nozzle, draft and jog step; reports real readings; defers while a confirmation or command is pending; deliberate actions still disable controls');
   await fixture.getByRole('button',{name:'Home',exact:true}).click();
   await page.evaluate(()=>{
     const printer=window.__printerMockState.printers[0];printer.status='printing';printer.nozzle=180;printer.bed=60;
@@ -369,7 +289,6 @@ async function verifyBrowser({profile,dashboardWindow}) {
     window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true});
   });
   assert.equal(await fixture.locator('.printer-panel-phase').textContent(),'Heating nozzle');
-  assert.match(await fixture.getByRole('button',{name:'Nozzle temperature controls',exact:true}).textContent(),/180°/);
   await page.evaluate(()=>{
     const printer=window.__printerMockState.printers[0];printer.nozzle=184;printer.bed=61;
     printer.stage={code:1,label:'Leveling bed',category:'leveling',known:true};
@@ -377,12 +296,9 @@ async function verifyBrowser({profile,dashboardWindow}) {
   });
   assert.equal(await fixture.locator('.printer-panel-phase').textContent(),'Leveling bed');
   await fixture.screenshot({path:path.join(directory,'printer-stage.png')});
-  assert.match(await fixture.getByRole('button',{name:'Nozzle temperature controls',exact:true}).textContent(),/184°/);
-  assert.match(await fixture.getByRole('button',{name:'Heatbed temperature controls',exact:true}).textContent(),/61°/);
   await page.evaluate(()=>{window.__printerMockState.printers[0].status='offline';window.EdgePrinterUI.render(window.__printerFixture,{...window.__printerContext,liveRefresh:true});});
   assert.equal(await fixture.locator('.printer-panel-phase').count(),0,'Offline printer does not keep showing a stale active phase');
-  assert.match(await fixture.getByRole('button',{name:'Nozzle temperature controls',exact:true}).textContent(),/Last reading/);
-  assert.equal(await commandCount(),8);assert.equal(await page.evaluate(()=>window.__cameraCalls),calls);
+  assert.equal(await page.evaluate(()=>window.__printerCalls.length),1);assert.equal(await page.evaluate(()=>window.__cameraCalls),calls);
   report.checks.push('Home updates reported heating/leveling stage and temperatures live, and hides stale phase while offline; all new control checks use an isolated fake bridge');
   await page.evaluate(()=>{window.__printerFixture.remove();delete window.__printerContext;delete window.__printerMockState;});
   await page.evaluate(config=>window.edge.saveWeather(config),initial.config.weather || {location:null,units:'metric'});

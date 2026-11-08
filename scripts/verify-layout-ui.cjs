@@ -15,7 +15,7 @@ async function verifyLayoutUI(page, directory) {
   }, { id, property, value });
   const settled = selector => page.waitForFunction(selector => document.querySelector(`${selector} .edge-layout-ui`)?.getAttribute('aria-busy') === 'false', selector);
   const openLayout = async () => {
-    if (!(await page.locator('#settings').isVisible())) await page.locator('#customize').click();
+    if (!(await page.locator('#settings').isVisible())) await page.locator('#deck-menu').click();await page.locator('#customize').click();
     await page.locator('#settings').getByRole('button', { name: 'Layout', exact: true }).click();
     await settled('#settings');
   };
@@ -111,7 +111,7 @@ async function verifyLayoutUI(page, directory) {
     assert.equal(persisted.items[0].label, 'Outlook'); assert.equal(persisted.activeItemId, weather.id);
     checks.push('Card creation, name, size, view order, default view, deletion/Undo, and accessible tabs persist through reload');
 
-    await page.locator('#edit-layout').click();
+    await page.locator('#deck-menu').click();await page.locator('#edit-layout').click();
     const before = await order();
     const source = page.locator(`.container-card[data-id="${before[0]}"] .card-drag-handle`);
     const point = async locator => { const box = await locator.boundingBox(); assert.ok(box); return { x: box.x + box.width / 2, y: box.y + box.height / 2 }; };

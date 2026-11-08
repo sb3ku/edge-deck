@@ -12,12 +12,54 @@ const {isDeepStrictEqual}=require('node:util');
 const {createPrinterBridge}=require('./lib/printers.cjs');
 const {createSpotifyBridge}=require('./lib/spotify.cjs');
 const {createCameraBridge,findFfmpeg}=require('./lib/camera.cjs');
-const {createThumbnailStore,findPicture}=require('./lib/print-thumbnail.cjs');
+const {createThumbnailStore,findPicture,openSession:openPrinterFiles,locateJobFile,readEntries}=require('./lib/print-thumbnail.cjs');
+const {buildPlan}=require('./lib/reprint.cjs');
+// Print again: the plan shown for confirmation stays here; the dashboard only
+// confirms it by its id, so what prints is exactly what was checked.
+const reprintPlans=new Map();
+async function planReprint(id){
+  const job=printers.lastJobFor(id);if(!job)throw Error('The printer has not reported a previous job.');
+  const snapshot=printers.getState().find(p=>p.id===id);
+  if(!snapshot?.capabilities?.reprint)throw Error(snapshot?.capabilityReasons?.reprint||'Print again is unavailable.');
+  const printerConfig=config.privatePrinters().find(p=>p.id===id);
+  if(!printerConfig?.host||!printerConfig.accessCode)throw Error('Connect this printer in Customize first.');
+  const address=require('node:net').isIP(printerConfig.host)?undefined:await new Promise((resolve,reject)=>require('./lib/printers.cjs').lanLookup(printerConfig.host,{},(error,value)=>error?reject(error):resolve(value)));
+  const session=await openPrinterFiles(printerConfig,{address});
+  let file=null,entries=null;
+  try{file=await locateJobFile(session,job);if(file&&/\.3mf$/i.test(file))entries=await readEntries(session,file,/^Metadata\/slice_info\.config$/i);}
+  finally{session.close();}
+  const plan=buildPlan({job,printer:snapshot,file,entries});
+  if(!plan.ok){reprintPlans.delete(id);return {ok:false,reason:plan.reason};}
+  const planId=require('node:crypto').randomUUID();
+  reprintPlans.set(id,{planId,plan,key:job.key,at:Date.now()});
+  return {ok:true,planId,name:plan.name,plate:plan.plate,filaments:plan.filaments};
+}
+async function startReprint(id,planId){
+  const saved=reprintPlans.get(id);
+  if(!saved||saved.planId!==planId||Date.now()-saved.at>600000)throw Error('Check the job again before printing it.');
+  const job=printers.lastJobFor(id);
+  if(!job||job.key!==saved.key)throw Error('The printer reported another job. Check again before printing.');
+  reprintPlans.delete(id);
+  return printers.command(id,'reprint',{plan:saved.plan});
+}
 const {createBambuCloud}=require('./lib/bambu-cloud.cjs');
 const {createSpotifyCanvas}=require('./lib/spotify-canvas.cjs');
 const {createTray}=require('./lib/tray.cjs');
 const {createUpdater,repoFrom}=require('./lib/updater.cjs');
 const {createNotifier}=require('./lib/notifier.cjs');
+const {createPcStats}=require('./lib/pc-stats.cjs');
+const {createSystemControls}=require('./lib/system-controls.cjs');
+let systemControls=null;
+let pcStats=null,pcStatsTimer=null;
+// The stats helpers run only while a PC stats card is shown.
+function syncPcStats(){
+  if(!pcStats)return;
+  const shown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='stats'||(card.items||[]).some(item=>item.type==='stats')));
+  if(shown)pcStats.start();else pcStats.stop();
+  // Quick controls (Wi-Fi, Bluetooth, dark mode) are read only while a Quick actions card is shown.
+  const controls=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='actions'||(card.items||[]).some(item=>item.type==='actions')));
+  if(systemControls){if(controls)systemControls.start();else systemControls.stop();}
+}
 const {createToastLines}=require('./lib/toast.cjs');
 let notifier=null,notifyTimer=null;
 const packageInfo=require('./package.json');
@@ -61,6 +103,7 @@ app.requestSingleInstanceLock(verify?`edge-deck-verify-${process.pid}`:'edge-dec
   .catch(e=>{console.error(e);approvals?.close();media?.close();printers?.close();app.exit(1);});
 app.on('second-instance',()=>{dashboardWindow?.setFullscreen(true).then(()=>verify?null:dashboardWindow?.hideFromTaskbar()).then(()=>dashboardWindow?.activate()).catch(error=>console.error(error.message));});
 for(const signal of ['SIGINT','SIGTERM','SIGBREAK'])process.on(signal,()=>app.quit());
+process.on('exit',()=>{try{pcStats?.stop();systemControls?.stop();}catch{}});
 app.on('before-quit',()=>{tray?.close();approvals?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
 function state() {
   const publicConfig=config.publicConfig();
@@ -76,7 +119,7 @@ function state() {
   });
   // Verification stays deterministic: a game in front must not change the UI under test.
   const presence=verify?'normal':['fullscreen','away'].includes(mediaState.presence)?mediaState.presence:'normal';
-  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
+  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},pc:pcStats?.state()||null,controls:systemControls?.state()||null,update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
 }
 async function pollSpotify(){if(spotifyBusy)return;spotifyBusy=true;try{spotifyState={...await spotify.getState(),player:spotifyState.player??null};broadcast();}catch{spotifyState={...spotifyState,error:'Spotify connection is unavailable.'};}finally{spotifyBusy=false;}}
 // Spotify's player state is polled faster while music plays so progress,
@@ -236,7 +279,8 @@ async function start() {
   await windowsIntegration.refresh().catch(()=>{});lastWindowsRefresh=Date.now();
   config=createConfigStore(app.getPath('userData'),safeStorage);
   media=createMediaBridge();tasks=createTaskBridge();printers=createPrinterBridge();
-  spotify=createSpotifyBridge({webApi:pathname=>canvasClient?.web(pathname)??null,getConfig:()=>config.spotifyConfig(),saveTokens:tokens=>config.saveSpotifyTokens(tokens),openExternal:url=>shell.openExternal(url)});
+  const spotifyCacheFile=path.join(app.getPath('userData'),'spotify-cache.json');
+  spotify=createSpotifyBridge({cache:verify?null:{read:()=>JSON.parse(fs.readFileSync(spotifyCacheFile,'utf8')),write:value=>{const temporary=spotifyCacheFile+'.tmp';fs.writeFileSync(temporary,JSON.stringify(value));fs.renameSync(temporary,spotifyCacheFile);}},webApi:pathname=>canvasClient?.web(pathname)??null,getConfig:()=>config.spotifyConfig(),saveTokens:tokens=>config.saveSpotifyTokens(tokens),openExternal:url=>shell.openExternal(url)});
   weather=createWeatherBridge({getConfig:()=>config.publicConfig().weather,...(verify?{fetchImpl:require('./scripts/weather-fixture.cjs').fetchWeatherFixture}:{})});
   const weatherConfig=config.publicConfig().weather;
   weatherState={...weatherState,location:weatherConfig.location,configured:Boolean(weatherConfig.location),units:{system:weatherConfig.units,temperature:weatherConfig.units==='imperial'?'°F':'°C',windSpeed:weatherConfig.units==='imperial'?'mph':'km/h',precipitation:weatherConfig.units==='imperial'?'in':'mm'},status:weatherConfig.location?'loading':'unconfigured'};
@@ -272,7 +316,11 @@ async function startBrowser() {
     // Allow or Deny a Claude Code permission request shown on the dashboard.
     'claude:approvals':setClaudeApprovals,
     'agent:decide':(id,decision)=>{if(!approvals)throw Error('Agent approvals are not running.');approvals.decide(id,decision);broadcast();return state();},
-    'config:save':input=>{config.save(input);return state();},
+    'config:save':input=>{config.save(input);syncPcStats();return state();},
+    'pc:cpu-sensor':async enable=>{if(verify)throw Error('Sensor setup is disabled during verification.');if(!pcStats)throw Error('PC stats are unavailable.');await pcStats.setCpuSensor(enable===true);return state();},
+    'system:list':async kind=>{if(verify)throw Error('System controls are disabled during verification.');if(!systemControls)throw Error('Quick controls are unavailable.');return systemControls.list(String(kind));},
+    'system:control':async(action,value)=>{if(verify)throw Error('System controls are disabled during verification.');if(!systemControls)throw Error('Quick controls are unavailable.');await systemControls.command(String(action),value);return state();},
+    'pc:speedtest':async()=>{if(verify)throw Error('The speed test is disabled during verification.');if(!pcStats)throw Error('PC stats are unavailable.');pcStats.speedTest().catch(()=>{});return state();},
     'printer:save':input=>{config.savePrinter(input);printers.configure(config.privatePrinters());return state();},
     'media:command':async(action,value)=>{if(verify)throw Error('Physical media controls are disabled during verification.');mediaState=await media.command(action,value);return mediaState;},
     'spotify:save':async input=>{const previous=config.publicConfig().spotify.clientId;config.saveSpotify(input);if(config.publicConfig().spotify.clientId!==previous)await spotify.disconnect();spotifyState=await spotify.getState();return state();},
@@ -288,7 +336,9 @@ async function startBrowser() {
       else throw Error('Unknown Spotify action.');
       return spotifyState;
     },
-    'printer:command':async(id,action,params)=>{if(verify)throw Error('Printer actions are disabled during verification.');return printers.command(id,action,params);},
+    'printer:command':async(id,action,params)=>{if(verify)throw Error('Printer actions are disabled during verification.');if(action==='reprint')throw Error('Use Print again.');return printers.command(id,action,params);},
+    'printer:reprint-plan':async id=>{if(verify)throw Error('Printer actions are disabled during verification.');return planReprint(String(id));},
+    'printer:reprint':async(id,planId)=>{if(verify)throw Error('Printer actions are disabled during verification.');return startReprint(String(id),String(planId||''));},
     'printer:thumbnail':async id=>thumbnails?.get(String(id))||null,
     'bambu:signin':async input=>{if(verify)throw Error('Cloud sign-in is disabled during verification.');const result=await bambuCloud.signIn(input||{});if(result.status==='signed-in')thumbnails?.reset();broadcast();return {...result,state:state()};},
     'bambu:verify':async input=>{if(verify)throw Error('Cloud sign-in is disabled during verification.');const result=await bambuCloud.verify(input||{});thumbnails?.reset();bambuCloud.printerNames().then(found=>{printerNames=found;broadcast();},()=>{});broadcast();return {...result,state:state()};},
@@ -298,7 +348,8 @@ async function startBrowser() {
     'update:install':async()=>{if(verify)throw Error('Updates are disabled during verification.');await installUpdate();return state();},
     'update:notes':async()=>{const page=updater?.state().page;if(!page||!page.startsWith(`https://github.com/${repoFrom(packageInfo)}/`))throw Error('No release notes to open.');await shell.openExternal(page);return {opened:true};},
     'bambu:signout':async()=>{bambuCloud?.signOut();thumbnails?.reset();broadcast();return {state:state()};},
-    'printer:camera':async id=>{if(verify)throw Error('Physical camera connections are disabled during verification.');return cameras.getFrame(id);},
+    'printer:camera-video':async id=>{if(verify)throw Error('Physical camera connections are disabled during verification.');const printerId=String(id);if(config.privatePrinters().find(p=>p.id===printerId)?.model!=='H2D')throw Error('Live video is available for the H2D camera.');return {url:browserHost.ticket(()=>cameras.openVideo(printerId))};},
+    'printer:camera':async(id,after)=>{if(verify)throw Error('Physical camera connections are disabled during verification.');return cameras.getFrame(id,typeof after==='string'&&after.length<40?after:null);},
     'displays:get':()=>displays(),
     'system:startup':async enabled=>{await windowsIntegration.setStartup(enabled);return state();},
     'system:desktop-shortcut':async()=>{await windowsIntegration.createDesktopShortcut();return{created:true,windowsIntegration:windowsIntegration.getState()};},
@@ -337,6 +388,9 @@ async function startBrowser() {
       dashboardWindow?.setFullscreen(word==='show').then(tuck).then(()=>word==='show'&&dashboardWindow?.activate()).catch(error=>console.error(error.message));
     }});
     const toastLine=createToastLines({directory:app.getPath('userData'),picture:id=>thumbnails?.picture(id)||null});
+    systemControls=createSystemControls({onChange:()=>broadcast()});
+    pcStats=createPcStats({onChange:()=>{if(!pcStatsTimer)pcStatsTimer=setTimeout(()=>{pcStatsTimer=null;broadcast();},250);}});
+    syncPcStats();
     notifier=createNotifier({send:note=>tray?.send(toastLine(note)),settings:()=>config.publicConfig().notifications});
     // Updates from GitHub releases: a minute after start, then every six hours.
     updater=createUpdater({root:__dirname,version:packageInfo.version,repo:repoFrom(packageInfo),onChange:status=>{

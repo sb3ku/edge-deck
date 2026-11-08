@@ -96,3 +96,18 @@ test('local browser host rejects unauthorized requests and serves only frontend 
     assert.doesNotMatch(response.data, /Private|secret\.exe|C:/);
   });
 });
+
+test('a camera link opens its video once, streams it, and stops it when the viewer leaves', async t => {
+  const { PassThrough } = require('node:stream');
+  const host = await createBrowserHost({ root: path.resolve(__dirname, '..'), handle: async () => null });
+  t.after(() => host.close());
+  const origin = new URL(host.url).origin;
+  let stopped = 0;
+  const link = host.ticket(async () => { const stream = new PassThrough(); setTimeout(() => { stream.write('fmp4-bytes'); stream.end(); }, 10); return { stream, stop: () => { stopped++; } }; });
+  assert.match(link, /^\/camera\/[A-Za-z0-9_-]{43}$/);
+  const first = await request(origin + link, { method: 'GET' });
+  assert.equal(first.status, 200); assert.equal(first.headers['content-type'], 'video/mp4'); assert.equal(first.data, 'fmp4-bytes');
+  assert.equal((await request(origin + link, { method: 'GET' })).status, 404, 'A link works once');
+  assert.equal((await request(origin + '/camera/' + 'x'.repeat(43), { method: 'GET' })).status, 404);
+  assert.ok(stopped >= 1);
+});

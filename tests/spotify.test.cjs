@@ -390,3 +390,51 @@ test('a personal Discover Weekly you do not follow is found by search through th
   const state = await bridge.getState();
   assert.deepEqual(state.playlists.map(item => [item.uri, item.name]), [[DW, 'Discover Weekly'], [PLAYLIST, 'Mine']]);
 });
+
+test('a rate-limited web player sign-in is not asked again until Spotify allows it', async t => {
+  const config = { clientId: CLIENT, tokens: { clientId: CLIENT, accessToken: 'access-secret', refreshToken: 'refresh-secret', expiresAt: Date.now() + 3600000, scope: SCOPES.join(' ') } };
+  let calls = 0;
+  const bridge = createSpotifyBridge({ getConfig: () => config, saveTokens: () => {}, openExternal: () => {},
+    webApi: async () => { calls++; throw Object.assign(new Error('Spotify answered 429.'), { status: 429, retryAfter: 86400 }); },
+    fetchImpl: async url => { if (url.includes('/me/playlists')) return response({ items: [{ uri: PLAYLIST, name: 'Mine', images: [] }], next: null }); throw new Error('unexpected ' + url); } });
+  t.after(() => bridge.close());
+  const state = await bridge.getState();
+  assert.deepEqual(state.playlists.map(item => item.name), ['Mine']);
+  assert.equal(calls, 1, 'The first 429 stops the remaining web requests');
+  await bridge.getState({ refresh: true });
+  assert.equal(calls, 1, 'No web requests while Spotify asks to wait');
+});
+
+test('after a restart the saved library is shown without asking Spotify again, and a Spotify wait carries over', async t => {
+  const config = { clientId: CLIENT, tokens: { clientId: CLIENT, accessToken: 'access-secret', refreshToken: 'refresh-secret', expiresAt: Date.now() + 3600000, scope: SCOPES.join(' ') } };
+  let saved = null; const cache = { read: () => saved && JSON.parse(JSON.stringify(saved)), write: value => { saved = value; } };
+  let calls = 0;
+  const first = createSpotifyBridge({ cache, getConfig: () => config, saveTokens: () => {}, openExternal: () => {},
+    fetchImpl: async url => { calls++; if (url.includes('/me/playlists')) return response({ items: [{ uri: PLAYLIST, name: 'Mine', images: [] }], next: null }); throw new Error('unexpected ' + url); } });
+  await first.getState(); first.close();
+  await new Promise(resolve => setTimeout(resolve, 600));
+  assert.equal(saved?.library?.[0]?.name, 'Mine'); assert.ok(!JSON.stringify(saved).includes('access-secret'), 'No tokens in the saved copy');
+  const second = createSpotifyBridge({ cache, getConfig: () => config, saveTokens: () => {}, openExternal: () => {}, fetchImpl: async url => { throw new Error('asked Spotify again: ' + url); } });
+  t.after(() => second.close());
+  const state = await second.getState();
+  assert.deepEqual(state.playlists.map(item => item.name), ['Mine']); assert.equal(calls, 1);
+  // A wait Spotify asked for is honoured by the next start too.
+  saved.retryAt = Date.now() + 300000; saved.libraryAt = 0;
+  let asked = 0;
+  const third = createSpotifyBridge({ cache, getConfig: () => config, saveTokens: () => {}, openExternal: () => {}, fetchImpl: async () => { asked++; throw new Error('no'); } });
+  t.after(() => third.close());
+  await third.getState(); assert.equal(asked, 0, 'No requests during the saved wait');
+});
+
+test('an empty 200 or 202 answer from Spotify means nothing to report, not an error', async t => {
+  const config = { clientId: CLIENT, tokens: { clientId: CLIENT, accessToken: 'access-secret', refreshToken: 'refresh-secret', expiresAt: Date.now() + 3600000, scope: SCOPES.join(' ') } };
+  const bridge = createSpotifyBridge({ getConfig: () => config, saveTokens: () => {}, openExternal: () => {},
+    fetchImpl: async url => {
+      if (url.includes('/me/playlists')) return response({ items: [], next: null });
+      if (url.includes('/me/player')) return new Response('', { status: 200 });
+      throw new Error('unexpected ' + url);
+    } });
+  t.after(() => bridge.close());
+  const player = await bridge.getPlayer();
+  assert.ok(player === null || typeof player === 'object');
+});

@@ -64,5 +64,38 @@
     return {columns,rows,cards:placements};
   }
 
-  return Object.freeze({packCards,SIZE_SPANS});
+  // Auto arrange: every kind of card has a natural width (weight) and the
+  // narrowest width its content needs at full height. When all cards fit in one
+  // row they share it by weight; when they do not, cards that work at half
+  // height are stacked in pairs (two in one column), the pair that frees the
+  // most room first, keeping the card order, until the row fits.
+  const AUTO_PROFILES = Object.freeze({
+    clock: {weight:.75, min:250, stack:true}, today: {weight:.95, min:320, stack:false}, weather: {weight:.95, min:320, stack:false},
+    tasks: {weight:1.1, min:340, stack:true}, printers: {weight:1.25, min:400, stack:true}, media: {weight:1.15, min:380, stack:false},
+    stats: {weight:1.25, min:420, stack:true}, actions: {weight:.9, min:330, stack:false}, app: {weight:1.6, min:480, stack:true},
+    website: {weight:1.6, min:480, stack:true}, empty: {weight:.6, min:200, stack:true},
+  });
+  function planAuto(cards, {width = 2500, gap = 14, comfort = 1.15} = {}) {
+    const columns = cards.filter(card => card && card.type !== 'launchers' && card.enabled !== false).map(card => {
+      const profile = AUTO_PROFILES[card.type] || AUTO_PROFILES.empty;
+      return {ids:[card.id], weight:profile.weight, min:profile.min, stack:profile.stack};
+    });
+    // Cards are given room to breathe: comfortable width is a bit above the minimum.
+    const needed = (list, factor = comfort) => list.reduce((sum, column) => sum + column.min * factor, 0) + gap * Math.max(0, list.length - 1);
+    while (needed(columns) > width) {
+      let best = -1, saving = 0;
+      for (let i = 0; i < columns.length - 1; i++) {
+        const a = columns[i], b = columns[i + 1];
+        if (a.ids.length !== 1 || b.ids.length !== 1 || !a.stack || !b.stack) continue;
+        const freed = Math.min(a.min, b.min) + gap;
+        if (freed > saving) { saving = freed; best = i; }
+      }
+      if (best < 0) break;
+      const [a, b] = columns.splice(best, 2);
+      columns.splice(best, 0, {ids:[...a.ids, ...b.ids], weight:Math.max(a.weight, b.weight), min:Math.max(a.min, b.min), stack:false});
+    }
+    return {columns:columns.map(({ids, weight, min}) => ({ids, weight, min})), fits:needed(columns, 1) <= width};
+  }
+
+  return Object.freeze({packCards,planAuto,SIZE_SPANS,AUTO_PROFILES});
 });

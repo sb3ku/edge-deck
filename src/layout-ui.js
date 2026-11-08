@@ -9,6 +9,7 @@
     { type: 'printers', title: '3D printers', detail: 'Status and machine controls', symbol: 'printer' },
     { type: 'media', title: 'Music', detail: 'Now playing and playlists', symbol: 'music' },
     { type: 'actions', title: 'Quick actions', detail: 'Audio output, microphone and mute', symbol: 'actions' },
+    { type: 'stats', title: 'PC stats', detail: 'CPU, GPU, memory, busiest apps and internet speed', symbol: 'stats' },
   ];
   const sizes = [['small', 'Small'], ['medium', 'Medium'], ['wide', 'Wide'], ['tall', 'Tall'], ['large', 'Large']];
   const icons = {
@@ -16,6 +17,8 @@
     weather: ['M7 14a5 5 0 1 1 7-6', 'M7 21h11a4 4 0 1 0-1-8 5 5 0 0 0-9 1 4 4 0 0 0-1 7Z'],
     tasks: ['M7 3h10v4H7Z', 'M7 5H4v16h16V5h-3', 'm8 13 2 2 5-5'],
     printer: ['M5 3h14v18H5Z', 'M8 6h8v11H8Z', 'M9 19h6', 'M12 6v5'],
+    stats: ['M3 20h18', 'M6 16v-5', 'M11 16V6', 'M16 16v-8', 'M21 16v-3'],
+    stats: ['M3 20h18', 'M6 16v-5', 'M11 16V6', 'M16 16v-8', 'M21 16v-3'],
     music: ['M9 18V5l11-2v13', 'M9 18c0 2-6 3-6 0s6-3 6 0Z', 'M20 16c0 2-6 3-6 0s6-3 6 0Z'],
     actions: ['M4 6h10', 'M18 6h2', 'M16 4v4', 'M4 12h4', 'M12 12h8', 'M10 10v4', 'M4 18h12', 'M20 18h0', 'M18 16v4'],
     app: ['M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z'],
@@ -92,8 +95,8 @@
     const field = el('label', 'layout-size-picker'); field.append(el('span', '', 'Size'));
     const select = el('select'); select.setAttribute('aria-label', `Size of ${cardName(card, config(view))}`);
     for (const [value, name] of sizes) { const option = el('option', '', name); option.value = value; select.append(option); }
-    select.value = card.size || 'medium'; select.disabled = view.busy || config(view).layout?.mode === 'focus';
-    if(config(view).layout?.mode==='focus')select.title='Focus sizes cards automatically. Choose Overview or Bento to change sizes.';
+    select.value = card.size || 'medium'; select.disabled = view.busy || ['focus', 'auto'].includes(config(view).layout?.mode);
+    if(['focus','auto'].includes(config(view).layout?.mode))select.title='This layout sizes cards automatically. Choose Overview or Bento to change sizes.';
     select.addEventListener('change', () => save(view, cfg => { findCard(cfg, card.id).size = select.value; }, 'Card size saved.'));
     field.append(select); return field;
   }
@@ -183,7 +186,7 @@
   function renderModePicker(view, root) {
     root.append(el('p', 'layout-intro', 'Choose an arrangement, then make each card your own. A card can hold up to six views.'));
     const chooser = el('div', 'layout-mode-picker'); chooser.setAttribute('aria-label', 'Dashboard layout');
-    for (const [mode, name, description] of [['overview', 'Overview', 'A balanced row of cards'], ['bento', 'Bento', 'Mix compact and larger cards'], ['focus', 'Focus', 'Give your main card more room']]) {
+    for (const [mode, name, description] of [['auto', 'Auto', 'Fits every card to its content'], ['overview', 'Overview', 'A balanced row of cards'], ['bento', 'Bento', 'Mix compact and larger cards'], ['focus', 'Focus', 'Give your main card more room']]) {
       const choice = button(view, `${name} layout`, () => save(view, cfg => {
         const current = cards(cfg);
         const types = current.map(card => items(card)[0]?.type);
@@ -200,7 +203,7 @@
       const preview = el('span', `layout-preview ${mode}`); preview.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 5; i++) preview.append(el('i'));
       choice.replaceChildren(preview, el('strong', '', name), el('span', '', description)); chooser.append(choice);
     }
-    root.append(chooser, el('p', 'layout-help', 'Adjust card sizes in Overview or Bento. Focus sizes cards automatically and enlarges the first card.'));
+    root.append(chooser, el('p', 'layout-help', 'Auto sizes every card for its content and stacks small ones when space runs out. Adjust card sizes yourself in Overview or Bento; Focus enlarges the first card.'));
   }
   function settings(view, root) {
     const cfg = config(view); const listCards = cards(cfg); renderModePicker(view, root); feedback(view, root);

@@ -642,6 +642,30 @@
     node.setAttribute('aria-label', `Open ${item.name}, ${describe(item)}`); node.title = item.name;
     node.addEventListener('click', () => openItem(view, item)); return node;
   }
+  // Spotify no longer shares Discover Weekly with apps; its link is saved once
+  // (Share → Copy link to playlist in Spotify) and it then stays first on Home.
+  // Spotify's DJ: the same address for every account. Spotify does not list it
+  // to apps, but it starts like a playlist on your active device.
+  const DJ_URI = 'spotify:playlist:37i9dQZF1EYkqdzj48dyYq';
+  function djTile(view) {
+    const node = el('button', 'emw-shortcut emw-shortcut-dj'); node.type = 'button'; node.setAttribute('role', 'listitem');
+    node.addEventListener('click', () => playPlaylist(view, { uri: DJ_URI, name: 'DJ', type: 'playlist' }));
+    const art = el('span', 'emw-shortcut-art emw-dj-art'); art.append(el('span', 'emw-dj-mark', 'DJ'));
+    node.append(art, el('span', 'emw-shortcut-name', 'DJ'));
+    node.setAttribute('aria-label', 'Play DJ, your personal AI DJ on Spotify'); node.title = 'DJ'; return node;
+  }
+  function weeklyTile(view) {
+    const node = el('button', 'emw-shortcut emw-shortcut-weekly'); node.type = 'button';
+    node.addEventListener('click', () => {
+      view.tab = 'library'; view.browseTab = 'library'; view.openItem = null; view.adding = true; view.error = '';
+      view.nameDraft = 'Discover Weekly'; view.nodes.name.value = 'Discover Weekly';
+      update(view); setTimeout(() => view.nodes.link.focus({ preventScroll: true }), 0);
+    });
+    node.setAttribute('role', 'listitem');
+    const art = el('span', 'emw-shortcut-art emw-weekly-art'); art.append(icon('plus'));
+    node.append(art, el('span', 'emw-shortcut-name', 'Add Discover Weekly'));
+    node.setAttribute('aria-label', 'Add Discover Weekly: paste its link from Spotify'); return node;
+  }
   const madeForYou = /discover weekly|release radar|daily mix|on repeat|repeat rewind|daylist|time capsule|blend|radar/i;
   function updateHome(view, visible) {
     const n = view.nodes; n.home.hidden = !visible;
@@ -656,8 +680,12 @@
     // Discover Weekly first, then what you played recently, then your playlists: eight in all.
     const liked = likedItem(view);
     const top = unique([...(liked ? [liked] : []), ...made.filter(item => /discover weekly/i.test(item.name)), ...recent, ...saved]).slice(0, 8);
-    const topSignature = JSON.stringify(top.map(item => [item.uri, item.name, !!item.artwork]));
-    if (n.shortcuts.dataset.signature !== topSignature) { n.shortcuts.dataset.signature = topSignature; n.shortcuts.replaceChildren(...top.map(item => shortcut(view, item))); }
+    // DJ always leads; "Add Discover Weekly" takes a slot until its link is saved.
+    const needsWeekly = spotify.connected && !made.some(item => /discover weekly/i.test(item.name || '')) && typeof view.context.bridge?.savePlaylist === 'function';
+    const extras = [...(spotify.connected ? ['dj'] : []), ...(needsWeekly ? ['weekly'] : [])];
+    const shown = top.slice(0, Math.max(0, 8 - extras.length));
+    const weeklySignature = JSON.stringify(shown.map(item => [item.uri, item.name, !!item.artwork])) + extras.join('|');
+    if (n.shortcuts.dataset.signature !== weeklySignature) { n.shortcuts.dataset.signature = weeklySignature; n.shortcuts.replaceChildren(...(extras.includes('dj') ? [djTile(view)] : []), ...shown.map(item => shortcut(view, item)), ...(needsWeekly ? [weeklyTile(view)] : [])); }
     n.shortcuts.hidden = !top.length;
     const sections = [['Made for you', made], ['Jump back in', recent], ['Your top artists', data?.artists], ['Your albums', data?.albums], ['Your playlists', saved.slice(0, 20)]]
       .filter(([, items]) => Array.isArray(items) && items.length);

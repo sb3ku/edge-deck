@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.0
+
+- **Pages.** Group cards into pages: tabs at the bottom right (with + to add one), or swipe across the cards. Your current cards become the Home page.
+- **Auto arrange.** A new layout that sizes every card for its content and, when space runs short, stacks cards that work at half height (printers then sit side by side).
+- **No top bar.** Customize, Edit layout and Full screen live behind the Edge Deck button at the bottom left; cards get the room. **Up next** fills the clock column (agents that need you, prints and when they finish, the next weather change), and cards tint and glow when something needs you.
+- **Settings in four tabs** (Layout, Apps, Connections, Display). Long-press a card to open its settings. Larger text on the dashboard; no scroll bars anywhere.
+- **PC stats card.** CPU, GPU, memory and video memory, the busiest apps, uptime and an internet speed test, with a full-card game view. Optional CPU temperature through the signed PawnIO driver (Intel and AMD Ryzen; Turn on asks for administrator permission once).
+- **Quick controls like Windows Quick Settings.** Wi-Fi, Bluetooth, sound and microphone tiles with detail views, dark mode, Night light, and Lock, Sleep, Restart and Shut down.
+- **Printers.** Live camera previews inside the card (smooth video for the H2D); a simpler panel with pause, resume, stop, filament and camera; **Print again** for the last job, which checks the file and the loaded filaments before asking you to confirm (not yet tested on every printer).
+- **Spotify.** DJ on Home and an Add Discover Weekly shortcut. The library and Home are kept between restarts, so updates no longer trigger Spotify's rate limit; empty replies from Spotify no longer show an error.
+- **Weather.** Fog rolls across the sky like Apple Weather's, and low visibility brings mist or haze.
+
 ## 0.13.0
 
 - **Notifications.** A Windows notification when a print finishes (with a picture of the model, the printer and how long it took) or fails, and when Claude Code or Codex waits for your approval. Clicking one opens the dashboard.

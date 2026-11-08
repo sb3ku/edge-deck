@@ -196,3 +196,17 @@ test('settings survive a new store instance and secrets never enter public confi
     fs.rmSync(resolved,{recursive:true,force:true});
   }
 });
+
+test('cards are grouped into pages; older settings become one Home page', () => {
+  const base = defaults();
+  const migrated = cleanConfig({ widgets: base.widgets, layout: base.layout }, base);
+  assert.deepEqual(migrated.pages, [{ id: 'home', name: 'Home' }]);
+  assert.ok(migrated.widgets.filter(w => w.type !== 'launchers').every(w => w.page === 'home'));
+  const pages = [{ id: 'home', name: 'Home' }, { id: 'shop', name: 'Workshop' }];
+  const widgets = migrated.widgets.map(w => w.type === 'printers' ? { ...w, page: 'shop' } : w.type === 'media' ? { ...w, page: 'missing' } : w);
+  const next = cleanConfig({ widgets, pages }, migrated);
+  assert.equal(next.widgets.find(w => w.type === 'printers').page, 'shop');
+  assert.equal(next.widgets.find(w => w.type === 'media').page, 'home', 'An unknown page falls back to the first page');
+  assert.throws(() => cleanConfig({ pages: Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` })) }, next), /six pages/);
+  assert.equal(cleanConfig({ pages: [{ id: 'a', name: '' }] }, next).pages[0].name, 'Page');
+});

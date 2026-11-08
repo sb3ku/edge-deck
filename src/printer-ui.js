@@ -26,6 +26,7 @@
     bed: ['M3 14h18l-3 6H6Z', 'M7 3c-3 3 3 4 0 7', 'M12 3c-3 3 3 4 0 7', 'M17 3c-3 3 3 4 0 7'],
     pause: ['M8 5v14', 'M16 5v14'], play: ['m7 4 13 8-13 8Z'], stop: ['M5 5h14v14H5Z'],
     refresh: ['M20 7a9 9 0 1 0 1 8', 'M20 2v5h-5'],
+    again: ['M4 12a8 8 0 0 1 14-5.3L20 9', 'M20 4v5h-5', 'M20 12a8 8 0 0 1-14 5.3L4 15', 'M4 20v-5h5'],
     arrow: ['M4 12h16', 'm14 6 6 6-6 6'],
     load: ['M12 3v13', 'm7 11 5 5 5-5', 'M4 17v4h16v-4'],
     unload: ['M12 16V3', 'm7 8 5-5 5 5', 'M4 17v4h16v-4'],
@@ -40,7 +41,6 @@
     }
     return svg;
   }
-  function temperature(value) { return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}°` : '—'; }
   function filamentColor(slot) {
     const value = slot?.color;
     return typeof value === 'string' && /^#?[a-f0-9]{6}(?:[a-f0-9]{2})?$/i.test(value)
@@ -59,13 +59,12 @@
     if (!view || view.printerId !== printerId) {
       if (view) { view.preview = false; clearTimeout(view.timer); view.generation++; }
       view = { printerId, root: null, busy: false, error: '', notice: '', slotKey: '', extruderKey: '',
-        preview: false, timer: null, generation: 0, cameraEpoch: 0, cameraFlight: null, camera: null, tab: 'home',
-        temperatureNozzle: '', nozzleDrafts: {}, bedDraft: null, jogStep: 1, jogConfirmed: false };
+        preview: false, timer: null, generation: 0, cameraEpoch: 0, cameraFlight: null, camera: null, tab: 'home' };
       views.set(container, view);
     }
     // Telemetry must not interrupt a confirmation or an in-flight request.
     if (context.liveRefresh && view.root?.isConnected && (view.busy || view.root.querySelector('dialog[open]'))) return false;
-    if (view.root && !view.root.isConnected) { view.preview = false; view.camera = null; view.cameraEpoch++; view.jogConfirmed = false; }
+    if (view.root && !view.root.isConnected) { view.preview = false; view.camera = null; view.cameraEpoch++; }
     clearTimeout(view.timer);
     const generation = ++view.generation;
     const root = element('section', `printer-panel${context.liveRefresh ? ' is-live-refresh' : ''}`); root.dataset.edgePrinterRoot = printerId;
@@ -111,6 +110,7 @@
       try { updateState(await bridge.getState()); }
       catch { /* Keep the sent message until the user explicitly refreshes. */ }
     }
+    function plate(plan) { return Number.isInteger(plan.plate) ? plan.plate : 1; }
     function confirmAction(title, detail, label, action) {
       if (view.busy || !mounted()) return;
       const dialog = element('dialog', 'printer-confirmation');
@@ -135,9 +135,8 @@
     rail.append(brand);
     const screens = element('div', 'printer-panel-screens');
     const home = element('section', 'printer-panel-screen printer-panel-home');
-    const machineControls = element('section', 'printer-panel-screen printer-panel-machine-controls');
     const filament = element('section', 'printer-panel-screen printer-panel-filament');
-    const panels = { home, controls: machineControls, filament }; const navButtons = {};
+    const panels = { home, filament }; const navButtons = {};
     function setTab(tab, initial = false) {
       if (!initial) root.classList.remove('is-live-refresh');
       view.tab = tab;
@@ -146,7 +145,7 @@
         navButtons[key]?.setAttribute('aria-pressed', String(key === tab));
       }
     }
-    for (const [tab, title, symbol] of [['home', 'Home', 'home'], ['controls', 'Controls', 'controls'], ['filament', 'Filament', 'spool']]) {
+    for (const [tab, title, symbol] of [['home', 'Home', 'home'], ['filament', 'Filament', 'spool']]) {
       const control = button(title, () => setTab(tab));
       control.className = 'printer-panel-nav'; control.prepend(icon(symbol)); navButtons[tab] = control; rail.append(control);
     }
@@ -172,26 +171,35 @@
       notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite'); messages.append(notice);
     }
     if (messages.childNodes.length) main.append(messages);
-    screens.append(home, machineControls, filament); main.append(screens); root.append(rail, main); setTab(view.tab || 'home', true);
+    screens.append(home, filament); main.append(screens); root.append(rail, main); setTab(view.tab || 'home', true);
     const overview = element('div', 'printer-panel-overview');
     const controls = element('div', 'printer-panel-controls'); home.append(overview, controls);
-    const thermal = element('div', 'printer-panel-thermal');
-    for (const [label, value, symbol] of [['Nozzle', printer.nozzle, 'nozzle'], ['Heatbed', printer.bed, 'bed']]) {
-      const tile = button('', () => { setTab('controls'); machineControls.querySelector(`[data-temperature-zone="${symbol}"]`)?.scrollIntoView({ block: 'nearest' }); });
-      tile.className = 'printer-panel-temperature'; tile.setAttribute('aria-label', `${label} temperature controls`);
-      const labelNode = element('span', 'printer-panel-temperature-label', label); labelNode.prepend(icon(symbol));
-      const reading = element('strong', '', temperature(value));
-      if (typeof value === 'number' && Number.isFinite(value)) reading.append(element('small', '', 'C'));
-      tile.append(labelNode, reading, element('small', '', value == null ? 'Not reported · tap to control' : telemetryCurrent ? 'Current · tap to control' : 'Last reading · tap to control')); thermal.append(tile);
-    }
-    controls.append(thermal);
     const printControls = element('div', 'printer-panel-print-controls');
     const reasons = new Set();
-    for (const [action, label, symbol] of [['pause', 'Pause print', 'pause'], ['resume', 'Resume print', 'play'], ['stop', 'Stop print', 'stop']]) {
-      const allowed = canSend && printer.capabilities?.[action] === true;
+    // Print again: the service checks the job's file and filaments first and
+    // the plan is confirmed here; only then is anything sent to the printer.
+    const canReprint = canSend && typeof bridge?.reprintPlan === 'function' && typeof bridge?.reprint === 'function';
+    function checkReprint() {
+      run(async () => {
+        const plan = await bridge.reprintPlan(printerId);
+        if (!plan?.ok) throw new Error(plan?.reason || 'This job cannot be printed again from here.');
+        view.pendingReprint = plan;
+      });
+    }
+    async function sendReprint(planId) {
+      const result = await bridge.reprint(printerId, planId);
+      view.notice = safeMessage(result?.message || 'Print requested. Waiting for the printer to start.');
+      if (typeof toast === 'function') toast('Print requested');
+      try { updateState(await bridge.getState()); } catch {}
+    }
+    const active = ['printing', 'paused'].includes(printer.status);
+    const actions = active ? [['pause', 'Pause print', 'pause'], ['resume', 'Resume print', 'play'], ['stop', 'Stop print', 'stop']] : [['reprint', 'Print again', 'again']];
+    for (const [action, label, symbol] of actions) {
+      const allowed = canSend && printer.capabilities?.[action] === true && (action !== 'reprint' || canReprint);
       const control = button(label, () => {
         if (action === 'stop') confirmAction(`Stop the print on ${name}?`,
           'This ends the current print. It cannot be resumed after stopping.', 'Stop print', () => send('stop'));
+        else if (action === 'reprint') checkReprint();
         else run(() => send(action));
       }, view.busy || !allowed);
       control.className = `printer-panel-action${action === 'stop' ? ' danger' : ''}`;
@@ -200,6 +208,12 @@
       printControls.append(control);
     }
     controls.append(printControls);
+    if (view.pendingReprint && !view.busy) {
+      const plan = view.pendingReprint; view.pendingReprint = null;
+      const uses = (plan.filaments || []).map(item => `${item.type}${item.color ? ` ${item.color}` : ''} from ${item.slot}`).join('; ');
+      queueMicrotask(() => confirmAction(`Print ${plan.name} again on ${name}?`,
+        `Plate ${plate(plan)}. ${uses}. Make sure the build plate is clear and in place.`, 'Print again', () => sendReprint(plan.planId)));
+    }
     if (reasons.size) controls.append(element('p', 'printer-panel-help printer-panel-capabilities', [...reasons].join(' ')));
     const job = element('div', 'printer-panel-job');
     job.append(element('span', 'printer-panel-eyebrow', telemetryCurrent ? 'CURRENT PRINT' : 'LAST REPORTED PRINT'),
@@ -223,165 +237,8 @@
     }
     job.append(progressBar);
 
-    function temperatureNozzles(data) {
-      return (Array.isArray(data.temperatures?.nozzles) ? data.temperatures.nozzles : [])
-        .filter(item => item && Number.isInteger(item.id) && item.id >= 0);
-    }
-    function heaterLimits(data, kind) {
-      const value = data.controlLimits?.[kind];
-      return value && Number.isFinite(value.min) && Number.isFinite(value.max) && value.min >= 0 && value.max >= value.min ? value : null;
-    }
-    function targetNumber(value, limits) {
-      if (value === '' || value === null || value === undefined || !limits) return null;
-      const parsed = Number(value);
-      return Number.isInteger(parsed) && parsed >= limits.min && parsed <= limits.max ? parsed : null;
-    }
-    function jogSteps(data) {
-      return (Array.isArray(data.controlLimits?.axis?.steps) ? data.controlLimits.axis.steps : [])
-        .filter(value => Number.isFinite(value) && value > 0 && [0.1, 1, 10].includes(value));
-    }
-    if (printer.capabilities?.moveAxis !== true) view.jogConfirmed = false;
-    const heaterArea = element('div', 'printer-panel-heaters');
-    const movement = element('section', 'printer-panel-motion');
-    machineControls.append(heaterArea, movement);
-    const nozzleChoices = temperatureNozzles(printer);
-    if (!nozzleChoices.some(item => String(item.id) === view.temperatureNozzle)) view.temperatureNozzle = '';
-    for (const kind of ['nozzle', 'bed']) {
-      const isNozzle = kind === 'nozzle';
-      const action = isNozzle ? 'setNozzleTemperature' : 'setBedTemperature';
-      const zoneName = isNozzle ? 'Nozzle' : 'Heatbed';
-      const card = element('section', 'printer-panel-heater'); card.dataset.temperatureZone = kind;
-      const cardHeading = element('div', 'printer-panel-heater-heading');
-      const title = element('h3', '', `${zoneName} temperature`); title.prepend(icon(kind));
-      const range = element('span', 'printer-panel-help'); cardHeading.append(title, range); card.append(cardHeading);
-      const nozzleButtons = [];
-      if (isNozzle) {
-        const chooser = element('div', 'printer-panel-heater-nozzles');
-        for (const nozzle of nozzleChoices) {
-          const control = button(nozzle.label || `Nozzle ${nozzle.id}`, () => {
-            view.temperatureNozzle = String(nozzle.id);
-            if (view.nozzleDrafts[view.temperatureNozzle] === undefined) {
-              const latest = temperatureNozzles(current().printer).find(item => String(item.id) === view.temperatureNozzle);
-              view.nozzleDrafts[view.temperatureNozzle] = Number.isFinite(latest?.target) ? String(latest.target) : '';
-            }
-            updateHeater();
-          }, view.busy);
-          control.className = 'printer-panel-choice'; control.setAttribute('aria-label', `Select ${nozzle.label || `nozzle ${nozzle.id}`} for temperature`);
-          nozzleButtons.push({ control, id: String(nozzle.id) }); chooser.append(control);
-        }
-        if (!nozzleChoices.length) chooser.append(element('p', 'printer-panel-help', 'Waiting for reported nozzle information.'));
-        card.append(chooser);
-      } else if (view.bedDraft === null && Number.isFinite(printer.temperatures?.bed?.target)) {
-        view.bedDraft = String(printer.temperatures.bed.target);
-      }
-      const readings = element('div', 'printer-panel-heater-readings');
-      const actual = element('strong'); const reportedTarget = element('span'); readings.append(actual, reportedTarget); card.append(readings);
-      const inputRow = element('div', 'printer-panel-target-row');
-      const input = element('input', 'printer-panel-target-input');
-      input.type = 'number'; input.step = '1'; input.inputMode = 'numeric'; input.placeholder = '—';
-      input.setAttribute('aria-label', `${zoneName} target temperature`);
-      function draft() { return isNozzle ? view.nozzleDrafts[view.temperatureNozzle] ?? '' : view.bedDraft ?? ''; }
-      function writeDraft(value) {
-        if (isNozzle) view.nozzleDrafts[view.temperatureNozzle] = value; else view.bedDraft = value;
-      }
-      function adjustTarget(amount) {
-        const limits = heaterLimits(current().printer, kind); if (!limits || (isNozzle && !view.temperatureNozzle)) return;
-        const existing = Number(draft());
-        writeDraft(String(Math.max(limits.min, Math.min(limits.max, (Number.isFinite(existing) ? existing : limits.min) + amount))));
-        updateHeater();
-      }
-      const minus = button('−5°', () => adjustTarget(-5)); minus.setAttribute('aria-label', `Decrease ${zoneName.toLowerCase()} target by 5 degrees`);
-      const plus = button('+5°', () => adjustTarget(5)); plus.setAttribute('aria-label', `Increase ${zoneName.toLowerCase()} target by 5 degrees`);
-      inputRow.append(minus, input, plus); card.append(inputRow);
-      async function setTemperature(off = false) {
-        assertAllowed(action);
-        const latest = current().printer; const limits = heaterLimits(latest, kind);
-        const target = targetNumber(off ? 0 : draft(), limits);
-        if (target === null) throw new Error(limits ? `Enter a whole-number temperature from ${limits.min} to ${limits.max} °C.` : 'Temperature limits are unavailable. Refresh printer status.');
-        const params = { target };
-        if (isNozzle) {
-          const nozzle = temperatureNozzles(latest).find(item => String(item.id) === view.temperatureNozzle);
-          if (!nozzle) throw new Error('Select a reported nozzle before setting its temperature.');
-          params.extruderId = nozzle.id;
-        }
-        await send(action, params);
-      }
-      const actions = element('div', 'printer-panel-temperature-actions');
-      const off = button(`${zoneName} off`, () => run(() => setTemperature(true)));
-      const set = button(`Set ${zoneName.toLowerCase()}`, () => run(() => setTemperature()), false, true);
-      actions.append(off, set); card.append(actions);
-      const helper = element('p', 'printer-panel-help'); card.append(helper); heaterArea.append(card);
-      input.addEventListener('input', () => { writeDraft(input.value); updateHeater(false); });
-      function updateHeater(syncInput = true) {
-        const data = current().printer; const limits = heaterLimits(data, kind);
-        const selected = isNozzle ? temperatureNozzles(data).find(item => String(item.id) === view.temperatureNozzle) : data.temperatures?.bed;
-        const allowed = canSend && data.capabilities?.[action] === true && !!limits && (!isNozzle || !!selected);
-        const target = targetNumber(draft(), limits);
-        for (const item of nozzleButtons) item.control.setAttribute('aria-pressed', String(item.id === view.temperatureNozzle));
-        actual.textContent = `${temperature(selected?.current)}${Number.isFinite(selected?.current) ? 'C' : ''}`;
-        reportedTarget.textContent = `Reported target ${temperature(selected?.target)}${Number.isFinite(selected?.target) ? 'C' : ''}`;
-        range.textContent = limits ? `${limits.min}–${limits.max} °C` : 'Limits not reported';
-        if (limits) { input.min = String(limits.min); input.max = String(limits.max); }
-        if (syncInput) input.value = draft();
-        input.disabled = minus.disabled = plus.disabled = view.busy || !allowed;
-        off.disabled = view.busy || !allowed || targetNumber(0, limits) === null;
-        set.disabled = view.busy || !allowed || target === null;
-        input.setAttribute('aria-invalid', String(draft() !== '' && target === null));
-        helper.textContent = data.capabilities?.[action] !== true ? reasonFor(action) : !limits ? 'Waiting for this printer’s temperature limits.'
-          : isNozzle && !selected ? 'Select a nozzle. Targets are applied only when you tap Set.'
-            : target === null && draft() !== '' ? `Enter a whole-number temperature from ${limits.min} to ${limits.max} °C.` : 'Set sends the target. Reported readings update when the printer replies.';
-        if (['offline', 'error', 'not_configured', 'connecting'].includes(data.status)) helper.textContent = `Temperatures are last reported readings. ${helper.textContent}`;
-      }
-      updateHeater();
-    }
-    const movementHeading = element('div', 'printer-panel-section-heading');
-    movementHeading.append(element('h3', '', 'Move axes'), element('span', '', 'Each tap moves one selected step')); movement.append(movementHeading);
-    const stepRow = element('div', 'printer-panel-steps'); stepRow.setAttribute('aria-label', 'Movement step');
-    const steps = jogSteps(printer); const stepButtons = [];
-    if (!steps.includes(view.jogStep)) view.jogStep = steps.includes(1) ? 1 : steps[0] ?? null;
-    for (const value of steps) {
-      const control = button(`${value} mm`, () => { view.jogStep = value; for (const item of stepButtons) item.control.setAttribute('aria-pressed', String(item.value === value)); }, view.busy);
-      control.className = 'printer-panel-choice'; control.setAttribute('aria-pressed', String(view.jogStep === value));
-      stepButtons.push({ control, value }); stepRow.append(control);
-    }
-    movement.append(stepRow);
-    function jog(axis, sign) {
-      const step = view.jogStep;
-      const move = async () => {
-        assertAllowed('moveAxis');
-        if (!jogSteps(current().printer).includes(step)) throw new Error('This movement step is unavailable. Refresh printer status.');
-        await send('moveAxis', { axis, distance: sign * step }); view.jogConfirmed = true;
-      };
-      if (view.jogConfirmed) run(move);
-      else confirmAction('Move the printer axes?', `Move ${axis} by ${sign > 0 ? '+' : '−'}${step} mm. Keep hands and tools outside the printer and check that its travel is clear. Further jog taps move immediately until you close this console.`, 'Enable & move', move);
-    }
-    function homeAxes() {
-      confirmAction('Home the printer axes?', 'The printer will move its toolhead and heatbed to find the home position. Keep hands and tools outside the printer and check that its travel is clear.', 'Home axes', () => send('homeAxes'));
-    }
-    const motionPad = element('div', 'printer-panel-motion-pads');
-    const xy = element('div', 'printer-panel-xy'); xy.setAttribute('aria-label', 'X and Y axes');
-    for (const [axis, sign, location, symbol] of [['Y', 1, 'north', 'up'], ['X', -1, 'west', 'left'], ['X', 1, 'east', 'right'], ['Y', -1, 'south', 'down']]) {
-      const control = button(`${axis} ${sign > 0 ? '+' : '−'}`, () => jog(axis, sign), view.busy || !canSend || printer.capabilities?.moveAxis !== true || !view.jogStep);
-      control.className = `printer-panel-jog ${location}`; control.setAttribute('aria-label', `Move ${axis} ${sign > 0 ? 'positive' : 'negative'}`); control.prepend(icon(symbol)); xy.append(control);
-    }
-    const homeAxesButton = button('Home axes', homeAxes, view.busy || !canSend || printer.capabilities?.homeAxes !== true);
-    homeAxesButton.className = 'printer-panel-jog center'; homeAxesButton.prepend(icon('home')); xy.append(homeAxesButton);
-    const z = element('div', 'printer-panel-z'); z.append(element('span', '', 'Z axis'));
-    for (const sign of [1, -1]) {
-      const control = button(`Z ${sign > 0 ? '+' : '−'}`, () => jog('Z', sign), view.busy || !canSend || printer.capabilities?.moveAxis !== true || !view.jogStep);
-      control.className = 'printer-panel-jog'; control.setAttribute('aria-label', `Move Z ${sign > 0 ? 'positive' : 'negative'}`); z.append(control);
-    }
-    motionPad.append(xy, z); movement.append(motionPad);
-    const motionReasons = new Set();
-    for (const action of ['moveAxis', 'homeAxes']) if (printer.capabilities?.[action] !== true) motionReasons.add(reasonFor(action));
-    if (!steps.length) motionReasons.add('Movement steps have not been reported.');
-    if (motionReasons.size) movement.append(element('p', 'printer-panel-help', [...motionReasons].join(' ')));
-    const homed = printer.motion?.homed;
-    if (homed && typeof homed === 'object') {
-      const labels = ['X', 'Y', 'Z'].map(axis => `${axis}: ${homed[axis] === true ? 'homed' : homed[axis] === false ? 'not homed' : 'unknown'}`);
-      movement.append(element('p', 'printer-panel-homed', labels.join(' · ')));
-    }
-    movement.append(element('p', 'printer-panel-help', view.jogConfirmed ? 'Manual movement is enabled for this console session. Each tap moves immediately.' : 'Your first movement tap asks you to check that the printer is clear. Homing always asks for confirmation.'));
+    // Temperatures, movement and homing are left to the printer and Bambu Studio;
+    // this panel keeps print controls, filament and the camera.
 
     function extrudersFor(data) {
       return (Array.isArray(data.filament?.extruders) ? data.filament.extruders : [])

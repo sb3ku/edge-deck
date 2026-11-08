@@ -90,6 +90,7 @@
       cloudCover: Number.isFinite(model.cloudCover) ? clamp(model.cloudCover, 0, 100) : null,
       wind: Number.isFinite(model.wind) ? clamp(model.wind, 0, 150) : 10,
       mostlyClear: model.mostlyClear === true,
+      visibility: Number.isFinite(model.visibility) ? clamp(model.visibility, 0, 200000) : null,
     };
   }
   function palette({ scene, phase }) {
@@ -156,8 +157,8 @@
     root.dataset.sun = scene.sun === 'none' || next.phase === 'night' ? 'none' : next.phase === 'day' ? 'high' : 'low';
     root.dataset.veil = String(scene.sun === 'veil');
     root.dataset.frost = String(scene.frost === true);
-    root.style.setProperty('--fog-o', String(scene.fog || 0));
-    if (!previous || previous.scene !== next.scene || previous.intensity !== next.intensity || previous.wind !== next.wind) seedParticles(sky);
+    root.style.setProperty('--fog-o', '0');
+    if (!previous || previous.scene !== next.scene || previous.intensity !== next.intensity || previous.wind !== next.wind || previous.visibility !== next.visibility) seedParticles(sky);
     buildClouds(sky);
     sky.still = false; schedule();
   }
@@ -209,11 +210,75 @@
         sky.pellets.push({ x: rand() * w, y: rand() * h, r, speed: scene.hail ? 520 + rand() * 260 : 300 + rand() * 180, a: 0.55 + rand() * 0.4 });
       }
     }
+    buildFog(sky, rand);
     if (scene.streaks || model.wind >= 45) {
       // Wind: faint horizontal streaks racing across.
       const count = Math.round(clamp(10 * area * Math.max(scene.streaks || 0, (model.wind - 30) / 40), 4, 40));
       for (let i = 0; i < count; i++) sky.streaks.push({ x: rand() * w, y: rand() * h, len: 40 + rand() * 90, speed: 420 + rand() * 360, a: 0.06 + rand() * 0.1 });
     }
+  }
+  // Fog, as in Apple Weather: banks of mist rolling slowly across at three
+  // depths (denser and slower near the ground) over a wash that softens the
+  // whole sky. Strength comes from the condition (fog, freezing fog, the haze
+  // of rain and snow) or from low visibility, which also brings mist and haze
+  // to otherwise dry skies.
+  function fogStrength(model) {
+    const scene = SCENES[model.scene];
+    const visibility = model.visibility;
+    const fromVisibility = visibility === null ? 0 : visibility < 500 ? 1 : visibility < 1000 ? 0.85 : visibility < 2500 ? 0.6 : visibility < 5000 ? 0.35 : visibility < 8000 ? 0.18 : 0;
+    return clamp(Math.max(scene.fog || 0, fromVisibility), 0, 1);
+  }
+  function fogTexture(width, height, rand, puffs, color) {
+    const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(width)); canvas.height = Math.max(1, Math.round(height));
+    const ctx = canvas.getContext('2d');
+    for (let i = 0; i < puffs; i++) {
+      const r = height * (0.22 + rand() * 0.2), x = rand() * width, y = height * (0.38 + rand() * 0.24), a = 0.2 + rand() * 0.25;
+      // Drawn three times across the seam so the band tiles seamlessly.
+      for (const dx of [-width, 0, width]) {
+        const glow = ctx.createRadialGradient(x + dx, y, 0, x + dx, y, r);
+        glow.addColorStop(0, `rgb(${color} / ${(a * 100).toFixed(0)}%)`); glow.addColorStop(0.6, `rgb(${color} / ${(a * 40).toFixed(0)}%)`); glow.addColorStop(1, `rgb(${color} / 0%)`);
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(x + dx, y, r * 1.9, r, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // Feathered top and bottom, so a band never shows an edge.
+    ctx.globalCompositeOperation = 'destination-in';
+    const fade = ctx.createLinearGradient(0, 0, 0, height);
+    fade.addColorStop(0, 'rgb(0 0 0 / 0%)'); fade.addColorStop(0.3, 'rgb(0 0 0 / 100%)'); fade.addColorStop(0.7, 'rgb(0 0 0 / 100%)'); fade.addColorStop(1, 'rgb(0 0 0 / 0%)');
+    ctx.fillStyle = fade; ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+    return canvas;
+  }
+  function buildFog(sky, rand) {
+    const { w, h, model } = sky;
+    const strength = fogStrength(model);
+    if (strength <= 0) { sky.fog = null; return; }
+    const night = model.phase === 'night', frost = SCENES[model.scene].frost === true;
+    const color = frost ? (night ? '150 168 196' : '232 240 250') : night ? '128 138 158' : model.phase === 'dawn' || model.phase === 'dusk' ? '232 214 210' : '224 230 238';
+    const layers = [
+      { y: 0.1, height: 0.45, speed: 6, alpha: 0.5 },
+      { y: 0.36, height: 0.5, speed: 11, alpha: 0.65 },
+      { y: 0.58, height: 0.55, speed: 17, alpha: 0.85 },
+    ].map(layer => ({ ...layer, texture: fogTexture(w * 1.6, h * layer.height, rand, 22, color), offset: rand() * w }));
+    sky.fog = { strength, color, layers };
+  }
+  function paintFog(sky, ctx, dt) {
+    const fog = sky.fog; if (!fog) return false;
+    const { w, h } = sky;
+    // The wash: the sky itself goes soft, more so lower down.
+    const wash = ctx.createLinearGradient(0, 0, 0, h);
+    wash.addColorStop(0, `rgb(${fog.color} / ${(fog.strength * 8).toFixed(0)}%)`);
+    wash.addColorStop(1, `rgb(${fog.color} / ${(fog.strength * 26).toFixed(0)}%)`);
+    ctx.fillStyle = wash; ctx.fillRect(0, 0, w, h);
+    // The mist banks, tinted, rolling at their own speeds.
+    for (const layer of fog.layers) {
+      if (!sky.still) layer.offset = (layer.offset + layer.speed * (1 + sky.model.wind / 40) * dt) % layer.texture.width;
+      const top = h * layer.y, height = layer.texture.height;
+      ctx.globalAlpha = layer.alpha * fog.strength;
+      ctx.drawImage(layer.texture, layer.offset - layer.texture.width, top, layer.texture.width, height);
+      ctx.drawImage(layer.texture, layer.offset, top, layer.texture.width, height);
+    }
+    ctx.globalAlpha = 1;
+    return true;
   }
   function buildClouds(sky) {
     const { w, h, model } = sky; if (!model) return;
@@ -304,7 +369,7 @@
   function paintFront(sky, seconds, dt, now) {
     const { frontCtx: ctx, w, h, dpr, model } = sky;
     const scene = SCENES[model.scene];
-    const busy = sky.drops.length || sky.flakes.length || sky.pellets.length || sky.streaks.length || scene.lightning;
+    const busy = sky.drops.length || sky.flakes.length || sky.pellets.length || sky.streaks.length || scene.lightning || sky.fog;
     if (!busy) {
       if (sky.frontDirty) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); sky.frontDirty = false; }
       return false;
@@ -376,6 +441,7 @@
       }
     }
     if (scene.lightning && !sky.still) { moving = true; paintLightning(sky, ctx, now); }
+    if (paintFog(sky, ctx, dt)) moving = true;
     return moving;
   }
   function paintLightning(sky, ctx, now) {

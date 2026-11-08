@@ -9,7 +9,7 @@ async function verifyDefaultLayouts(page,directory){
     await page.setViewportSize({width:2560,height:720});
     await page.evaluate(config=>window.edge.saveConfig(config),cfg);await page.reload();
     await page.locator('.container-card.clock').waitFor();
-    await page.locator('#customize').click();
+    await page.locator('#deck-menu').click();await page.locator('#customize').click();
     const settings=page.locator('#settings-content');
     await settings.getByRole('button',{name:'Bento layout',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('#widgets').dataset.layout==='bento' && document.querySelector('#settings-content .edge-layout-ui')?.getAttribute('aria-busy')==='false');
@@ -17,14 +17,14 @@ async function verifyDefaultLayouts(page,directory){
     assert.deepEqual(current.widgets.filter(card=>card.type!=='launchers').map(card=>card.size),['medium','medium','wide','wide','wide']);
     await page.getByRole('button',{name:'Close settings',exact:true}).click();
     for(const mode of ['bento','focus']){
-      if(mode==='focus'){await page.locator('#customize').click();await settings.getByRole('button',{name:'Focus layout',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#widgets').dataset.layout==='focus'&&document.querySelector('#settings-content .edge-layout-ui')?.getAttribute('aria-busy')==='false');await page.getByRole('button',{name:'Close settings',exact:true}).click();}
+      if(mode==='focus'){await page.locator('#deck-menu').click();await page.locator('#customize').click();await settings.getByRole('button',{name:'Focus layout',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#widgets').dataset.layout==='focus'&&document.querySelector('#settings-content .edge-layout-ui')?.getAttribute('aria-busy')==='false');await page.getByRole('button',{name:'Close settings',exact:true}).click();}
       const geometry=await page.locator('.container-card').evaluateAll(cards=>cards.map(card=>{const b=card.getBoundingClientRect();return{x:b.x,y:b.y,right:b.right,bottom:b.bottom};}));
       for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++){const a=geometry[i],b=geometry[j];assert.ok(a.right<=b.x+1||b.right<=a.x+1||a.bottom<=b.y+1||b.bottom<=a.y+1,'Cards do not overlap in '+mode);}
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false);
       await page.locator('#toast').evaluate(node=>{node.hidden=true;});
       await page.screenshot({path:path.join(directory,`layout-${mode}-default.png`)});
     }
-    await page.locator('#customize').click();await page.locator('#settings').getByRole('button',{name:'Apps',exact:true}).click();
+    await page.locator('#deck-menu').click();await page.locator('#customize').click();await page.locator('#settings').getByRole('button',{name:'Apps',exact:true}).click();
     const dockSwitch=settings.getByRole('switch',{name:'Show app dock',exact:true});
     const initiallyShown=await dockSwitch.getAttribute('aria-checked')==='true';
     await dockSwitch.click();await page.waitForFunction(shown=>document.querySelector('#launchers').style.display===(shown?'none':''),initiallyShown);

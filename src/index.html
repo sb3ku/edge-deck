@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src https://canvaz.scdn.co; connect-src 'self'; frame-src https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' https://canvaz.scdn.co; connect-src 'self'; frame-src https:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Edge Deck</title>
   <meta name="theme-color" content="#0a0a0c">
   <link rel="icon" href="assets/app/edge-deck.svg" type="image/svg+xml">
@@ -20,12 +20,22 @@
 </head>
 <body>
   <div class="deck">
-    <header class="topbar">
-      <div class="brand"><img class="brand-mark" src="assets/app/edge-deck.svg" alt="" aria-hidden="true" width="28" height="28"><h1>Edge Deck</h1><span class="workspace-name">Overview</span></div>
-      <div class="top-actions"><span id="connection-label" class="connection-label">Starting…</span><button id="fullscreen" class="quiet-button" title="Toggle full screen" aria-label="Toggle full screen"></button><button id="edit-layout" class="button" aria-pressed="false">Edit layout</button><button id="customize" class="button"><span id="settings-icon" aria-hidden="true"></span>Customize</button></div>
-    </header>
+    <h1 class="sr-only">Edge Deck</h1>
     <main id="widgets" class="widgets" aria-label="Dashboard widgets"></main>
-    <footer id="launchers" class="launchers" aria-label="App shortcuts"></footer>
+    <div class="deck-bottom">
+      <div class="deck-controls">
+        <button id="deck-menu" class="deck-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="deck-menu-list" aria-label="Edge Deck menu"><img class="brand-mark" src="assets/app/edge-deck.svg" alt="" aria-hidden="true" width="26" height="26"></button>
+        <div id="deck-menu-list" class="deck-menu" role="menu" hidden>
+          <button id="customize" class="deck-menu-item" role="menuitem"><span id="settings-icon" aria-hidden="true"></span>Customize</button>
+          <button id="edit-layout" class="deck-menu-item" role="menuitem" aria-pressed="false">Edit layout</button>
+          <button id="fullscreen" class="deck-menu-item" role="menuitem" title="Toggle full screen" aria-label="Toggle full screen"></button>
+        </div>
+        <button id="layout-done" class="button primary deck-done" hidden>Done</button>
+        <span id="connection-label" class="connection-label">Starting…</span>
+      </div>
+      <footer id="launchers" class="launchers" aria-label="App shortcuts"></footer>
+      <nav id="page-tabs" class="deck-bottom-end page-tabs" aria-label="Pages"></nav>
+    </div>
   </div>
   <dialog id="settings" aria-labelledby="settings-title">
     <div class="settings-header"><div><p class="muted">Edge Deck</p><h2 id="settings-title">Customize your deck</h2></div><button id="close-settings" class="quiet-button" aria-label="Close settings"></button></div>

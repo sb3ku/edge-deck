@@ -382,3 +382,11 @@ button.emw-track:not(:disabled):active { transform: scale(.985); }
 .edge-media-widget .emw-ambient { z-index: 2; }
 .emw-now { z-index: 3; }
 .edge-media-widget > .emw-feedback { position: relative; z-index: 4; }
+/* "Add Discover Weekly": Spotify no longer shares it with apps, so its link is saved once. */
+.emw-weekly-art { background: linear-gradient(135deg, #3d5bf5 0%, #9b4dff 55%, #ff7a59 100%); color: #fff; }
+.emw-weekly-art svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.emw-shortcut-weekly .emw-shortcut-name { color: rgb(255 255 255 / 80%); }
+
+/* DJ: Spotify's AI DJ, started like a playlist. */
+.emw-dj-art { background: radial-gradient(circle at 30% 30%, #9bf0ff 0%, #2bd2ff 30%, #1e6bff 65%, #0b1f5c 100%); }
+.emw-dj-mark { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: #fff; text-shadow: 0 1px 4px rgb(0 0 0 / 35%); }

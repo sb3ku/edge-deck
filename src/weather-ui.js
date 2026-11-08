@@ -59,7 +59,7 @@
     if (!data.current) return { kind: 'unknown', phase: skyPhase(data) };
     const code = data.current.conditionCode;
     const wind = finite(data.current.windSpeed) ? data.current.windSpeed * (data.units?.system === 'imperial' ? 1.609 : 1) : null;
-    return { kind: condition(code)[1], scene: skyScene(code, data.current.cloudCover, wind), phase: skyPhase(data), intensity: intensities[code] ?? 0.6, cloudCover: data.current.cloudCover ?? null, wind, mostlyClear: code === 1 };
+    return { kind: condition(code)[1], scene: skyScene(code, data.current.cloudCover, wind), phase: skyPhase(data), intensity: intensities[code] ?? 0.6, cloudCover: data.current.cloudCover ?? null, wind, mostlyClear: code === 1, visibility: finite(data.current.visibility) ? data.current.visibility : null };
   }
   // The sky for each WMO code; cloud cover and wind refine the dry ones.
   const scenes = { 0: 'clear', 1: 'mostly-clear', 2: 'partly', 3: 'cloudy', 45: 'fog', 48: 'freezing-fog', 51: 'drizzle', 53: 'drizzle', 55: 'drizzle',
@@ -345,5 +345,5 @@
     tickToday(view.root, context.clock24 !== false);
     return true;
   }
-  window.EdgeWeatherUI = Object.freeze({ renderWidget, renderDetails, renderToday, tickToday });
+  window.EdgeWeatherUI = Object.freeze({ renderWidget, renderDetails, renderToday, tickToday, condition });
 })();

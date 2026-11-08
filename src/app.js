@@ -2,7 +2,7 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const preview = !window.edge;
-const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
 const defaultConfig = {
   clock24: true, theme: 'dark', layout: {mode:'overview'},
   weather: { location: null, units: 'metric' }, music: { savedPlaylists: [] },
@@ -41,6 +41,7 @@ const paths = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   tasks: '<path d="M6 3h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9l-5 3V5a2 2 0 0 1 2-2Z"/><path d="m8 11 3 3 5-6"/>',
   printer: '<path d="M6 9V3h12v6M6 18H3V9h18v9h-3M6 14h12v7H6z"/><path d="M17 11h1"/>',
+  stats: '<path d="M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3"/>',
   music: '<path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>',
   playlists: '<path d="M3 5h15M3 10h15M3 15h8m5-1 5 3-5 3z"/>',
   previous: '<path d="M5 5v14M19 5 8 12l11 7z"/>',
@@ -58,6 +59,9 @@ const paths = {
   trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/>',
   monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M12 17v4M8 21h8"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
+  warning: '<path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h0"/>',
+  weather: '<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7Z"/>',
+  camera: '<path d="M3 7h12v10H3Z"/><path d="m15 11 6-4v10l-6-4"/>',
   folder: '<path d="M3 5h7l2 3h9v12H3z"/>',
   nozzle: '<path d="M7 3h10v7l-3 4v4l-2 3-2-3v-4l-3-4Z"/><path d="M7 7h10"/>',
   bed: '<path d="M3 14h18l-3 6H6Z"/><path d="M7 3c-3 3 3 4 0 7M12 3c-3 3 3 4 0 7M17 3c-3 3 3 4 0 7"/>'
@@ -99,7 +103,118 @@ function updateState(next) {
   if (state.config.warning && state.config.warning !== updateState.lastWarning) { toast(state.config.warning); updateState.lastWarning = state.config.warning; }
   render();
 }
+// ---- Pages -----------------------------------------------------------------
+// Cards are grouped into pages (screens). Tabs in the bottom bar switch them;
+// so does a swipe across the cards. The page you look at is remembered.
+let activePage = (() => { try { return sessionStorage.getItem('edge-deck-page') || ''; } catch { return ''; } })();
+function pagesList() { return Array.isArray(state.config.pages) && state.config.pages.length ? state.config.pages : [{ id: 'home', name: 'Home' }]; }
+function firstPageId() { return pagesList()[0].id; }
+function currentPage() { return pagesList().some(page => page.id === activePage) ? activePage : firstPageId(); }
+function showPage(id, direction = 0) {
+  if (!pagesList().some(page => page.id === id) || id === currentPage()) return;
+  activePage = id; try { sessionStorage.setItem('edge-deck-page', id); } catch {}
+  const widgets = $('#widgets');
+  widgets.dataset.enter = direction > 0 ? 'left' : direction < 0 ? 'right' : 'fade';
+  widgets.classList.remove('is-switching'); void widgets.offsetWidth; widgets.classList.add('is-switching');
+  render();
+}
+function renderPageTabs() {
+  const nav = $('#page-tabs'); if (!nav) return;
+  const pages = pagesList(), current = currentPage();
+  const key = JSON.stringify([pages, current]); if (nav.dataset.key === key) return; nav.dataset.key = key;
+  nav.replaceChildren();
+  nav.hidden = false;
+  nav.classList.toggle('is-single', pages.length < 2);
+  for (const page of pages) {
+    const tab = el('button', `page-tab${page.id === current ? ' is-active' : ''}`, page.name); tab.type = 'button';
+    tab.setAttribute('aria-current', page.id === current ? 'page' : 'false');
+    tab.addEventListener('click', () => showPage(page.id, pages.findIndex(p => p.id === page.id) - pages.findIndex(p => p.id === currentPage())));
+    nav.append(tab);
+  }
+  // Add a page from here: it opens on the new page with its settings ready.
+  if (pages.length < 6 && !preview) {
+    const add = button('', addPageFromBar, { className: 'page-tab page-add', icon: 'plus', label: 'Add a page' });
+    nav.append(add);
+  }
+}
+async function addPageFromBar() {
+  const cfg = newConfig(); cfg.pages = structuredClone(pagesList());
+  const id = `page-${crypto.randomUUID().slice(0, 8)}`;
+  cfg.pages.push({ id, name: `Page ${cfg.pages.length + 1}` });
+  try { await saveConfig(cfg); } catch (error) { toast(error.message); return; }
+  showPage(id, 1);
+  pagesAssignOpen = true;
+  showSettings('layout');
+  toast('Page added. Name it and choose its cards.');
+}
+// Swipe left or right across the cards to change page.
+let swipe = null;
+document.addEventListener('pointerdown', event => {
+  if (editingLayout || pagesList().length < 2 || !event.target.closest?.('#widgets') || event.target.closest('input, select, textarea, [data-edge-media-root], .printer-live, .card-drag-handle')) { swipe = null; return; }
+  swipe = { x: event.clientX, y: event.clientY, at: Date.now() };
+}, true);
+document.addEventListener('pointerup', event => {
+  const start = swipe; swipe = null; if (!start) return;
+  const dx = event.clientX - start.x, dy = event.clientY - start.y;
+  if (Math.abs(dx) < 110 || Math.abs(dy) > 70 || Date.now() - start.at > 800) return;
+  const pages = pagesList(), index = pages.findIndex(page => page.id === currentPage());
+  const next = pages[index + (dx < 0 ? 1 : -1)];
+  if (next) { suppressSwipeClick = true; setTimeout(() => { suppressSwipeClick = false; }, 350); showPage(next.id, dx < 0 ? 1 : -1); }
+}, true);
+let suppressSwipeClick = false;
+document.addEventListener('click', event => { if (suppressSwipeClick) { suppressSwipeClick = false; event.preventDefault(); event.stopPropagation(); } }, true);
+// Customize > Layout: pages and which page each card is on.
+let pagesAssignOpen = false;
+async function savePages(mutate) {
+  const cfg = newConfig(); cfg.pages = structuredClone(pagesList());
+  mutate(cfg);
+  await saveConfig(cfg); renderPagesSettings();
+}
+function renderPagesSettings() {
+  let slot = $('#settings-pages');
+  const content = $('#settings-content');
+  if (!slot) { slot = el('section', 'settings-pages'); slot.id = 'settings-pages'; slot.setAttribute('aria-label', 'Pages'); content.before(slot); }
+  slot.hidden = activeTab !== 'layout';
+  if (slot.hidden) { slot.replaceChildren(); return; }
+  slot.replaceChildren();
+  const pages = pagesList();
+  const head = el('div', 'settings-pages-head'); head.append(el('h3', '', 'Pages'), el('small', '', 'Group cards into screens. Swipe or tap the tabs at the bottom to switch.'));
+  slot.append(head);
+  const list = el('div', 'settings-pages-list');
+  pages.forEach((page, index) => {
+    const row = el('div', 'settings-page-row');
+    const name = el('input'); name.type = 'text'; name.value = page.name; name.maxLength = 24; name.setAttribute('aria-label', `Name of page ${index + 1}`);
+    name.addEventListener('change', () => { const value = name.value.trim(); if (!value || value === page.name) { name.value = page.name; return; } savePages(cfg => { cfg.pages[index].name = value; }); });
+    const count = (state.config.widgets || []).filter(w => w.type !== 'launchers' && (w.page || firstPageId()) === page.id).length;
+    const meta = el('span', 'settings-page-count', `${count} ${count === 1 ? 'card' : 'cards'}`);
+    const actions = el('div', 'row-actions');
+    if (index > 0) actions.append(button('', () => savePages(cfg => { [cfg.pages[index - 1], cfg.pages[index]] = [cfg.pages[index], cfg.pages[index - 1]]; }), { className: 'icon-button', icon: 'left', label: `Move ${page.name} earlier` }));
+    if (pages.length > 1) actions.append(button('', () => savePages(cfg => {
+      const target = cfg.pages[index === 0 ? 1 : 0].id;
+      for (const widget of cfg.widgets) if (widget.page === page.id) widget.page = target;
+      cfg.pages.splice(index, 1);
+    }), { className: 'icon-button', icon: 'trash', label: `Remove page ${page.name} (its cards move to another page)` }));
+    row.append(name, meta, actions); list.append(row);
+  });
+  slot.append(list);
+  if (pages.length < 6) slot.append(button('Add page', () => savePages(cfg => { cfg.pages.push({ id: `page-${crypto.randomUUID().slice(0, 8)}`, name: `Page ${cfg.pages.length + 1}` }); }), { className: 'button subtle', icon: 'plus' }));
+  // Which page each card is on.
+  const cards = (state.config.widgets || []).filter(w => w.type !== 'launchers');
+  if (pages.length > 1 && cards.length) {
+    const assign = el('details', 'settings-card-pages'); assign.open = pagesAssignOpen; assign.addEventListener('toggle', () => { pagesAssignOpen = assign.open; }); assign.append(el('summary', '', 'Choose the page for each card'));
+    for (const card of cards) {
+      const row = el('label', 'settings-card-page'); row.append(el('span', '', cardTitle(card)));
+      const select = el('select'); select.setAttribute('aria-label', `Page for ${cardTitle(card)}`);
+      for (const page of pages) { const option = el('option', '', page.name); option.value = page.id; option.selected = (card.page || firstPageId()) === page.id; select.append(option); }
+      select.addEventListener('change', () => savePages(cfg => { const widget = cfg.widgets.find(w => w.id === card.id); if (widget) widget.page = select.value; }));
+      row.append(select); assign.append(row);
+    }
+    slot.append(assign);
+  }
+}
 async function saveConfig(config) {
+  const pages = Array.isArray(config.pages) && config.pages.length ? config.pages : [{ id: 'home', name: 'Home' }];
+  for (const widget of config.widgets || []) if (widget.type !== 'launchers' && !pages.some(page => page.id === widget.page)) widget.page = pages.some(page => page.id === activePage) ? activePage : pages[0].id;
   const next = await bridge.saveConfig(config);
   if (next?.config) updateState(next); else updateState({ ...state, config: next || config });
 }
@@ -158,8 +273,9 @@ function render() {
   const fullScreen = Boolean(state.system?.fullscreen || document.fullscreenElement);
   const fullScreenButton = $('#fullscreen'); fullScreenButton.setAttribute('aria-pressed', String(fullScreen));
   fullScreenButton.title = fullScreen ? 'Exit full screen' : 'Enter full screen'; fullScreenButton.setAttribute('aria-label', fullScreenButton.title);
-  fullScreenButton.replaceChildren(icon(fullScreen ? 'exitFullscreen' : 'fullscreen'));
-  renderLaunchers(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage();
+  fullScreenButton.replaceChildren(icon(fullScreen ? 'exitFullscreen' : 'fullscreen'), document.createTextNode(fullScreenButton.title));
+  $('#layout-done').hidden = !editingLayout;
+  renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage();
   if (typeof dialog !== 'undefined' && dialog.open && activeTab === 'music') {
     const signature = JSON.stringify(state.spotify || {});
     if (signature !== musicSignature && !$('#settings-content input:focus')) { musicSignature = signature; renderSettings(); }
@@ -180,16 +296,18 @@ function renderCards(){
   const container=$('#widgets');
   const mode=state.config.layout?.mode || 'overview';
   container.dataset.layout=mode; container.classList.toggle('is-editing',editingLayout);
-  $('.workspace-name').textContent={overview:'Overview',bento:'Bento',focus:'Focus'}[mode]||'Overview';
-  const visible=state.config.widgets.filter(w=>isEnabled(w)&&w.type!=='launchers');
+  {const name=$('.workspace-name');if(name)name.textContent={auto:'Auto',overview:'Overview',bento:'Bento',focus:'Focus'}[mode]||'Overview';}
+  const page=currentPage();
+  const visible=state.config.widgets.filter(w=>isEnabled(w)&&w.type!=='launchers'&&(w.page||firstPageId())===page);
   const ids=new Set(visible.map(w=>w.id));
   for(const child of [...container.children])if(!ids.has(child.dataset.id))child.remove();
   for(const card of visible){
     let panel=[...container.children].find(p=>p.dataset.id===card.id);
-    if(!panel){panel=el('section','widget container-card');panel.dataset.id=card.id;panel.dataset.cardId=card.id;container.append(panel);}
+    if(!panel){panel=el('section','widget container-card');panel.dataset.id=card.id;panel.dataset.cardId=card.id;container.append(panel);shapeObserver.observe(panel);}
     const items=cardItems(card), active=items.find(i=>i.id===card.activeItemId)||items[0],type=active?.type||'empty';
     panel.className=`widget container-card ${type}`;panel.dataset.widget=type;panel.dataset.size=card.size||'medium';panel.setAttribute('aria-label',cardTitle(card));
     panel.dataset.cardTitle=cardTitle(card);
+    applyMood(panel,type);
     let toolbar=$('.card-toolbar',panel);
     const chromeKey=JSON.stringify([card.title,items,items.map(item=>state.config.launchers.find(app=>app.id===item.launcherId)?.name),editingLayout]);
     if(!toolbar){toolbar=el('div','card-toolbar');panel.prepend(toolbar);}
@@ -218,7 +336,7 @@ function renderCards(){
     if(!body){body=el('div','card-body');body.dataset.itemId=active?.id||'empty';body.id=`view-${card.id}-${active?.id||'empty'}`;panel.append(body);}
     body.hidden=false;body.setAttribute('role',items.length>1?'tabpanel':'group');body.setAttribute('aria-label',cardTitle(card));
     if(items.length>1)body.setAttribute('aria-labelledby',`tab-${card.id}-${active.id}`);else body.removeAttribute('aria-labelledby');
-    const value=type==='clock'?state.config.clock24:type==='today'?[state.weather,state.config.weather,state.config.clock24]:type==='weather'?[state.weather,state.config.weather]:type==='tasks'?[taskRenderValue(state.tasks),(state.approvals||[]).map(request=>request.session)]:type==='printers'?[state.printers,state.config.printers]:type==='media'?[state.media,state.spotify,state.config.music,state.spotifyCanvas]:type==='actions'?[state.media?.audio,state.media?.volume]:[active,state.config.launchers.find(app=>app.id===active?.launcherId)];
+    const value=type==='clock'?state.config.clock24:type==='today'?[state.weather,state.config.weather,state.config.clock24]:type==='weather'?[state.weather,state.config.weather]:type==='tasks'?[taskRenderValue(state.tasks),(state.approvals||[]).map(request=>request.session)]:type==='printers'?[state.printers,state.config.printers]:type==='media'?[state.media,state.spotify,state.config.music,state.spotifyCanvas]:type==='actions'?[state.media?.audio,state.media?.volume,state.controls]:type==='stats'?[state.pc,state.system?.presence]:[active,state.config.launchers.find(app=>app.id===active?.launcherId)];
     const key=JSON.stringify([type,value]);
     if(body.dataset.renderKey!==key && !(['media','actions'].includes(type)&&body.contains(document.activeElement)&&document.activeElement?.matches('input[type="range"]')&&!document.activeElement.closest('[data-edge-media-root]'))){
       // Live widgets keep their DOM (animations, drafts, focus) and update in place.
@@ -228,7 +346,7 @@ function renderCards(){
         if(!['media','actions','today'].includes(type))body.replaceChildren();
         if(type==='app'||type==='website')renderAppContent(body,active);
         else if(type==='empty'){emptyContent(body,'plus','Your space, your way','Add a widget, an app or a website to this card.');body.append(button('Add content',()=>showCardEditor(card.id),{icon:'plus'}));}
-        else ({clock:renderClock,today:renderToday,weather:renderWeather,tasks:renderTasks,printers:renderPrinters,media:renderMedia,actions:renderActions})[type]?.(body);
+        else ({clock:renderClock,today:renderToday,weather:renderWeather,tasks:renderTasks,printers:renderPrinters,media:renderMedia,actions:renderActions,stats:renderStats})[type]?.(body);
         if(scroll)restoreTaskScroll(body,scroll);
       }catch(error){delete body.dataset.renderKey;console.error('A card could not be displayed; it will be redrawn on the next update.',error);} // a half-built card is retried
     }
@@ -247,11 +365,27 @@ function renderAppContent(body,item){
     const frame=el('iframe','website-preview');frame.title=app.name+' website preview';frame.setAttribute('sandbox','allow-scripts allow-forms allow-popups allow-same-origin');frame.referrerPolicy='no-referrer';frame.loading='lazy';frame.src=app.target;body.append(frame);
   }
 }
+// Each card knows its shape (wide, tall or square) so its content can lay out
+// to suit it; a stacked card is short.
+function updateShape(panel){
+  const box=panel.getBoundingClientRect(); if(!box.width||!box.height)return;
+  const ratio=box.width/box.height;
+  panel.dataset.shape=ratio>1.35?'wide':ratio<0.8?'tall':'square';
+}
+const shapeObserver=new ResizeObserver(entries=>{for(const entry of entries)updateShape(entry.target);});
 function applyCardLayout(){
   const container=$('#widgets'),mode=container.dataset.layout,panels=[...container.querySelectorAll(':scope > .container-card')];
   panels.forEach(p=>{p.style.gridColumn='';p.style.gridRow='';p.style.flexGrow='';});
   container.style.removeProperty('--card-rows');container.style.removeProperty('--card-row-height');
   if(mode==='overview'){panels.forEach(p=>{if(p.dataset.size!=='medium')p.style.flexGrow=({small:.65,wide:1.6,tall:1.1,large:1.9})[p.dataset.size]||1;});return;}
+  if(mode==='auto'){
+    // Auto: one row of columns sized by content; stacked pairs share a column.
+    const plan=window.EdgeLayout.planAuto(panels.map(p=>({id:p.dataset.id,type:p.dataset.widget})),{width:container.clientWidth||innerWidth,gap:14});
+    container.style.setProperty('--auto-columns',plan.columns.map(column=>`minmax(0,${column.weight.toFixed(2)}fr)`).join(' ')||'1fr');
+    plan.columns.forEach((column,index)=>column.ids.forEach((id,row)=>{const panel=panels.find(p=>p.dataset.id===id);if(!panel)return;panel.style.gridColumn=String(index+1);panel.style.gridRow=column.ids.length===1?'1 / span 2':String(row+1);panel.dataset.stacked=String(column.ids.length>1);}));
+    requestAnimationFrame(()=>panels.forEach(updateShape));
+    return;
+  }
   const columns=innerWidth<600?1:innerWidth<1000?4:12;
   const cards=panels.map((panel,index)=>({id:panel.dataset.id,size:mode==='focus'?(index===0?'large':'medium'):panel.dataset.size}));
   const plan=window.EdgeLayout.packCards(cards,{columns});
@@ -280,8 +414,39 @@ function renderWeather(panel){if(window.EdgeWeatherUI)window.EdgeWeatherUI.rende
 function header(panel, name, symbol, status) {
   const head = el('div', 'widget-header'); const title = el('h2', 'widget-title'); title.append(icon(symbol), document.createTextNode(name)); head.append(title); if (status) head.append(status); panel.append(head);
 }
+// A card takes on a soft tint from what it shows, and glows when it needs you:
+// the agent brand colour while one works, printer status colours, a warm tint
+// when the PC runs hot. Music and weather keep their own artwork and skies.
+const MOODS = { claude: '217 119 87', codex: '16 163 127', chatgpt: '167 139 250', print: '155 225 93', done: '48 209 88', paused: '255 214 10', error: '255 69 58', hot: '255 159 10' };
+function applyMood(panel, type) {
+  let mood = '', attention = false;
+  if (type === 'tasks') {
+    const tasks = Array.isArray(state.tasks?.items) ? state.tasks.items : [];
+    attention = tasks.some(item => item.approval) || (state.approvals || []).length > 0;
+    const first = tasks.find(item => item.status === 'working') || tasks[0];
+    if (first) mood = first.agent === 'Claude Code' ? 'claude' : first.agent === 'ChatGPT' ? 'chatgpt' : 'codex';
+  } else if (type === 'printers') {
+    const printers = state.printers || [];
+    if (printers.some(p => p.status === 'error')) { mood = 'error'; attention = true; }
+    else if (printers.some(p => p.status === 'paused')) { mood = 'paused'; attention = true; }
+    else if (printers.some(p => p.status === 'printing')) mood = 'print';
+    else if (printers.some(p => p.status === 'finished')) mood = 'done';
+  } else if (type === 'stats') {
+    if ((state.pc?.cpu?.temperature >= 85) || (state.pc?.gpu?.temperature >= 83)) mood = 'hot';
+  }
+  if (mood) { panel.dataset.mood = mood; panel.style.setProperty('--mood', MOODS[mood]); } else { delete panel.dataset.mood; panel.style.removeProperty('--mood'); }
+  panel.toggleAttribute('data-needs-you', attention);
+}
+// Bars and rings move from their previous value instead of jumping.
+const lastValues = new Map();
+function glide(key, node, property, value) {
+  const before = lastValues.get(key); lastValues.set(key, value);
+  if (before === undefined || before === value || document.documentElement.classList.contains('low-power')) { node.style[property] = value; return; }
+  node.style[property] = before;
+  requestAnimationFrame(() => requestAnimationFrame(() => { node.style[property] = value; }));
+}
 function renderClock(panel) {
-  panel.append(el('p', 'clock-day'), el('p', 'clock-time'), el('p', 'clock-date'));
+  panel.append(el('p', 'clock-day'), el('p', 'clock-time'), el('p', 'clock-date'), el('div', 'up-next'));
   const bottom = el('div', 'clock-bottom'); bottom.append(icon('clock'), document.createTextNode(Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll('_', ' '))); panel.append(bottom);
 }
 function updateClock() {
@@ -293,6 +458,63 @@ function updateClock() {
     const parts = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: !state.config.clock24 }).formatToParts(now);
     const time = $('.clock-time', panel); time.replaceChildren();
     for (const part of parts) { if (part.type === 'dayPeriod') time.append(el('span', '', part.value)); else time.append(document.createTextNode(part.value)); }
+    renderUpNext($('.up-next', panel));
+  }
+}
+// Up next: what is coming, from what Edge Deck already knows: an agent that
+// needs you, prints and when they finish, working agents, and the next change
+// in the weather. At most four lines; the most urgent first.
+function clockText(date) { return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !state.config?.clock24 }); }
+function upNextItems() {
+  const items = [];
+  const tasks = Array.isArray(state.tasks?.items) ? state.tasks.items : [];
+  const asking = tasks.filter(item => item.approval || (item.agent === 'Claude Code' && (state.approvals || []).some(request => `claude-${request.session}` === item.id)));
+  for (const item of asking.slice(0, 1)) items.push({ symbol: 'warning', tone: 'attention', title: `${item.agent} needs your OK`, detail: item.title || item.project || '' });
+  for (const printer of state.printers || []) {
+    const config = (state.config.printers || []).find(p => p.id === printer.id);
+    const name = printer.accountName || printer.name || config?.name || 'Printer';
+    if (printer.status === 'printing' && Number.isFinite(printer.progress)) {
+      const done = Number.isFinite(printer.remainingMinutes) && printer.remainingMinutes > 0 ? clockText(new Date(Date.now() + printer.remainingMinutes * 60000)) : '';
+      items.push({ symbol: 'printer', tone: 'print', title: done ? `${name} done at ${done}` : `${name} printing`, detail: `${Math.round(printer.progress)}%${printer.jobName ? ` · ${printer.jobName}` : ''}`, progress: printer.progress });
+    } else if (printer.status === 'paused') items.push({ symbol: 'printer', tone: 'attention', title: `${name} paused`, detail: Number.isFinite(printer.progress) ? `At ${Math.round(printer.progress)}%` : '' });
+    else if (printer.status === 'error') items.push({ symbol: 'printer', tone: 'attention', title: `${name} needs attention`, detail: printer.jobName || '' });
+  }
+  const working = tasks.filter(item => item.status === 'working' && !asking.includes(item));
+  if (working.length) items.push({ symbol: 'tasks', tone: 'agent', title: working.length === 1 ? `${working[0].agent} is working` : `${working.length} agents working`, detail: working[0].activityLabel || working[0].title || '' });
+  const weather = state.weather;
+  const describe = code => window.EdgeWeatherUI?.condition?.(code) || ['', 'unknown'];
+  if (weather?.current && Array.isArray(weather.hourly)) {
+    const nowKind = describe(weather.current.conditionCode)[1];
+    const wet = kind => ['rain', 'snow', 'storm'].includes(kind);
+    const upcoming = weather.hourly.filter(hour => Date.parse(hour.time) > Date.now()).slice(0, 12);
+    const change = upcoming.find(hour => wet(describe(hour.conditionCode)[1]) !== wet(nowKind));
+    if (change) {
+      const [label, kind] = describe(change.conditionCode);
+      items.push({ symbol: 'weather', tone: 'weather', title: wet(kind) ? `${label} around ${clockText(new Date(change.time))}` : `Dry from ${clockText(new Date(change.time))}`, detail: Number.isFinite(change.temp) ? `${Math.round(change.temp)}°` : '' });
+    } else if (upcoming.length) {
+      const coldest = upcoming.slice(0, 6).reduce((low, hour) => (Number.isFinite(hour.temp) && (!low || hour.temp < low.temp) ? hour : low), null);
+      if (coldest && Number.isFinite(weather.current.temp) && weather.current.temp - coldest.temp >= 3) items.push({ symbol: 'weather', tone: 'weather', title: `Down to ${Math.round(coldest.temp)}° by ${clockText(new Date(coldest.time))}`, detail: describe(coldest.conditionCode)[0] });
+      else items.push({ symbol: 'weather', tone: 'weather', title: `${describe(weather.current.conditionCode)[0]} for now`, detail: Number.isFinite(weather.current.temp) ? `${Math.round(weather.current.temp)}° now` : '' });
+    }
+  }
+  return items.slice(0, 4);
+}
+function renderUpNext(node) {
+  if (!node) return;
+  const items = upNextItems();
+  const signature = JSON.stringify(items);
+  if (node.dataset.signature === signature) return;
+  node.dataset.signature = signature;
+  node.replaceChildren();
+  if (!items.length) return;
+  node.append(el('p', 'up-next-title', 'Up next'));
+  for (const item of items) {
+    const row = el('div', `up-next-item is-${item.tone}`);
+    const mark = el('span', 'up-next-icon'); mark.append(icon(item.symbol));
+    const copy = el('div', 'up-next-copy'); copy.append(el('span', 'up-next-main', item.title));
+    if (item.detail) copy.append(el('span', 'up-next-detail', item.detail));
+    if (Number.isFinite(item.progress)) { const bar = el('span', 'up-next-bar'); const fill = el('i'); fill.style.width = `${Math.max(2, Math.min(100, item.progress))}%`; bar.append(fill); copy.append(bar); }
+    row.append(mark, copy); node.append(row);
   }
 }
 function emptyContent(panel, symbol, title, message) {
@@ -555,6 +777,112 @@ function showPicture(box, url, approximate = false) {
 
   if (approximate) { const note = el('span', 'printer-model-note', 'Saved project'); box.title = 'From the saved project in Bambu Studio; the printer does not share its copy (insert a USB drive in the printer for the exact picture).'; box.append(note); }
 }
+// Live camera inside the printers card: the camera button turns a printer's
+// row into its live view (each printer separately, so both can show at once).
+// Frames stream only while a view is on and on screen, and pause while a game
+// or other full-screen app is in front.
+const CAMERA_WAIT_MS = 1000;
+const cameraImage = value => typeof value === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value) && value.length <= 8000000;
+const liveCameras = new Map(); // id -> { image, message, time, frameAt, timer, busy }
+function cameraAvailable(id) {
+  const config = (state.config.printers || []).find(p => p.id === id);
+  return !preview && typeof bridge?.cameraFrame === 'function' && config?.configured === true;
+}
+function redrawPrinters() {
+  for (const body of document.querySelectorAll('.card-body')) if (body.querySelector('.printer-list')) delete body.dataset.renderKey;
+  render();
+}
+function toggleLiveCamera(id) {
+  const live = liveCameras.get(id);
+  if (live) { clearTimeout(live.timer); stopVideo(live); liveCameras.delete(id); }
+  else {
+    const image = el('img', 'printer-live-image'); image.alt = ''; image.decoding = 'async'; image.draggable = false; image.hidden = true;
+    const message = el('p', 'printer-live-message', 'Connecting to the camera…'); message.setAttribute('role', 'status');
+    const entry = { image, message, frameAt: null, timer: null, video: null };
+    liveCameras.set(id, entry);
+    const config = (state.config.printers || []).find(p => p.id === id);
+    if (config?.model === 'H2D' && typeof bridge?.cameraVideo === 'function') startVideo(id, entry); else cameraTick(id, entry);
+  }
+  redrawPrinters();
+}
+// The H2D as real video: the printer's H.264 in a <video>, which buffers and
+// plays evenly. It stays close to live (skipping ahead if it falls behind),
+// reconnects when the stream ends, and falls back to pictures if it fails.
+function stopVideo(entry) {
+  const video = entry.video; if (!video) return;
+  entry.video = null; clearInterval(video.edgeTimer); video.removeAttribute('src'); video.load(); video.remove();
+}
+async function startVideo(id, entry, attempt = 0) {
+  if (liveCameras.get(id) !== entry) return;
+  stopVideo(entry);
+  let link;
+  try { link = await bridge.cameraVideo(id); } catch (error) { entry.message.hidden = false; entry.message.textContent = error?.message || 'The camera video could not start.'; cameraTick(id, entry); return; }
+  if (liveCameras.get(id) !== entry || !/^\/camera\/[A-Za-z0-9_-]{43}$/.test(link?.url || '')) return;
+  const video = el('video', 'printer-live-image'); video.muted = true; video.autoplay = true; video.playsInline = true; video.disablePictureInPicture = true; video.setAttribute('aria-hidden', 'true');
+  entry.video = video; entry.image.hidden = true;
+  let started = false;
+  video.addEventListener('playing', () => { started = true; entry.message.hidden = true; }, { once: true });
+  video.addEventListener('error', () => {
+    if (entry.video !== video) return;
+    stopVideo(entry);
+    if (!started || attempt >= 3) { entry.message.hidden = false; entry.message.textContent = 'Live video is unavailable; showing pictures.'; cameraTick(id, entry); }
+    else setTimeout(() => startVideo(id, entry, attempt + 1), 1500);
+  });
+  video.addEventListener('ended', () => { if (entry.video === video) setTimeout(() => startVideo(id, entry, attempt + 1), 1000); });
+  // Stay near the live edge: a stall builds a backlog, which is skipped.
+  video.edgeTimer = setInterval(() => {
+    if (entry.video !== video || !video.buffered.length) return;
+    const end = video.buffered.end(video.buffered.length - 1);
+    if (end - video.currentTime > 2) video.currentTime = end - 0.4;
+    if (video.paused && video.isConnected) video.play().catch(() => {});
+  }, 1000);
+  video.src = link.url;
+  entry.image.parentElement?.insertBefore(video, entry.image);
+  video.play().catch(() => {});
+  entry.message.hidden = false; entry.message.textContent = 'Connecting to the camera…';
+}
+async function cameraTick(id, entry) {
+  if (liveCameras.get(id) !== entry) return;
+  let wait = CAMERA_WAIT_MS;
+  if (entry.image.isConnected && document.visibilityState === 'visible' && !powerInfo().active) {
+    const printer = (state.printers || []).find(p => p.id === id);
+    try {
+      const frame = await bridge.cameraFrame(id, entry.frameAt);
+      if (liveCameras.get(id) !== entry) return;
+      if (cameraImage(frame?.image)) {
+        // Each frame is decoded before it replaces the shown one, so the view never stalls on a half-decoded picture.
+        if (entry.frameAt !== frame.updatedAt) { entry.frameAt = frame.updatedAt; const next = new Image(); next.src = frame.image; try { await next.decode(); } catch {} if (liveCameras.get(id) !== entry) return; entry.image.src = next.src; }
+        entry.image.hidden = false; entry.message.hidden = true; wait = 15;
+      } else {
+        entry.message.hidden = false;
+        entry.message.textContent = frame?.error || printer?.capabilityReasons?.camera || 'Waiting for the camera…';
+      }
+    } catch (error) { if (liveCameras.get(id) !== entry) return; entry.message.hidden = false; entry.message.textContent = error?.message || 'The camera could not be reached.'; }
+  } else if (powerInfo().active && entry.image.isConnected) {
+    entry.message.hidden = false; entry.message.textContent = 'Paused while a full-screen app is in front.';
+  }
+  entry.timer = setTimeout(() => cameraTick(id, entry), wait);
+}
+// The row's live view: the video with the printer's name, status and progress over it.
+function liveCameraRow(row, id, displayName, data) {
+  const entry = liveCameras.get(id);
+  row.classList.add('is-live');
+  const stage = el('div', 'printer-live'); stage.append(...(entry.video ? [entry.video] : []), entry.image, entry.message);
+  if (entry.video?.paused) queueMicrotask(() => entry.video?.play().catch(() => {}));
+  const overlay = el('div', 'printer-live-overlay');
+  const title = el('div', 'printer-live-title'); title.append(el('span', 'printer-live-badge', 'LIVE'), el('strong', '', displayName));
+  overlay.append(title);
+  if (['printing', 'paused'].includes(data.status) && Number.isFinite(data.progress)) {
+    const progress = el('div', 'printer-live-progress');
+    const remaining = Number.isFinite(data.remainingMinutes) ? (data.remainingMinutes >= 60 ? `${Math.floor(data.remainingMinutes / 60)}h ${Math.round(data.remainingMinutes % 60)}m left` : `${Math.round(data.remainingMinutes)}m left`) : '';
+    progress.append(el('span', '', `${Math.round(data.progress)}%`), el('span', '', remaining));
+    const bar = el('div', 'printer-live-bar'); const fill = el('span'); fill.style.width = `${Math.max(0, Math.min(100, data.progress))}%`; bar.append(fill);
+    overlay.append(progress, bar);
+  } else overlay.append(el('span', 'printer-live-status', (printerLabels[data.status] || ['Unknown'])[0]));
+  stage.append(overlay);
+  return stage;
+}
+
 function printerFigure(model, data = {}) {
   const box = el('div', 'printer-figure'); box.setAttribute('aria-hidden', 'true');
   if (data.status === 'finished') box.classList.add('is-finished');
@@ -590,7 +918,7 @@ function printProgress(name, data) {
   if (facts.length) top.append(el('span', 'print-progress-left', facts.join(' | ')));
   const track = el('div', 'print-progress-track'); track.setAttribute('role', 'progressbar'); track.setAttribute('aria-label', `${name} print progress`);
   track.setAttribute('aria-valuenow', String(Math.round(progress))); track.setAttribute('aria-valuemin', '0'); track.setAttribute('aria-valuemax', '100');
-  const fill = el('span'); fill.style.width = `${progress}%`; track.append(fill);
+  const fill = el('span'); glide(`print:${name}`, fill, 'width', `${progress}%`); track.append(fill);
   const bottom = el('div', 'print-progress-facts');
   bottom.append(el('span', 'print-progress-status', data.status === 'paused' ? 'Paused' : data.status === 'finished' ? 'Finished' : data.stage?.label || 'Printing'));
   if (Number.isFinite(data.remainingMinutes) && data.status === 'printing' && data.remainingMinutes > 0) {
@@ -642,6 +970,12 @@ function renderPrinters(panel) {
     const row = el('article', `printer is-rich${active ? ' is-job' : ''}`); row.dataset.printerId = config.id; row.dataset.status = data.status;
     const displayName = data.accountName || data.name || config.name;
     row.append(button('', () => showPrinterConsole(config.id, row), { className: 'printer-open', label: `Open ${displayName} control panel` }), printerFigure(config.model, { ...data, id: config.id }));
+    const cameraOn = liveCameras.has(config.id);
+    if (cameraAvailable(config.id) && (cameraOn || !['not_configured', 'offline'].includes(data.status))) {
+      const toggle = button('', () => toggleLiveCamera(config.id), { className: 'printer-camera-toggle', icon: cameraOn ? 'close' : 'camera', label: cameraOn ? `Close ${displayName} camera` : `Show ${displayName} camera` });
+      toggle.setAttribute('aria-pressed', String(cameraOn)); row.append(toggle);
+    }
+    if (cameraOn) { row.append(liveCameraRow(row, config.id, displayName, data)); list.append(row); continue; }
     const detail = el('div', 'printer-details'); const top = el('div', 'printer-topline');
     top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
     const modelName = `Bambu Lab ${config.model || ''}`.trim();
@@ -672,6 +1006,86 @@ function renderPrinters(panel) {
     row.append(detail, disclosure); list.append(row);
   }
   if (!configured.length) emptyContent(panel, 'printer', 'Your print room', 'Add your printer connections in Customize.'); else panel.append(list);
+}
+// PC stats: CPU, GPU, memory and video memory as rings, the busiest apps, uptime
+// and an internet speed test. While a game is full screen it shows only the rings
+// (game view), larger.
+const gigabytes = bytes => `${(bytes / 1073741824).toFixed(bytes >= 10737418240 ? 0 : 1)} GB`;
+function uptimeText(seconds) {
+  const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600), minutes = Math.floor(seconds % 3600 / 60);
+  return days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+function statRing(label, value, detail, extra, hot) {
+  const box = el('div', `stat-ring${hot ? ' is-hot' : ''}`);
+  const percent = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('aria-hidden', 'true');
+  const track = document.createElementNS(svg.namespaceURI, 'circle'); track.setAttribute('class', 'stat-ring-track');
+  const fill = document.createElementNS(svg.namespaceURI, 'circle'); fill.setAttribute('class', 'stat-ring-fill');
+  for (const circle of [track, fill]) { circle.setAttribute('cx', '50'); circle.setAttribute('cy', '50'); circle.setAttribute('r', '42'); }
+  glide(`ring:${label}`, fill, 'strokeDasharray', `${(percent ?? 0) * 2.639} 263.9`);
+  svg.append(track, fill);
+  const center = el('div', 'stat-ring-center'); center.append(el('strong', '', percent === null ? '—' : `${Math.round(percent)}%`));
+  if (extra) center.append(el('span', 'stat-ring-extra', extra));
+  const dial = el('div', 'stat-ring-dial'); dial.append(svg, center);
+  box.append(dial, el('span', 'stat-ring-label', label));
+  if (detail) box.append(el('small', 'stat-ring-detail', detail));
+  box.setAttribute('role', 'img'); box.setAttribute('aria-label', [label, percent === null ? 'not reported' : `${Math.round(percent)} percent`, extra, detail].filter(Boolean).join(', '));
+  return box;
+}
+// CPU temperature needs Edge Deck's sensor (PawnIO driver + an elevated task).
+async function toggleCpuSensor(enable) {
+  try { toast(enable ? 'Approve the Windows prompt to turn on CPU temperature' : 'Approve the Windows prompt to turn off CPU temperature'); updateState(await bridge.setCpuSensor(enable)); toast(enable ? 'CPU temperature is on' : 'CPU temperature is off'); }
+  catch (error) { toast(error.message); }
+  if (dialog.open && activeTab === 'display') renderSettings();
+}
+function cpuSensorNote(pc) {
+  const sensor = pc.cpuSensor || {};
+  const note = el('div', 'pc-stats-note');
+  if (!['intel', 'amd'].includes(sensor.vendor)) note.append(el('small', '', 'CPU temperature appears when HWiNFO or Core Temp is running.'));
+  else if (sensor.enabled) note.append(el('small', '', 'Starting the CPU temperature sensor…'));
+  else note.append(el('small', '', sensor.driver ? 'CPU temperature is off.' : 'CPU temperature is off. Turning it on installs the signed PawnIO driver.'), button('Turn on', () => toggleCpuSensor(true), { className: 'button subtle pc-sensor-button', disabled: preview || typeof bridge.setCpuSensor !== 'function' }));
+  return note;
+}
+function renderStats(panel) {
+  const pc = state.pc;
+  const game = state.system?.presence === 'fullscreen';
+  header(panel, 'PC stats', 'stats', badge(game ? 'Game mode' : pc ? `Up ${uptimeText(pc.uptime || 0)}` : 'Starting', game ? 'working' : ''));
+  if (!pc) { emptyContent(panel, 'stats', 'PC stats are starting', 'Readings appear in a moment.'); return; }
+  const body = el('div', `pc-stats${game ? ' is-game' : ''}`);
+  const rings = el('div', 'stat-rings');
+  const cpuTemp = Number.isFinite(pc.cpu?.temperature) ? `${Math.round(pc.cpu.temperature)}°C` : '—°C';
+  rings.append(statRing('CPU', pc.cpu?.load, (pc.cpu?.name || '').replace(/^(\d+th Gen )?Intel\(R\) Core\(TM\) /, '').replace(/ CPU.*$/, ''), cpuTemp, pc.cpu?.temperature >= 85));
+  if (pc.gpu) rings.append(statRing('GPU', pc.gpu.load, !Number.isFinite(pc.gpu.power) ? '' : `${Math.round(pc.gpu.power)} W`, Number.isFinite(pc.gpu.temperature) ? `${Math.round(pc.gpu.temperature)}°C` : '', pc.gpu.temperature >= 83));
+  const memory = pc.memory || {};
+  rings.append(statRing('RAM', memory.total ? memory.used / memory.total * 100 : null, memory.total ? `${gigabytes(memory.used)} of ${gigabytes(memory.total)}` : ''));
+  if (pc.gpu?.memoryTotal) rings.append(statRing('VRAM', pc.gpu.memoryUsed / pc.gpu.memoryTotal * 100, `${(pc.gpu.memoryUsed / 1024).toFixed(1)} of ${Math.round(pc.gpu.memoryTotal / 1024)} GB`));
+  body.append(rings);
+  if (!game) {
+    const apps = el('div', 'pc-apps'); apps.setAttribute('role', 'list'); apps.setAttribute('aria-label', 'Busiest apps');
+    const most = Math.max(1, ...(pc.apps || []).map(app => app.memory));
+    for (const app of (pc.apps || []).slice(0, 5)) {
+      const row = el('div', 'pc-app'); row.setAttribute('role', 'listitem');
+      const iconBox = el('span', 'pc-app-icon');
+      if (typeof app.icon === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(app.icon)) { const image = el('img'); image.src = app.icon; image.alt = ''; iconBox.append(image); } else iconBox.append(icon('app'));
+      const copy = el('div', 'pc-app-copy'); const top = el('div', 'pc-app-top');
+      top.append(el('span', 'pc-app-name', app.title), el('span', 'pc-app-memory', gigabytes(app.memory)));
+      const bar = el('div', 'pc-app-bar'); const fill = el('span'); fill.style.width = `${Math.max(3, app.memory / most * 100)}%`; bar.append(fill);
+      copy.append(top, bar);
+      row.append(iconBox, copy, el('span', 'pc-app-cpu', `${app.cpu >= 10 ? Math.round(app.cpu) : app.cpu.toFixed(1)}%`));
+      apps.append(row);
+    }
+    body.append(apps);
+    const footer = el('div', 'pc-stats-footer');
+    const speed = pc.speed || {};
+    const result = el('span', 'pc-speed-result',
+      speed.state === 'running' ? ['Testing…', Number.isFinite(speed.ping) ? `${speed.ping} ms` : '', Number.isFinite(speed.down) ? `↓ ${speed.down} Mbps` : ''].filter(Boolean).join(' · ')
+        : speed.state === 'done' ? `↓ ${speed.down} Mbps · ↑ ${speed.up} Mbps · ${speed.ping} ms` : speed.state === 'error' ? speed.error : 'Internet speed');
+    const test = button(speed.state === 'running' ? 'Testing' : speed.state === 'done' ? 'Test again' : 'Test speed', async () => { try { updateState(await bridge.speedTest()); } catch (error) { toast(error.message); } }, { className: 'button subtle pc-speed-button', disabled: speed.state === 'running' || preview });
+    footer.append(result, test);
+    if (!Number.isFinite(pc.cpu?.temperature)) footer.append(cpuSensorNote(pc));
+    body.append(footer);
+  }
+  panel.append(body);
 }
 function renderActions(panel){
   if(window.EdgeQuickActions)return window.EdgeQuickActions.render(panel,{getState:()=>state,bridge,updateState,toast});
@@ -828,19 +1242,53 @@ async function closePrinterConsole() {
   try { await consoleMotion(source, true)?.finished; } catch {}
   printerConsole.close(); printerConsoleClosing = false; printerConsole.classList.remove('is-closing');
 }
+const CONNECTION_TABS = [['music', 'Music'], ['weather', 'Weather'], ['printers', 'Printers'], ['agents', 'Agents']];
+let lastConnectionTab = 'music';
+// Long-press a card (about 0.6 s) to open its own settings.
+const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps' };
+let pressTimer = null, pressStart = null, pressedCard = null, suppressClick = false;
+function cancelPress() { clearTimeout(pressTimer); pressTimer = null; pressedCard?.classList.remove('is-pressing'); pressedCard = null; }
+document.addEventListener('pointerdown', event => {
+  const card = event.target.closest?.('#widgets > .container-card');
+  if (!card || editingLayout || event.button > 0 || event.target.closest('input, select, textarea, [contenteditable]')) return;
+  const tab = CARD_SETTINGS[card.dataset.widget]; if (!tab) return;
+  pressStart = { x: event.clientX, y: event.clientY }; pressedCard = card;
+  pressTimer = setTimeout(() => { card.classList.remove('is-pressing'); suppressClick = true; setTimeout(() => { suppressClick = false; }, 1500); pressedCard = null; pressTimer = null; navigator.vibrate?.(10); showSettings(tab); }, 600);
+  setTimeout(() => { if (pressedCard === card && pressTimer) card.classList.add('is-pressing'); }, 180);
+}, true);
+document.addEventListener('pointermove', event => { if (pressTimer && pressStart && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 12) cancelPress(); }, true);
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) document.addEventListener(type, () => { if (pressTimer) cancelPress(); }, true);
+// The tap that ends a long press does not also press what is under the finger.
+document.addEventListener('click', event => { if (suppressClick) { suppressClick = false; event.preventDefault(); event.stopPropagation(); } }, true);
+document.addEventListener('contextmenu', event => { if (event.target.closest?.('#widgets > .container-card')) event.preventDefault(); });
 async function showSettings(tab = 'layout') {
   activeTab = tab==='widgets'?'layout':tab; renderSettings(); if (!dialog.open) { dialog.showModal(); renderApprovals(); }
 }
 function renderSettings() {
   $('#settings-title').textContent = activeTab === 'control' ? ((state.config.printers || []).find(p => p.id === activePrinterId)?.name || 'Printer controls') : 'Customize your deck';
   const tabs = $('#settings-tabs'), restoreTabFocus=tabs.contains(document.activeElement), previousScroll=tabs.scrollLeft; tabs.replaceChildren();
-  for (const [id, name] of [['layout','Layout'], ['apps','Apps'], ['agents','Agents'], ['music','Music'], ['weather','Weather'], ['printers','Printers'], ['display','Display']]) {
-    const selected = activeTab === id || (activeTab === 'control' && id === 'printers');
-    const tab = button(name, () => { activeTab = id; renderSettings(); }, { className: `tab${selected ? ' active' : ''}` }); tab.setAttribute('aria-current', selected ? 'page' : 'false'); tabs.append(tab);
+  // Four places: Layout, Apps, Connections (music, weather, printers, agents) and Display.
+  const connection = CONNECTION_TABS.some(([id]) => id === activeTab) || activeTab === 'control';
+  for (const [id, name] of [['layout','Layout'], ['apps','Apps'], ['connections','Connections'], ['display','Display']]) {
+    const selected = id === 'connections' ? connection : activeTab === id;
+    const tab = button(name, () => { activeTab = id === 'connections' ? (connection ? activeTab : lastConnectionTab) : id; renderSettings(); }, { className: `tab${selected ? ' active' : ''}` }); tab.setAttribute('aria-current', selected ? 'page' : 'false'); tabs.append(tab);
   }
   tabs.scrollLeft=previousScroll;
   if(restoreTabFocus)tabs.querySelector('[aria-current=page]')?.focus({preventScroll:true});
   const content = $('#settings-content'); content.replaceChildren();
+  renderPagesSettings();
+  // The Connections sub-row has its own slot: some pages redraw their whole content.
+  let sub = $('#settings-subtabs');
+  if (!sub) { sub = el('div', 'settings-subtabs'); sub.id = 'settings-subtabs'; sub.setAttribute('role', 'group'); sub.setAttribute('aria-label', 'Connections'); content.before(sub); }
+  sub.replaceChildren(); sub.hidden = !connection;
+  if (connection) {
+    if (activeTab !== 'control') lastConnectionTab = activeTab;
+    for (const [id, name] of CONNECTION_TABS) {
+      const selected = activeTab === id || (activeTab === 'control' && id === 'printers');
+      const choice = button(name, () => { activeTab = id; renderSettings(); }, { className: `settings-subtab${selected ? ' active' : ''}` });
+      choice.setAttribute('aria-pressed', String(selected)); sub.append(choice);
+    }
+  }
   ({ layout: content=>window.EdgeLayoutUI.renderSettings(content,layoutContext()), widgets: settingsWidgets, apps: settingsApps, agents: settingsAgents, music: settingsMusic, weather: settingsWeather, printers: settingsPrinters, control: settingsPrinterControls, display: settingsDisplay })[activeTab](content);
 }
 function settingsAgents(content) {
@@ -1083,14 +1531,25 @@ function settingsUpdates(content) {
   if (!['checking', 'downloading', 'installing'].includes(update.state)) actions.append(button('Check now', async () => { try { const next = await bridge.checkUpdate(); if (next?.config) updateState(next); renderSettings(); } catch (error) { toast(error.message); } }, { className: 'button subtle' }));
   row.append(copy, actions); content.append(row);
 }
+function settingsSection(content, title) { content.append(el('h3', 'settings-section', title)); }
 async function settingsDisplay(content) {
   content.append(el('p', 'intro', 'Place the deck on your XENEON EDGE, then enter full screen.'));
   settingsUpdates(content);
+  settingsSection(content, 'Screen');
+  const sensor = state.pc?.cpuSensor;
+  const pcSection = el('div');
+  if (['intel', 'amd'].includes(sensor?.vendor) && typeof bridge.setCpuSensor === 'function') {
+    const sensorRow = el('div', 'settings-row'); const sensorCopy = el('div');
+    sensorCopy.append(el('p', 'settings-row-title', 'CPU temperature'), el('small', '', `Uses the signed PawnIO driver${sensor.driver ? '' : ' (installed when you turn this on)'}. Asks for administrator permission.`));
+    const sensorToggle = button('', () => toggleCpuSensor(!sensor.enabled), { className: 'toggle', label: 'CPU temperature' });
+    sensorToggle.setAttribute('role', 'switch'); sensorToggle.setAttribute('aria-checked', String(sensor.enabled === true));
+    sensorRow.append(sensorCopy, sensorToggle); pcSection.append(sensorRow);
+  }
   const row = el('div', 'settings-row'); row.append(el('span', 'settings-row-title', '24-hour clock'));
   const toggle = button('', async () => { const cfg = newConfig(); cfg.clock24 = !cfg.clock24; await saveConfig(cfg); renderSettings(); }, { className: 'toggle', label: '24-hour clock' }); toggle.setAttribute('role', 'switch'); toggle.setAttribute('aria-checked', String(state.config.clock24)); row.append(toggle); content.append(row);
   const power = powerInfo();
   const powerRow = el('div', 'settings-row'); const powerCopy = el('div');
-  powerCopy.append(el('p', 'settings-row-title', 'Low power'), el('small', '', 'Stills the animated sky and text effects, and slows the agent orbs. Data keeps updating. Automatic does this while a game or other full-screen app is in front, or while the PC is locked.'));
+  powerCopy.append(el('p', 'settings-row-title', 'Low power'), el('small', '', 'Calmer animation. Automatic while you game or the PC is locked.'));
   const powerChoices = el('div', 'power-control'); powerChoices.setAttribute('role', 'group'); powerChoices.setAttribute('aria-label', 'Low power');
   for (const [mode, label] of [['off', 'Off'], ['auto', 'Automatic'], ['on', 'On']]) {
     const choice = button(label, async () => { if (powerInfo().mode === mode) return; const cfg = newConfig(); cfg.power = { mode }; await saveConfig(cfg); syncPowerControls(); }, { className: 'button' });
@@ -1100,14 +1559,17 @@ async function settingsDisplay(content) {
   const powerStatus = el('p', `power-status${power.active ? ' is-active' : ''}`, powerStatusText(power));
   powerStatus.setAttribute('role', 'status'); content.append(powerStatus);
   // Tray notifications. They wait while a game or other full-screen app is in front.
+  settingsSection(content, 'Notifications');
   const notifications = { printers: true, agents: true, ...(state.config.notifications || {}) };
-  for (const [key, title, detail] of [['printers', 'Print notifications', 'A notification when a print finishes or fails.'], ['agents', 'Approval notifications', 'A notification when Claude Code or Codex waits for your approval.']]) {
+  for (const [key, title, detail] of [['printers', 'Prints', 'When a print finishes or fails. Waits while you game.'], ['agents', 'Approvals', 'When Claude Code or Codex needs your OK.']]) {
     const noteRow = el('div', 'settings-row'); const noteCopy = el('div');
-    noteCopy.append(el('p', 'settings-row-title', title), el('small', '', `${detail} Held back while a game is full screen.`));
+    noteCopy.append(el('p', 'settings-row-title', title), el('small', '', detail));
     const noteToggle = button('', async () => { const cfg = newConfig(); cfg.notifications = { ...notifications, [key]: !notifications[key] }; await saveConfig(cfg); renderSettings(); }, { className: 'toggle', label: title });
     noteToggle.setAttribute('role', 'switch'); noteToggle.setAttribute('aria-checked', String(notifications[key] !== false));
     noteRow.append(noteCopy, noteToggle); content.append(noteRow);
   }
+  if (pcSection.childNodes.length) { settingsSection(content, 'PC'); content.append(...pcSection.childNodes); }
+  settingsSection(content, 'Windows');
   const integration = state.system?.windowsIntegration || { supported: false };
   const desktopAvailable = integration.supported === true && typeof bridge.createDesktopShortcut === 'function';
   const startupAvailable = integration.supported === true && typeof bridge.setStartup === 'function';
@@ -1159,7 +1621,15 @@ async function settingsDisplay(content) {
 $('#close-layout-editor').append(icon('close'));
 $('#close-layout-editor').addEventListener('click',()=>$('#layout-editor').close());
 $('#layout-editor').addEventListener('close',()=>{$('#layout-editor-content').replaceChildren();if(dialog.open&&activeTab==='layout')renderSettings();});
-$('#edit-layout').addEventListener('click',()=>{editingLayout=!editingLayout;$('#edit-layout').textContent=editingLayout?'Done':'Edit layout';$('#edit-layout').setAttribute('aria-pressed',String(editingLayout));render();});
+function editLayoutLabel(){$('#edit-layout').replaceChildren(icon('grip'),document.createTextNode(editingLayout?'Finish editing':'Edit layout'));}
+editLayoutLabel();
+$('#edit-layout').addEventListener('click',()=>{closeDeckMenu();editingLayout=!editingLayout;editLayoutLabel();$('#edit-layout').setAttribute('aria-pressed',String(editingLayout));render();});
+$('#layout-done').addEventListener('click',()=>$('#edit-layout').click());
+// The Edge Deck menu (bottom left): Customize, Edit layout, Full screen.
+function closeDeckMenu(){ $('#deck-menu-list').hidden = true; $('#deck-menu').setAttribute('aria-expanded', 'false'); }
+$('#deck-menu').addEventListener('click', event => { event.stopPropagation(); const open = $('#deck-menu-list').hidden; $('#deck-menu-list').hidden = !open; $('#deck-menu').setAttribute('aria-expanded', String(open)); if (open) $('#deck-menu-list button')?.focus(); });
+document.addEventListener('pointerdown', event => { if (!event.target.closest?.('.deck-controls')) closeDeckMenu(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#deck-menu-list').hidden) { closeDeckMenu(); $('#deck-menu').focus(); } });
 window.EdgeCardDrag.attach($('#widgets'),{onMove:moveCard,onError:error=>toast(error.message)});
 // Card titles and options stay hidden until the top strip of a card is
 // hovered with a mouse or tapped; keyboard focus and Edit layout show them too.
@@ -1192,9 +1662,9 @@ printerConsole.addEventListener('click', event => { if (event.target === printer
 printerConsole.addEventListener('close', () => $('#printer-console-content').replaceChildren());
 dialog.addEventListener('close', () => $('#settings-content').replaceChildren());
 for (const modal of [dialog, printerConsole, weatherDialog, $('#layout-editor')]) modal.addEventListener('close', () => { const notice = $('#toast'); if (notice?.parentElement === modal) document.body.append(notice); setTimeout(renderApprovals); });
-$('#customize').addEventListener('click', () => showSettings());
+$('#customize').addEventListener('click', () => { closeDeckMenu(); showSettings(); });
 $('#close-settings').addEventListener('click', () => dialog.close());
-$('#fullscreen').addEventListener('click', async () => { try { await bridge.fullscreen(); } catch (error) { toast(error.message); } });
+$('#fullscreen').addEventListener('click', async () => { closeDeckMenu(); try { await bridge.fullscreen(); } catch (error) { toast(error.message); } });
 dialog.addEventListener('click', event => { if (event.target === dialog) { const bounds = dialog.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close(); } });
 bridge.onState(updateState);
 bridge.getState().then(updateState).catch(error => { render(); toast(`Could not load the dashboard: ${error.message}`); });
