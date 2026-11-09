@@ -1,1 +1,129 @@
-/* gauge widget: styles live here. */
+/* Gauge widget: one PC reading as a ring. Everything lives under .gauge-widget.
+   The base rules are the Medium layout (ring left, facts and trend right); the
+   Widgets-mode sizes follow the card's data-size; other layout modes fold the
+   same layout into a column when the card is narrow. */
+.gauge-widget { --gauge-ring: 150px; --gauge-fill: #9be15d; flex: 1 1 auto; min-height: 0; min-width: 0; display: grid; grid-template-columns: var(--gauge-ring) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 24px; row-gap: 8px; align-items: center; overflow: clip; }
+.gauge-widget.is-hot { --gauge-fill: #ff9f0a; }
+.gauge-widget.no-trend { grid-template-rows: minmax(0, 1fr); } /* nothing to sample yet: the copy centres beside the ring */
+
+/* The ring is the tap target: it opens the card editor to change the reading,
+   without looking like a button; it only presses down. */
+.gauge-main { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-width: 48px; min-height: 48px; margin: 0; padding: 0; border: 0; border-radius: 24px; background: transparent; color: inherit; font: inherit; text-align: center; cursor: pointer; transition: transform 160ms var(--ease, ease); }
+.gauge-main:not(:disabled):active { transform: scale(.98); }
+.gauge-dial { position: relative; width: var(--gauge-ring); height: var(--gauge-ring); flex-shrink: 0; }
+.gauge-dial svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.gauge-ring-track { fill: none; stroke: rgb(255 255 255 / 9%); stroke-width: 7.5; }
+.gauge-ring-fill { fill: none; stroke: var(--gauge-fill); stroke-width: 7.5; stroke-linecap: round; transition: stroke-dasharray 900ms var(--ease, ease); }
+.gauge-ring-fill.is-empty { opacity: 0; } /* no reading, or 0%: no round-cap dot at the top */
+.gauge-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0 14%; line-height: 1; }
+.gauge-value { font-size: 36px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.gauge-extra { font-size: 14px; font-weight: 600; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.gauge-widget.is-hot .gauge-temp { color: #ff9f0a; }
+.gauge-widget.is-starting .gauge-value { color: var(--label-2, #aaa); }
+
+.gauge-copy { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.gauge-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.gauge-detail { margin: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--label-2, #aaa); }
+.gauge-facts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 10px 0 0; }
+.gauge-fact { display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0; }
+.gauge-fact-name { font-size: 13px; color: var(--label-3, #888); white-space: nowrap; }
+.gauge-fact-value { margin: 0; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gauge-hint { align-self: flex-start; min-width: 48px; min-height: 48px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 14px; background: rgb(255 255 255 / 8%); color: var(--accent-text, #64a8ff); font-size: 14px; font-weight: 600; }
+/* Beside the ring the hint shares a row with the facts, so the trend keeps its
+   room on a short card (the layout editor's toolbar takes 36 px off Medium). */
+.gauge-widget.has-hint:not([data-view=small]) .gauge-copy { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; justify-items: start; }
+.gauge-widget.has-hint:not([data-view=small]) :is(.gauge-title, .gauge-detail) { grid-column: 1 / -1; }
+.gauge-widget.has-hint:not([data-view=small]) .gauge-hint { grid-column: 2; margin: 10px 0 0 8px; }
+
+/* Trend: the last minutes as a sparkline, drawn once per render. */
+.gauge-trend { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 0; align-self: stretch; }
+.gauge-spark { flex: 1 1 auto; width: 100%; min-height: 36px; overflow: visible; }
+.gauge-spark-area { stroke: none; }
+.gauge-spark-base { fill: none; stroke: rgb(255 255 255 / 12%); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gauge-spark-line { fill: none; stroke: var(--gauge-fill); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.gauge-spark-stop-top { stop-color: var(--gauge-fill); stop-opacity: .22; }
+.gauge-spark-stop-bottom { stop-color: var(--gauge-fill); stop-opacity: 0; }
+.gauge-trend-caption { flex-shrink: 0; font-size: 13px; color: var(--label-3, #888); text-align: right; }
+
+/* Large: the busiest apps (CPU and RAM) or a grid of four facts. */
+.gauge-apps { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.gauge-app { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+.gauge-app-icon { display: grid; place-items: center; width: 28px; height: 28px; }
+.gauge-app-icon img { display: block; width: 20px; height: 20px; object-fit: contain; }
+.gauge-app-blank { display: block; width: 20px; height: 20px; border-radius: 6px; background: rgb(255 255 255 / 12%); }
+.gauge-app-copy { min-width: 0; }
+.gauge-app-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+.gauge-app-bar { height: 4px; margin-top: 6px; border-radius: 2px; background: rgb(255 255 255 / 8%); overflow: hidden; }
+.gauge-app-bar span { display: block; height: 100%; border-radius: inherit; background: var(--gauge-fill); }
+.gauge-app-value { font-size: 15px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.gauge-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.gauge-tile { display: flex; flex-direction: column-reverse; gap: 3px; min-width: 0; padding: 12px 16px; border-radius: 16px; background: rgb(255 255 255 / 6%); }
+.gauge-tile .gauge-fact-value { font-size: 20px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Small: one big ring, the label and detail under it; the whole card is the button. ---- */
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-widget { --gauge-ring: 178px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-main { flex: 1 1 auto; width: 100%; min-height: 0; gap: 8px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-value { font-size: 44px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-extra { font-size: 15px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-copy { width: 100%; align-items: center; text-align: center; gap: 2px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-title { font-size: 16px; letter-spacing: .03em; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-detail { font-size: 13px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-widget.has-hint { --gauge-ring: 148px; }
+.widgets[data-layout=widgets] > .gauge[data-size=small] .gauge-hint { align-self: center; margin-top: 0; }
+
+/* ---- Large: a bigger ring, a taller trend across the card, then apps or facts. ---- */
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-widget { --gauge-ring: 200px; grid-template-rows: auto minmax(0, 1fr) auto; row-gap: 16px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-widget.no-trend { grid-template-rows: minmax(0, 1fr); }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-main, .widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-copy { grid-row: 1; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-trend { grid-column: 1 / -1; grid-row: 2; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] :is(.gauge-apps, .gauge-grid) { grid-row: 3; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-value { font-size: 50px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-extra { font-size: 17px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-title { font-size: 24px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-detail { font-size: 15px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-facts { gap: 8px 24px; margin-top: 14px; }
+.widgets[data-layout=widgets] > .gauge[data-size=large] .gauge-fact-value { font-size: 19px; }
+
+/* ---- Tall: ring on top, label and facts as rows under it, the trend fills the rest. ---- */
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-widget { --gauge-ring: 170px; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-widget.no-trend { justify-content: center; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-main { align-self: center; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-value { font-size: 42px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-copy { display: flex; align-items: center; text-align: center; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-facts { flex-direction: column; align-self: stretch; gap: 6px; margin-top: 10px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-fact { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 12px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-fact-value { font-size: 16px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-trend { flex: 1 1 auto; min-height: 70px; }
+.widgets[data-layout=widgets] > .gauge[data-size=tall] .gauge-hint { align-self: center; margin: 8px 0 0; }
+
+/* ---- Other layout modes (overview, bento, focus, auto): the Medium layout, which
+   spreads out like Large on a big landscape card, folds into a column on a narrow
+   or portrait card, and keeps just the ring and label when the card is short.
+   The two aspect-ratio bounds meet at 21/20 so no card falls between them. ---- */
+@container deck-card (min-width: 471px) and (min-height: 420px) and (min-aspect-ratio: 21/20) {
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-widget { --gauge-ring: 200px; grid-template-rows: auto minmax(0, 1fr); row-gap: 16px; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-widget.no-trend { grid-template-rows: minmax(0, 1fr); }
+  .widgets:not([data-layout=widgets]) > .gauge :is(.gauge-main, .gauge-copy) { grid-row: 1; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-trend { grid-column: 1 / -1; grid-row: 2; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-value { font-size: 50px; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-title { font-size: 24px; }
+}
+@container deck-card ((max-width: 470px) or (max-aspect-ratio: 21/20)) {
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-widget { --gauge-ring: 170px; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-widget.no-trend { justify-content: center; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-main { align-self: center; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-value { font-size: 42px; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-copy { display: flex; align-items: center; text-align: center; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-facts { justify-content: center; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-trend { flex: 1 1 auto; min-height: 60px; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-hint { align-self: center; margin: 8px 0 0; }
+}
+@container deck-card ((max-width: 470px) or (max-aspect-ratio: 21/20)) and (max-height: 380px) {
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-widget { --gauge-ring: 150px; justify-content: center; }
+  .widgets:not([data-layout=widgets]) > .gauge .gauge-value { font-size: 36px; }
+  .widgets:not([data-layout=widgets]) > .gauge :is(.gauge-trend, .gauge-facts) { display: none; }
+}
+
+/* No motion when the deck is asked to stay calm. */
+html.low-power .gauge-ring-fill, html.low-power .gauge-main { transition: none; }
+@media (prefers-reduced-motion: reduce) { .gauge-ring-fill, .gauge-main { transition: none; } }

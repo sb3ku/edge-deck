@@ -10,7 +10,7 @@
     { type: 'media', title: 'Music', detail: 'Now playing and playlists', symbol: 'music' },
     { type: 'actions', title: 'Quick actions', detail: 'Audio output, microphone and mute', symbol: 'actions' },
     { type: 'stats', title: 'PC stats', detail: 'CPU, GPU, memory, busiest apps and internet speed', symbol: 'stats' },
-    { type: 'gauge', title: 'Gauge', detail: 'One ring: CPU, GPU, memory or video memory', symbol: 'gauge' },
+    { type: 'gauge', title: 'Gauge', detail: 'One ring: CPU, GPU, memory, video memory or a temperature', symbol: 'gauge' },
     { type: 'switch', title: 'Switch', detail: 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode', symbol: 'toggle' },
     { type: 'timer', title: 'Timer', detail: 'A countdown with presets', symbol: 'timer' },
     { type: 'machine', title: 'Printer', detail: 'One printer at a glance', symbol: 'printer' },

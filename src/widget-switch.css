@@ -1,1 +1,98 @@
-/* switch widget: styles live here. */
+/* Switch widget: one quick control. The base look is Medium (also used in the
+   overview, bento, focus and auto modes): the switch block on the left, the
+   control's detail and a settings button on the right. Small and Tall centre
+   the switch block; Large and Tall add the network or device list under it. */
+.switch-widget { display: flex; flex-direction: column; flex: 1; gap: 14px; min-height: 0; min-width: 0; overflow: clip; }
+.switch-top { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); column-gap: 20px; align-items: center; flex-shrink: 0; min-width: 0; }
+.switch-widget[data-variant=medium] .switch-top { flex: 1; min-height: 0; align-content: center; }
+.switch-widget:is([data-variant=large], [data-variant=tall]):not([data-list=true]) { justify-content: center; }
+
+/* The switch: a big round glyph with the label and status under it. */
+.switch-main { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 20px; background: transparent; color: var(--text, #fff); text-align: left; transition: transform 120ms var(--ease), opacity 160ms var(--ease); }
+.switch-main:not(:disabled):active { transform: scale(.96); }
+/* Disabled: dimmed, keeping its own surface (the app's button:disabled rule paints a grey one). */
+.switch-main:disabled, .switch-main[aria-disabled=true], .switch-more[aria-disabled=true], .switch-row[aria-disabled=true] { opacity: .55; }
+.switch-main:disabled { background: transparent; color: var(--text, #fff); }
+.switch-more:disabled { background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); opacity: .55; }
+.switch-glyph { display: grid; place-items: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; background: rgb(255 255 255 / 12%); color: var(--text, #fff); transition: background 180ms var(--ease), color 180ms var(--ease); }
+.switch-glyph svg { width: 28px; height: 28px; stroke-width: 1.9; }
+.switch-widget[data-state=on] .switch-glyph { background: var(--accent, #0a84ff); color: #fff; }
+.switch-widget[data-state=muted] .switch-glyph { background: rgb(255 69 58 / 22%); color: var(--red, #ff453a); }
+.switch-widget[data-state=unknown] .switch-glyph { background: rgb(255 255 255 / 7%); color: var(--label-3, #aaa); }
+.switch-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
+.switch-label { font-size: 18px; font-weight: 700; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.switch-status { font-size: 14px; color: var(--label-2, #aaa); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The detail column (Medium and Large). */
+.switch-side { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-width: 0; }
+.switch-detail { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.switch-detail-copy { display: flex; flex-direction: column; flex: 1; gap: 3px; min-width: 0; }
+.switch-detail-title, .switch-detail-line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.switch-detail-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; line-height: 1.15; }
+.switch-detail-line { font-size: 15px; line-height: 1.25; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.switch-detail-line.is-muted { color: var(--red, #ff453a); }
+.switch-more { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; padding: 0; border: 0; border-radius: 50%; background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); transition: background 160ms var(--ease), transform 120ms var(--ease), opacity 160ms var(--ease); }
+.switch-more svg { width: 20px; height: 20px; }
+.switch-more:not(:disabled):active { background: rgb(255 255 255 / 14%); transform: scale(.94); }
+.switch-more[aria-busy=true] { opacity: .55; }
+.switch-art { display: grid; place-items: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 20px; background: rgb(255 255 255 / 6%); color: var(--label-2, #aaa); }
+.switch-art svg { width: 34px; height: 34px; stroke-width: 1.6; }
+.switch-art.is-dark { background: radial-gradient(circle at 30% 25%, rgb(94 92 230 / 60%), rgb(28 28 30) 78%); color: #c7c6ff; }
+.switch-art.is-light { background: radial-gradient(circle at 30% 25%, rgb(255 214 10 / 55%), rgb(255 159 10 / 16%) 78%); color: #ffd60a; }
+.switch-art.is-night { background: radial-gradient(circle at 30% 25%, rgb(255 159 10 / 50%), rgb(28 28 30) 78%); color: #ff9f0a; }
+
+/* System volume (Sound, Medium and Large). */
+.switch-volume { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-radius: 18px; background: rgb(255 255 255 / 8%); flex-shrink: 0; }
+.switch-volume-icon { display: grid; place-items: center; color: var(--label-2, #aaa); }
+.switch-volume-icon svg { width: 20px; height: 20px; }
+.switch-volume input { --fill: 0%; flex: 1; min-width: 0; height: 48px; margin: 0; -webkit-appearance: none; appearance: none; background: transparent; touch-action: none; cursor: pointer; }
+.switch-volume input::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #fff var(--fill), rgb(255 255 255 / 18%) var(--fill)); }
+.switch-volume input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgb(0 0 0 / 45%); }
+.switch-volume input:disabled { opacity: .4; }
+.switch-volume-value { min-width: 40px; text-align: right; font-size: 13px; font-weight: 600; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+
+/* The list (Large and Tall): rows like the Quick controls detail views. */
+.switch-list { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow: clip; }
+.switch-item { display: flex; flex-shrink: 0; min-width: 0; }
+.switch-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 6px 12px; border: 0; border-radius: 14px; background: rgb(255 255 255 / 5%); color: var(--text, #fff); text-align: left; transition: background 160ms var(--ease), opacity 160ms var(--ease); }
+.switch-row:disabled { opacity: 1; color: var(--text, #fff); background: rgb(255 255 255 / 5%); cursor: default; }
+.switch-row.is-pending:disabled { opacity: .6; }
+.switch-row:not(:disabled):active { background: rgb(255 255 255 / 10%); }
+.switch-row.is-selected, .switch-row.is-selected:disabled { background: rgb(10 132 255 / 18%); }
+.switch-row.is-pending { opacity: .6; }
+.switch-row-glyph { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); }
+.switch-row.is-selected .switch-row-glyph { background: var(--accent, #0a84ff); color: #fff; }
+.switch-row-glyph svg, .switch-row-check svg { width: 18px; height: 18px; }
+.switch-row-copy { display: flex; flex-direction: column; min-width: 0; }
+.switch-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+.switch-row-subtitle { font-size: 13px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.switch-row-check { display: grid; place-items: center; width: 24px; color: var(--accent-text, #64a8ff); }
+.switch-row-check svg { stroke-width: 2.4; }
+.switch-row-action { font-size: 14px; font-weight: 600; color: var(--label-2, #aaa); }
+.switch-row-action.is-armed { color: var(--red, #ff453a); }
+.switch-list-more { flex-shrink: 0; padding: 4px 12px 0; font-size: 13px; color: var(--label-3, #aaa); }
+.switch-note { margin: 0; font-size: 14px; line-height: 1.3; color: var(--label-2, #aaa); }
+/* Without rows (off, empty, unreadable) the switch block centres like Dark mode's, with the note under it. */
+.switch-widget:is([data-variant=large], [data-variant=tall]):not([data-list=true]) .switch-note { font-size: 15px; }
+.switch-widget[data-variant=tall]:not([data-list=true]) .switch-note { text-align: center; padding: 0 8px; }
+
+/* Small and Tall: the switch block centred, like a big Quick Settings tile. */
+.widgets[data-layout=widgets] > .switch:is([data-size=small], [data-size=tall]) .switch-top { display: flex; flex-direction: column; align-items: center; }
+.widgets[data-layout=widgets] > .switch:is([data-size=small], [data-size=tall]) .switch-main { align-items: center; width: 100%; text-align: center; }
+.widgets[data-layout=widgets] > .switch:is([data-size=small], [data-size=tall]) .switch-copy { align-items: center; }
+.widgets[data-layout=widgets] > .switch[data-size=small] .switch-top { flex: 1; min-height: 0; justify-content: center; }
+.widgets[data-layout=widgets] > .switch[data-size=small] .switch-main { flex: 1; justify-content: center; min-height: 0; }
+.widgets[data-layout=widgets] > .switch[data-size=tall] .switch-main { padding: 6px 0 4px; }
+/* Large and Tall without a list (Dark mode, Night light): a bigger switch fills the card. */
+.widgets[data-layout=widgets] > .switch:is([data-size=large], [data-size=tall]) .switch-widget:not([data-list=true]) .switch-glyph { width: 96px; height: 96px; }
+.widgets[data-layout=widgets] > .switch:is([data-size=large], [data-size=tall]) .switch-widget:not([data-list=true]) .switch-glyph svg { width: 42px; height: 42px; }
+.widgets[data-layout=widgets] > .switch:is([data-size=large], [data-size=tall]) .switch-widget:not([data-list=true]) .switch-label { font-size: 22px; }
+.widgets[data-layout=widgets] > .switch:is([data-size=large], [data-size=tall]) .switch-widget:not([data-list=true]) .switch-status { font-size: 16px; }
+.widgets[data-layout=widgets] > .switch[data-size=large] .switch-widget:not([data-list=true]) .switch-art { width: 96px; height: 96px; border-radius: 28px; }
+.widgets[data-layout=widgets] > .switch[data-size=large] .switch-widget:not([data-list=true]) .switch-art svg { width: 48px; height: 48px; }
+
+/* A narrow card in the other modes stacks the detail under the switch. */
+@container deck-card (max-width: 430px) { .switch-widget[data-variant=medium] .switch-top { grid-template-columns: minmax(0, 1fr); row-gap: 16px; } }
+
+@media (prefers-reduced-motion: reduce) { .switch-widget * { transition: none !important; } }
+html.low-power .switch-widget * { transition: none !important; }

@@ -2,7 +2,7 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const preview = !window.edge;
-const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory or video memory'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory, video memory or a temperature'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
 // Widgets drawn by their own modules (widget-*.js), registered on window.EdgeWidgets.
 const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine']);
 const defaultConfig = {
@@ -352,7 +352,7 @@ function renderCards(){
     if(items.length>1)body.setAttribute('aria-labelledby',`tab-${card.id}-${active.id}`);else body.removeAttribute('aria-labelledby');
     const value=type==='clock'?state.config.clock24:type==='today'?[state.weather,state.config.weather,state.config.clock24]:type==='weather'?[state.weather,state.config.weather]:type==='tasks'?[taskRenderValue(state.tasks),(state.approvals||[]).map(request=>request.session)]:type==='printers'?[state.printers,state.config.printers]:type==='media'?[state.media,state.spotify,state.config.music,state.spotifyCanvas]:type==='actions'?[state.media?.audio,state.media?.volume,state.controls]:type==='stats'?[state.pc,state.system?.presence]:window.EdgeWidgets?.[type]?[window.EdgeWidgets[type].signature?.(widgetContext(card,active,panel))??null]:[active,state.config.launchers.find(app=>app.id===active?.launcherId)];
     const key=JSON.stringify([type,value,mode==='widgets'?card.size:'',mode]);
-    if(body.dataset.renderKey!==key && !(['media','actions'].includes(type)&&body.contains(document.activeElement)&&document.activeElement?.matches('input[type="range"]')&&!document.activeElement.closest('[data-edge-media-root]'))){
+    if(body.dataset.renderKey!==key && !((['media','actions'].includes(type)||window.EdgeWidgets?.[type])&&body.contains(document.activeElement)&&document.activeElement?.matches('input[type="range"]')&&!document.activeElement.closest('[data-edge-media-root]'))){
       // Live widgets keep their DOM (animations, drafts, focus) and update in place.
       body.dataset.renderKey=key;
       const scroll=type==='tasks'?taskScroll(body):null;
@@ -809,8 +809,8 @@ function printerPicture(id, version, box) {
   }).then(url => {
     if (!url || printerPictures.get(id) !== entry) return;
     entry.url = url;
-    const figure = document.querySelector(`.printer[data-printer-id="${CSS.escape(id)}"] .printer-figure`);
-    if (figure) showPicture(figure, url, version.endsWith(':project'));
+    // Every card showing this printer: the Printers card's row and any single-printer widget.
+    for (const figure of document.querySelectorAll(`.printer[data-printer-id="${CSS.escape(id)}"] .printer-figure, .machine-widget[data-printer="${CSS.escape(id)}"] .machine-detail .printer-figure`)) showPicture(figure, url, version.endsWith(':project'));
   }).catch(() => {});
   return null;
 }
@@ -852,7 +852,7 @@ function cameraAvailable(id) {
   return !preview && typeof bridge?.cameraFrame === 'function' && config?.configured === true;
 }
 function redrawPrinters() {
-  for (const body of document.querySelectorAll('.card-body')) if (body.querySelector('.printer-list')) delete body.dataset.renderKey;
+  for (const body of document.querySelectorAll('.card-body')) if (body.querySelector('.printer-list, .machine-widget')) delete body.dataset.renderKey;
   render();
 }
 function toggleLiveCamera(id) {

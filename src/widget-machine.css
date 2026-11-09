@@ -1,1 +1,106 @@
-/* machine (one printer) widget: styles live here. */
+/* Printer widget (one printer): the progress ring with the name and finish time
+   (Small, Tall), the Printers card's row for this printer (Medium and the other
+   layout modes), and the row with the model picture and the job's facts, or the
+   loaded filament, under it (Large). */
+.machine-widget { display: flex; flex-direction: column; flex: 1 1 auto; gap: 12px; min-width: 0; min-height: 0; overflow: clip; }
+.machine-widget > .empty-content { flex: 1; }
+.machine-widget > .button { flex-shrink: 0; align-self: flex-start; }
+
+/* ---- The ring, the name and the status: one button ---- */
+.machine-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 20px; background: transparent; color: var(--text); text-align: center; }
+.machine-hero:not(:disabled):hover { background: rgb(255 255 255 / 3%); }
+.machine-hero:not(:disabled):active { transform: scale(.98); }
+.machine-ring { position: relative; display: grid; place-items: center; width: min(170px, 60cqh); height: min(170px, 60cqh); flex-shrink: 0; }
+.machine-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.machine-ring .mini-ring-track, .machine-ring .mini-ring-fill { stroke-width: 8; }
+.machine-ring.is-empty .mini-ring-fill { display: none; }
+.machine-ring-value { position: relative; max-width: 76%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 44px; font-weight: 700; line-height: 1.2; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+.machine-ring-value.is-idle { font-size: 24px; letter-spacing: -.3px; color: var(--label-2, #aaa); }
+.machine-ring-value.is-finished { font-size: 60px; font-weight: 600; color: #30d158; }
+.machine-ring-value.is-error { color: #ff453a; }
+.machine-ring-value:is(.is-offline, .is-connecting, .is-not_configured, .is-unknown) { font-weight: 500; color: var(--label-3, #888); }
+.machine-copy { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 100%; min-width: 0; }
+.machine-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -.3px; }
+.machine-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 500; line-height: 1.3; color: var(--label-2, #aaa); }
+.machine-widget[data-status=printing] .machine-status { color: #9be15d; }
+.machine-widget[data-status=paused] .machine-status { color: #ffd60a; }
+.machine-widget[data-status=finished] .machine-status { color: #30d158; }
+.machine-widget[data-status=error] .machine-status { color: #ff453a; }
+
+/* ---- The Printers card's row, full width (Medium, Large, other modes) ---- */
+.machine-widget > .printer { flex: 1 1 auto; min-height: 0; margin: 0; }
+.machine-widget > .printer.is-rich { padding: 0 4px 0 0; }
+.machine-widget > .printer .printer-disclosure { display: none; }
+/* A full touch target for the camera button (it sits on the picture's corner). */
+.machine-widget > .printer .printer-camera-toggle { width: 48px; height: 48px; }
+/* The live camera takes the whole card. */
+.machine-widget > .printer.is-live { flex: 1 1 auto; min-height: 120px; padding: 0; }
+.machine-widget > .printer.is-live .printer-live { border-radius: 18px; }
+.machine-widget > .printer.is-live .printer-camera-toggle { right: 12px; top: 12px; }
+
+/* ---- Under the ring (Tall) or the row (Large) ---- */
+.machine-detail { display: flex; flex-direction: column; justify-content: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 0; }
+.machine-facts { display: flex; flex-direction: column; justify-content: center; margin: 0; min-width: 0; }
+.machine-fact { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; min-height: 42px; padding: 7px 0; border-top: 1px solid rgb(255 255 255 / 8%); }
+.machine-fact:first-child { border-top: 0; }
+.machine-fact dt { flex-shrink: 0; font-size: 14px; font-weight: 500; color: var(--label-2, #aaa); }
+.machine-fact dd { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; font-weight: 600; letter-spacing: -.2px; text-align: right; font-variant-numeric: tabular-nums; }
+.machine-headline { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
+.machine-headline svg { width: 22px; height: 22px; flex-shrink: 0; stroke-width: 2.4; }
+.machine-headline.is-done { color: #30d158; }
+.machine-headline.is-error { color: #ff453a; }
+.machine-headline.is-quiet { color: var(--label-2, #aaa); }
+.machine-dot { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 0 rgb(48 209 88 / 55%); animation: machine-ready 2.4s ease-out infinite; }
+@keyframes machine-ready { 0% { box-shadow: 0 0 0 0 rgb(48 209 88 / 55%); } 70%, 100% { box-shadow: 0 0 0 9px rgb(48 209 88 / 0%); } }
+.machine-sub { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.machine-job { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; color: var(--label-2, #aaa); }
+.machine-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 0; font-size: 15px; line-height: 1.45; color: var(--label-2, #aaa); }
+.machine-detail > .button { align-self: flex-start; margin-top: 4px; }
+/* The loaded spools, larger than in the row. */
+.machine-widget .machine-detail .printer-spools { gap: 12px 14px; }
+.machine-widget .machine-detail .printer-spool { min-width: 46px; gap: 6px; font-size: 14px; }
+.machine-widget .machine-detail .printer-spool i { width: 44px; height: 44px; }
+/* The model being printed (its plate picture, else the printer's photo, smaller). */
+.machine-widget .machine-detail .printer-figure { display: grid; place-items: center; width: 100%; max-width: 250px; height: auto; aspect-ratio: 1; margin: 0; padding: 14px; border-radius: 22px; overflow: hidden; background: rgb(255 255 255 / 6%); color: var(--label-3, #888); justify-self: center; }
+.machine-widget .machine-detail .printer-figure:not(.has-model) { max-width: 190px; padding: 0; background: none; overflow: visible; }
+.machine-widget .machine-detail :is(.printer-artwork, .printer-model-picture) { width: 100%; height: 100%; object-fit: contain; opacity: 1; filter: drop-shadow(0 12px 20px rgb(0 0 0 / 45%)); }
+.machine-widget .machine-detail .printer-figure.no-photo svg { width: 44%; height: 44%; }
+.machine-widget .machine-detail .printer-model-note { font-size: 13px; }
+
+/* ---- Per size ---- */
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-hero { flex: 0 0 auto; padding: 6px 0 2px; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-ring { width: min(190px, 34cqh); height: min(190px, 34cqh); }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-ring-value { font-size: 48px; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-ring-value.is-idle { font-size: 26px; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-ring-value.is-finished { font-size: 64px; }
+/* Tall: what is under the ring is centred like the ring; the facts stay a list. */
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail { justify-content: flex-start; align-items: center; padding-top: 4px; text-align: center; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail > :is(.machine-facts, .machine-job, .machine-note) { align-self: stretch; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-facts { justify-content: flex-start; text-align: left; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail .printer-spools { justify-content: center; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail > .button { align-self: center; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer { flex: 0 0 auto; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live { flex: 1 1 auto; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail { padding-top: 12px; border-top: 1px solid rgb(255 255 255 / 8%); }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail.is-job { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 24px; align-items: center; }
+/* Large with the camera on: the video takes the free height; the block under it
+   keeps only what the live view does not show (the facts, in two columns). */
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail { flex: 0 0 auto; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail.is-job { grid-template-columns: minmax(0, 1fr); }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail .printer-figure { display: none; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail .machine-facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 28px; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail .machine-fact { min-height: 40px; padding: 6px 0; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live ~ .machine-detail .machine-fact:nth-child(-n+2) { border-top: 0; }
+/* The row keeps the picture, name, status and job; the block under it carries the rest. */
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer :is(.printer-ready, .printer-spools, .printer-done-meta) { display: none; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget:not([data-status=not_configured]) > .printer .printer-note { display: none; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .machine-job { display: none; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spools { gap: 14px 18px; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spool { min-width: 56px; font-size: 15px; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spool i { width: 56px; height: 56px; }
+/* Tall: an error's message is spelled out under the ring, so the status line stays short. */
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-widget[data-status=error] .machine-status { display: none; }
+
+/* ---- Calm when asked ---- */
+html.low-power .machine-dot { animation: none; }
+@media (prefers-reduced-motion: reduce) { .machine-dot { animation: none; } .machine-hero { transition: none; } }
