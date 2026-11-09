@@ -256,3 +256,32 @@ test('Time & weather becomes Clock digital and Forecast, and what no longer fits
   const stacked=cleanConfig({widgets:[card('mix',[{id:'a',type:'clock'},{id:'b',type:'today'}])]},before);
   assert.deepEqual(stacked.widgets[0].items.map(i=>i.type),['clock','weather'],'A card with several views shows the forecast instead');
 });
+
+const reminder=(id,text='Buy filament',extra={})=>({id,text,done:false,doneAt:null,createdAt:'2026-11-09T08:00:00.000Z',...extra});
+
+test('reminders default to an empty list and survive a save that does not mention them',()=>{
+  const before=defaults();
+  assert.deepEqual(before.reminders,{items:[]});
+  const saved=cleanConfig({reminders:{items:[reminder('a'),reminder('b','  Call the plumber  ',{done:true,doneAt:'2026-11-09T09:00:00.000Z'})]}},before);
+  assert.deepEqual(saved.reminders.items.map(i=>[i.id,i.text,i.done]),[['a','Buy filament',false],['b','Call the plumber',true]]);
+  assert.deepEqual(cleanConfig({clock24:false},saved).reminders,saved.reminders);
+  assert.deepEqual(cleanConfig({},{...before,reminders:undefined}).reminders,{items:[]});
+});
+
+test('reminders reject invalid input when saving',()=>{
+  const before=defaults(),save=items=>cleanConfig({reminders:{items}},before);
+  for(const bad of [reminder('bad id!'),reminder(''),reminder('a','   '),reminder('a','x'.repeat(121)),reminder('a','line\nbreak'),reminder('a','tab\there'),reminder('a','ok',{done:'yes'}),reminder('a','ok',{doneAt:'not a date'}),reminder('a','ok',{createdAt:'nope'}),reminder('a','ok',{createdAt:undefined}),reminder('x'.repeat(41)),null,'text'])assert.throws(()=>save([bad]),/Reminders need/,JSON.stringify(bad));
+  assert.throws(()=>save([reminder('a'),reminder('a')]),/Reminders need/,'duplicate ids');
+  assert.throws(()=>save(Array.from({length:101},(_,i)=>reminder('r'+i))),/up to 100/);
+  assert.equal(save(Array.from({length:100},(_,i)=>reminder('r'+i))).reminders.items.length,100);
+  for(const bad of [null,[],'x',{},{items:'x'}])assert.throws(()=>cleanConfig({reminders:bad},before),/valid reminders list/);
+});
+
+test('reminders drop invalid items quietly when loading',()=>{
+  const before=defaults();
+  const loaded=cleanConfig({reminders:{items:[reminder('a'),reminder('a','duplicate'),reminder('b','bad\u0007'),reminder('c','ok',{done:true,doneAt:null}),{id:'d'},reminder('e','ok',{done:false,doneAt:'2026-11-09T09:00:00.000Z'})]}},before,{loading:true});
+  assert.deepEqual(loaded.reminders.items.map(i=>i.id),['a','c','e']);
+  assert.equal(loaded.reminders.items[2].doneAt,null,'an open reminder has no completion time');
+  assert.deepEqual(cleanConfig({reminders:'junk'},before,{loading:true}).reminders,{items:[]});
+  assert.equal(cleanConfig({reminders:{items:Array.from({length:130},(_,i)=>reminder('r'+i))}},before,{loading:true}).reminders.items.length,100);
+});

@@ -8,6 +8,7 @@
 #   <id> wifi-connect <base64 ssid>  connect to a saved network (never a new one: no passwords here)
 #   <id> wifi-disconnect           disconnect from the current network
 #   <id> bt-list                   paired Bluetooth devices and whether each is connected
+#   <id> batteries                 devices whose charge Windows knows: Bluetooth (level, connected, kind) and this PC's battery
 # Only these commands exist. It ends with the service.
 param([Parameter(Mandatory = $true)][int]$ParentId)
 $ErrorActionPreference = 'Stop'
@@ -61,6 +62,53 @@ function BluetoothList {
   }
   ,@($devices | Sort-Object { -[int]$_.connected }, { $_.name } | Select-Object -First 20)
 }
+# Charge of the Bluetooth devices Windows shows in Settings (DEVPKEY_Bluetooth_Battery on a PnP node of the
+# device; for headsets that is often a service node, so nodes are grouped by the device's Bluetooth address)
+# and of this PC's own battery. Devices that report no level are left out. Never throws: errors give a shorter list.
+function BatteryList {
+  $list = @()
+  try {
+    $nodes = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'BTH*' -or $_.Class -eq 'Bluetooth' -or $_.InstanceId -like 'HID\{0000*' })
+    if ($nodes.Count -gt 0) {
+      $props = @(Get-PnpDeviceProperty -InstanceId @($nodes | ForEach-Object { $_.InstanceId }) -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2', '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue)
+      $groups = @{}
+      foreach ($node in $nodes) {
+        $key = if ($node.InstanceId -match '[&_]([0-9A-Fa-f]{12})(?=_|\\|$)') { $Matches[1].ToUpper() } else { $node.InstanceId }
+        if (-not $groups.ContainsKey($key)) { $groups[$key] = @{ nodes = @(); level = $null; connected = $false } }
+        $group = $groups[$key]; $group.nodes += $node
+        foreach ($prop in ($props | Where-Object { $_.InstanceId -eq $node.InstanceId -and $_.Data -ne $null })) {
+          if ($prop.KeyName -like '{104EA319*') { $value = [int]$prop.Data; if ($value -ge 0 -and $value -le 100) { $group.level = $value } }
+          elseif ($prop.Data -eq $true -and $node.InstanceId -match '^BTH(ENUM|LE)[\\]DEV_') { $group.connected = $true }
+        }
+      }
+      foreach ($group in $groups.Values) {
+        if ($group.level -eq $null) { continue }
+        $named = @($group.nodes | Where-Object { $_.InstanceId -match '^BTH(ENUM|LE)[\\]DEV_' -and $_.FriendlyName })
+        if (-not $named) { $named = @($group.nodes | Where-Object { $_.FriendlyName }) }
+        $name = if ($named) { "$($named[0].FriendlyName)" } else { 'Bluetooth device' }
+        $name = ($name -replace '\s+(Hands-Free( AG)?|Avrcp Transport|Stereo|Hands-Free Audio)$', '').Trim()
+        $ids = ($group.nodes | ForEach-Object { $_.InstanceId }) -join ' '
+        $kind = 'other'
+        if ($name -match 'mouse|mice|trackball|trackpad') { $kind = 'mouse' }
+        elseif ($name -match 'keyboard') { $kind = 'keyboard' }
+        elseif ($name -match 'controller|gamepad|dualsense|dualshock|xbox|joy-?con|wireless pad') { $kind = 'controller' }
+        elseif ($name -match 'headphone|earbud|earphone|buds|airpods|pods') { $kind = 'headphones' }
+        elseif ($name -match 'headset') { $kind = 'headset' }
+        elseif ($name -match 'iphone|android|galaxy|pixel|phone') { $kind = 'phone' }
+        elseif ($ids -match '\{0000111E-' -and $ids -match '\{0000110B-') { $kind = 'headset' }
+        elseif ($ids -match '\{0000110B-') { $kind = 'headphones' }
+        $list += @{ name = $name; level = [int]$group.level; connected = [bool]$group.connected; kind = $kind; charging = $false }
+      }
+    }
+  } catch { }
+  try {
+    $battery = @(Get-CimInstance -ClassName Win32_Battery -OperationTimeoutSec 3 -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ($battery -and $battery.EstimatedChargeRemaining -ne $null) {
+      $list += @{ name = 'This PC'; level = [int][Math]::Min(100, [Math]::Max(0, [int]$battery.EstimatedChargeRemaining)); connected = $true; kind = 'laptop'; charging = (@(6, 7, 8, 9) -contains [int]$battery.BatteryStatus) }
+    }
+  } catch { }
+  ,@($list | Sort-Object { -[int]$_.connected }, { $_.name } | Select-Object -First 12)
+}
 $access = Await ([Windows.Devices.Radios.Radio]::RequestAccessAsync()) ([Windows.Devices.Radios.RadioAccessStatus])
 $personalize = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
 
@@ -83,11 +131,12 @@ while ($true) {
     if ([EdgeDeckControlsInput]::Lines.IsCompleted -or -not (Get-Process -Id $ParentId -ErrorAction SilentlyContinue)) { exit }
     continue
   }
-  if ($line -notmatch '^(\d{1,9}) (state|radio (WiFi|Bluetooth) (On|Off)|dark (On|Off)|sleep|wifi-list|wifi-disconnect|bt-list|wifi-connect ([A-Za-z0-9+/=]{1,200}))$') { continue }
+  if ($line -notmatch '^(\d{1,9}) (state|radio (WiFi|Bluetooth) (On|Off)|dark (On|Off)|sleep|wifi-list|wifi-disconnect|bt-list|batteries|wifi-connect ([A-Za-z0-9+/=]{1,200}))$') { continue }
   $id = [int]$Matches[1]; $command = $Matches[2]; $encoded = $Matches[6]
   try {
     if ($command -eq 'wifi-list') { Send @{ id = $id; ok = $true; data = (WifiList) }; continue }
     if ($command -eq 'bt-list') { Send @{ id = $id; ok = $true; data = (BluetoothList) }; continue }
+    if ($command -eq 'batteries') { Send @{ id = $id; ok = $true; data = (BatteryList) }; continue }
     if ($command -eq 'wifi-disconnect') { & $netsh wlan disconnect | Out-Null; Send @{ id = $id; ok = $true; data = (WifiList) }; continue }
     if ($command -like 'wifi-connect *') {
       $ssid = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))

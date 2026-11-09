@@ -1,0 +1,59 @@
+/* Screen Time widget: an iOS-style summary, everything under .st-*.
+   The base rules are the Medium layout; Small and Large follow the card's data-size. */
+.container-card.screentime > .card-body { overflow: clip; }
+.st-widget { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 28px; overflow: clip; color: #fff; }
+.st-label { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--label-2, #9a9aa0); }
+.st-total { display: block; font-size: 52px; font-weight: 700; line-height: 1.05; letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-summary { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.st-change { font-size: 15px; font-weight: 600; color: var(--label-2, #9a9aa0); white-space: nowrap; }
+.st-change.is-below { color: #30d158; }
+.st-change.is-above { color: #ff9f0a; }
+
+.st-split { display: flex; gap: 2px; width: 100%; height: 8px; border-radius: 4px; overflow: clip; background: rgb(255 255 255 / 8%); }
+.st-split-part { flex-basis: 0; min-width: 3px; background: var(--st-color); }
+.st-split-part.is-other { background: rgb(255 255 255 / 18%); }
+
+.st-apps { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.st-app { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; column-gap: 12px; }
+.st-app-icon { display: grid; place-items: center; width: 32px; height: 32px; }
+.st-app-icon img { display: block; width: 28px; height: 28px; object-fit: contain; }
+.st-app-icon.is-letter { border-radius: 8px; background: var(--st-color); font-size: 16px; font-weight: 700; color: #fff; }
+.st-app-copy { min-width: 0; }
+.st-app-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.st-app-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }
+.st-app-time { flex: none; font-size: 15px; color: var(--label-2, #9a9aa0); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-bar { height: 6px; margin-top: 6px; border-radius: 3px; background: rgb(255 255 255 / 8%); overflow: clip; }
+.st-bar span { display: block; height: 100%; border-radius: inherit; background: var(--st-color); transition: width 900ms var(--ease, ease); }
+
+.st-empty { flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; }
+.st-empty-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.st-empty-note { font-size: 14px; color: var(--label-2, #9a9aa0); }
+
+/* Small: label, total, split bar, change. */
+.widgets[data-layout=widgets] > .screentime[data-size=small] .st-widget:not(.st-empty) { flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; }
+.widgets[data-layout=widgets] > .screentime[data-size=small] .st-total { font-size: 46px; }
+.widgets[data-layout=widgets] > .screentime[data-size=small] .st-split { margin-top: 4px; }
+.widgets[data-layout=widgets] > .screentime[data-size=small] .st-change { font-size: 14px; white-space: normal; }
+
+/* Medium: total left, apps right. */
+.widgets[data-layout=widgets] > .screentime[data-size=medium] .st-summary { width: 38%; }
+.widgets[data-layout=widgets] > .screentime[data-size=medium] .st-apps { gap: 12px; }
+
+/* Large: head, hourly chart, apps. */
+.widgets[data-layout=widgets] > .screentime[data-size=large] .st-widget:not(.st-empty) { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 18px; }
+.widgets[data-layout=widgets] > .screentime[data-size=large] .st-total { font-size: 56px; }
+.st-head { flex: none; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.st-facts { display: flex; gap: 28px; }
+.st-fact { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.st-fact-name { font-size: 14px; color: var(--label-2, #9a9aa0); }
+.st-fact-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.st-chart { flex: 1 1 90px; min-height: 90px; display: flex; flex-direction: column; gap: 4px; }
+.st-plot { position: relative; flex: 1 1 auto; min-height: 0; border-bottom: 1px solid rgb(255 255 255 / 14%); }
+.st-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: rgb(255 255 255 / 10%); }
+.st-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 3px; }
+.st-hour { flex: 1 1 0; min-width: 0; border-radius: 3px 3px 0 0; background: #0a84ff; }
+.st-hour.is-empty { height: 2px; background: rgb(255 255 255 / 10%); }
+.st-axis { position: relative; flex: none; height: 18px; }
+.st-axis-label { position: absolute; top: 0; font-size: 13px; line-height: 18px; color: var(--label-3, #8a8a90); font-variant-numeric: tabular-nums; }
+.widgets[data-layout=widgets] > .screentime[data-size=large] .st-apps { flex: none; justify-content: flex-start; gap: 12px; }

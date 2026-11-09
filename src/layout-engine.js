@@ -15,16 +15,17 @@
     tall: Object.freeze({columns:1, rows:2}),
   });
   // Starting sizes when you switch to Widgets, by what a card shows.
-  const WIDGET_DEFAULTS = Object.freeze({ clock:'small', today:'small', weather:'medium', tasks:'medium', printers:'medium', media:'large', stats:'large', actions:'tall', app:'large', website:'large', empty:'small', gauge:'small', switch:'small', timer:'small', machine:'small', 'rain-wind':'small', 'daily-forecast':'small', 'sun-path':'small', dial:'small', city:'small', 'world-clock':'medium' });
+  const WIDGET_DEFAULTS = Object.freeze({ clock:'small', today:'small', weather:'medium', tasks:'medium', printers:'medium', media:'large', stats:'large', actions:'tall', app:'large', website:'large', empty:'small', gauge:'small', switch:'small', timer:'small', machine:'small', calendar:'medium', batteries:'small', reminders:'small', screentime:'small', 'rain-wind':'small', 'daily-forecast':'small', 'sun-path':'small', dial:'small', city:'small', 'world-clock':'medium' });
 
   // The widgets you can add, like iOS: each kind belongs to a source (the
   // "app" in the gallery) and offers only the sizes designed for it.
   const SIZE_ORDER = Object.freeze(['small', 'medium', 'large', 'tall']);
   const WIDGET_SOURCES = Object.freeze([
-    {id:'clock', title:'Clock', symbol:'clock'}, {id:'weather', title:'Weather', symbol:'weather'},
+    {id:'clock', title:'Clock', symbol:'clock'}, {id:'calendar', title:'Calendar', symbol:'calendar'}, {id:'weather', title:'Weather', symbol:'weather'},
     {id:'music', title:'Music', symbol:'music'}, {id:'printers', title:'3D printers', symbol:'printer'},
     {id:'pc', title:'PC', symbol:'stats'}, {id:'agents', title:'Agents', symbol:'tasks'},
     {id:'controls', title:'Controls', symbol:'actions'}, {id:'timer', title:'Timer', symbol:'timer'},
+    {id:'batteries', title:'Batteries', symbol:'battery'}, {id:'reminders', title:'Reminders', symbol:'reminders'}, {id:'screentime', title:'Screen Time', symbol:'hourglass'},
     {id:'apps', title:'Apps and websites', symbol:'app'},
   ].map(Object.freeze));
   const WIDGET_KINDS = Object.freeze([
@@ -45,6 +46,10 @@
     {type:'tasks', source:'agents', title:'Agent chats', detail:'What Codex and Claude Code are working on.', sizes:['medium', 'large', 'tall']},
     {type:'actions', source:'controls', title:'Quick controls', detail:'Wi-Fi, Bluetooth, sound and more, like Quick Settings.', sizes:['medium', 'large', 'tall']},
     {type:'switch', source:'controls', title:'Switch', detail:'One control; bigger sizes list its networks or devices.', sizes:['small', 'medium', 'large', 'tall']},
+    {type:'calendar', source:'calendar', title:'Up Next', detail:'Your next events from your calendar, like iOS.', sizes:['small', 'medium', 'large'], variants:[{title:'Up Next', item:{view:'upnext'}}, {title:'Month', detail:'This month at a glance, with today marked.', item:{view:'month'}}]},
+    {type:'batteries', source:'batteries', title:'Batteries', detail:'The charge of your headset, controller, mouse and other devices.', sizes:['small', 'medium', 'large']},
+    {type:'reminders', source:'reminders', title:'Reminders', detail:'A checklist on your deck: tick things off as you go.', sizes:['small', 'medium', 'large']},
+    {type:'screentime', source:'screentime', title:'Screen Time', detail:'How long you have used this PC today, and your top apps.', sizes:['small', 'medium', 'large']},
     {type:'timer', source:'timer', title:'Timer', detail:'A countdown with presets that rings when done.', sizes:['small', 'medium', 'large', 'tall']},
     {type:'app', source:'apps', title:'App shortcut', detail:'Open a saved app.', sizes:['small', 'medium', 'large']},
     {type:'website', source:'apps', title:'Website', detail:'A live preview of a saved HTTPS website.', sizes:['medium', 'large', 'tall']},

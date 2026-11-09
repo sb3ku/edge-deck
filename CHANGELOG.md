@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.0
+
+- **Calendar.** Up Next and Month widgets, like iOS, from your calendar's private iCal link (Google, Outlook.com or iCloud; Customize → Connections → Calendar). The link is stored encrypted and read every 15 minutes while a calendar widget is shown. Tap an event for its details. Weeks start on Monday.
+- **Batteries.** The charge of your Bluetooth headset, controller and other devices that report it to Windows, as rings or a list.
+- **Reminders.** A checklist on the deck: tap a circle to tick it off; add, clear and delete in the Large size.
+- **Screen Time.** How long you have used the PC today, your top apps, an hourly chart and pickups. Counted on this PC only, never window titles, kept for 7 days, and only while the widget is shown.
+- **Tap a widget to open it, like iOS.** Weather widgets open the forecast, a Gauge opens PC stats, Small and Medium Spotify open the full player, Calendar opens the agenda, and Small and Medium Batteries, Reminders and Screen Time open their Large view. The view zooms out of the widget.
+- Leftovers of the earlier layouts are gone (the layout picker, card tabs and their code).
+
 ## 0.16.0
 
 - **A Home Screen like iOS.** Widgets are the only layout. Pages of widgets sit side by side: swipe and they follow your finger, or tap the dots at the bottom right.

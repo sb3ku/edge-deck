@@ -1,0 +1,69 @@
+/* Reminders widget: an iOS-style checklist, everything under .rem-*.
+   The base rules are the Medium layout; Small and Large follow the card's data-size. */
+.container-card.reminders > .card-body { overflow: clip; }
+.rem-widget { --rem-blue: #0a84ff; --rem-row: 48px; flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow: clip; color: #fff; }
+.rem-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex: none; padding: 0 4px; }
+.rem-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; color: var(--rem-blue); }
+.rem-count { font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+
+.rem-list { flex: 1 1 auto; min-height: 0; display: grid; grid-auto-rows: var(--rem-row); align-content: start; overflow: clip; }
+.rem-row { position: relative; display: flex; align-items: center; gap: 4px; min-width: 0; height: var(--rem-row); transition: opacity 1.2s ease; }
+.rem-row + .rem-row::before { content: ""; position: absolute; left: 52px; right: 0; top: 0; height: 1px; background: rgb(255 255 255 / 9%); }
+.rem-row.is-ticking { opacity: .5; }
+.rem-row.is-done { opacity: .45; transition: none; }
+.rem-check, .rem-delete { flex: none; display: grid; place-items: center; width: 48px; height: 48px; margin: 0; padding: 0; border: 0; border-radius: 24px; background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rem-circle { display: grid; place-items: center; width: 24px; height: 24px; box-sizing: border-box; border: 2px solid rgb(255 255 255 / 38%); border-radius: 50%; background: transparent; transition: background-color 160ms ease, border-color 160ms ease, transform 200ms var(--ease, ease); }
+.rem-circle svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 120ms ease; }
+.rem-check[aria-checked=true] .rem-circle { background: var(--rem-blue); border-color: var(--rem-blue); }
+.rem-check[aria-checked=true] .rem-circle svg { opacity: 1; }
+.rem-row.is-ticking .rem-circle { animation: rem-pop 260ms var(--ease, ease); }
+.rem-check:active .rem-circle { transform: scale(.88); }
+.rem-check:focus-visible, .rem-delete:focus-visible, .rem-clear:focus-visible, .rem-add-button:focus-visible { outline: 2px solid var(--rem-blue); outline-offset: -2px; }
+.rem-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.3; -webkit-user-select: none; user-select: none; }
+.rem-row.is-done .rem-text { color: rgb(255 255 255 / 60%); text-decoration: line-through; text-decoration-color: rgb(255 255 255 / 30%); }
+.rem-delete { display: none; color: rgb(255 255 255 / 50%); }
+.rem-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.rem-delete:active { color: #ff453a; }
+
+.rem-more { flex: none; align-self: flex-start; padding: 0 4px; font-size: 14px; line-height: 1.3; color: rgb(255 255 255 / 55%); }
+.rem-head { align-items: center; }
+.rem-clear { margin-left: auto; min-width: 48px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: var(--rem-blue); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.rem-clear:active { opacity: .6; }
+
+.rem-empty { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; text-align: center; }
+.rem-empty-title { font-size: 18px; font-weight: 600; color: rgb(255 255 255 / 85%); }
+.rem-empty-note { max-width: 30ch; font-size: 14px; line-height: 1.4; color: rgb(255 255 255 / 50%); }
+
+.rem-add { flex: none; display: flex; align-items: center; gap: 8px; min-height: 52px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgb(255 255 255 / 9%); }
+.rem-input { flex: 1 1 auto; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 12px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 17px; }
+.rem-input::placeholder { color: rgb(255 255 255 / 45%); }
+.rem-input:focus { outline: 2px solid var(--rem-blue); outline-offset: -2px; }
+.rem-add-button { flex: none; min-width: 72px; height: 48px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--rem-blue); color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.rem-add-button:active { opacity: .75; }
+
+/* Small: title and count over up to three rows. */
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-widget { gap: 0; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-title { font-size: 18px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-count { font-size: 32px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-row + .rem-row::before { left: 48px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-title { font-size: 16px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-note { font-size: 13px; }
+
+/* Medium: two columns of three. */
+.widgets[data-layout=widgets] > .reminders[data-size=medium] .rem-list { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: repeat(3, var(--rem-row)); grid-auto-flow: column; column-gap: 24px; }
+.widgets[data-layout=widgets] > .reminders[data-size=medium] .rem-row:nth-child(3n+1)::before { display: none; }
+
+/* Large: up to ten rows, then the add row; the delete cross is shown. */
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-widget { --rem-row: 44px; gap: 2px; }
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-title { font-size: 24px; }
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-count { font-size: 40px; }
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-text { font-size: 18px; }
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-delete { display: grid; }
+
+@keyframes rem-pop { 50% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) {
+  .rem-row, .rem-circle, .rem-circle svg { transition: none; }
+  .rem-row.is-ticking .rem-circle { animation: none; }
+}
+html.low-power .rem-row, html.low-power .rem-circle, html.low-power .rem-circle svg { transition: none; }
+html.low-power .rem-row.is-ticking .rem-circle { animation: none; }

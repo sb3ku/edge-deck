@@ -193,3 +193,17 @@ dialog.widget-sheet, dialog.confirm-dialog { position: fixed; inset: 0; margin: 
 .ws-editor-form { gap: 14px; }
 .ws-size { min-height: 96px; padding: 10px 6px; }
 .ws-rotate { min-height: 52px; }
+.ws-source-icon.is-calendar { background: #fff; color: #ff3b30; }
+
+/* ---- A widget's app, in a sheet that zooms out of the widget ---------------------------- */
+dialog.app-sheet { position: fixed; inset: 0; margin: auto; width: auto; height: auto; max-width: none; max-height: none; padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; backdrop-filter: none; }
+dialog.app-sheet[open] { display: block; }
+dialog.app-sheet::backdrop { background: rgb(0 0 0 / 55%); backdrop-filter: blur(18px); }
+.app-sheet-grid { box-shadow: 0 30px 90px rgb(0 0 0 / 60%); border-radius: var(--card-radius, 28px); transform-origin: center; }
+.app-sheet-close { position: absolute; top: -14px; right: -14px; z-index: 10; width: 48px; height: 48px; border-radius: 50%; background: rgb(60 60 64 / 92%); box-shadow: 0 6px 20px rgb(0 0 0 / 45%); }
+.page-grid > .container-card[data-opens] { cursor: pointer; }
+.page-grid:not(.is-jiggling) > .container-card[data-opens]:active:not(:has(button:active, input:active, [role=switch]:active)) { transform: scale(.98); }
+dialog.app-sheet { width: fit-content; height: fit-content; }
+.ws-source-icon.is-batteries { background: linear-gradient(180deg, #30d158, #28b14c); }
+.ws-source-icon.is-reminders { background: #fff; color: #0a84ff; }
+.ws-source-icon.is-screentime { background: linear-gradient(180deg, #5e5ce6, #7d7aff); }

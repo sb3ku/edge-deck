@@ -208,7 +208,7 @@
     record(info.metric, info.percent, now);
     const root = ctx.el('div', ['gauge-widget', info.hot ? 'is-hot' : '', info.starting ? 'is-starting' : '', info.hint ? 'has-hint' : '', info.trend ? '' : 'no-trend'].filter(Boolean).join(' '));
     root.dataset.metric = info.metric; root.dataset.view = view;
-    const main = ctx.button('', () => ctx.editCard(), { className: 'gauge-main', label: info.aria });
+    const main = ctx.button('', () => (ctx.openApp ? ctx.openApp() : ctx.editCard()), { className: 'gauge-main', label: info.aria });
     main.append(dialFor(info, ctx));
     const copy = ctx.el('div', 'gauge-copy');
     copy.append(ctx.el(view === 'small' ? 'strong' : 'h3', 'gauge-title', info.label), ctx.el(view === 'small' ? 'span' : 'p', 'gauge-detail', info.detail));

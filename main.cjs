@@ -48,14 +48,22 @@ const {createTray}=require('./lib/tray.cjs');
 const {createUpdater,repoFrom}=require('./lib/updater.cjs');
 const {createNotifier}=require('./lib/notifier.cjs');
 const {createPcStats}=require('./lib/pc-stats.cjs');
+const {createScreenTime}=require('./lib/screen-time.cjs');
 const {createSystemControls}=require('./lib/system-controls.cjs');
 let systemControls=null;
-let pcStats=null,pcStatsTimer=null;
+let screenTime=null,screenTimeTimer=null;
+let pcStats=null,pcStatsTimer=null,calendar=null,calendarTimer=null;
 // The stats helpers run only while a PC stats card is shown.
 function syncPcStats(){
   if(!pcStats)return;
   const shown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(['stats','gauge'].includes(card.type)||(card.items||[]).some(item=>['stats','gauge'].includes(item.type))));
   if(shown)pcStats.start();else pcStats.stop();
+  // Screen Time is tracked only while a Screen Time widget is shown.
+  const screenTimeShown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='screentime'||(card.items||[]).some(item=>item.type==='screentime')));
+  if(screenTime){if(screenTimeShown)screenTime.start();else screenTime.stop();}
+  // The calendar link is fetched every 15 minutes, but only while a Calendar widget is shown.
+  const calendarShown=config.publicConfig().widgets.some(card=>card.enabled!==false&&(card.type==='calendar'||(card.items||[]).some(item=>item.type==='calendar')));
+  if(calendar){if(calendarShown)calendar.start();else calendar.stop();}
   // Quick controls (Wi-Fi, Bluetooth, dark mode) are read only while a Quick actions card or a Switch widget is shown.
   const controls=config.publicConfig().widgets.some(card=>card.enabled!==false&&(['actions','switch'].includes(card.type)||(card.items||[]).some(item=>['actions','switch'].includes(item.type))));
   if(systemControls){if(controls)systemControls.start();else systemControls.stop();}
@@ -66,6 +74,7 @@ const packageInfo=require('./package.json');
 let tray=null,updater=null;
 const {createWindowsIntegration}=require('./lib/windows-integration.cjs');
 const {createWeatherBridge}=require('./lib/weather.cjs');
+const {createCalendar}=require('./lib/calendar.cjs');
 const {createAppIcons,ICON_ID}=require('./lib/app-icons.cjs');
 const {powerState}=require('./lib/power.cjs');
 const {createApprovalBroker}=require('./lib/agent-approvals.cjs');
@@ -103,7 +112,7 @@ app.requestSingleInstanceLock(verify?`edge-deck-verify-${process.pid}`:'edge-dec
   .catch(e=>{console.error(e);approvals?.close();media?.close();printers?.close();app.exit(1);});
 app.on('second-instance',()=>{dashboardWindow?.setFullscreen(true).then(()=>verify?null:dashboardWindow?.hideFromTaskbar()).then(()=>dashboardWindow?.activate()).catch(error=>console.error(error.message));});
 for(const signal of ['SIGINT','SIGTERM','SIGBREAK'])process.on(signal,()=>app.quit());
-process.on('exit',()=>{try{pcStats?.stop();systemControls?.stop();}catch{}});
+process.on('exit',()=>{try{pcStats?.stop();screenTime?.stop();systemControls?.stop();}catch{}});
 app.on('before-quit',()=>{tray?.close();approvals?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
 function state() {
   const publicConfig=config.publicConfig();
@@ -119,7 +128,7 @@ function state() {
   });
   // Verification stays deterministic: a game in front must not change the UI under test.
   const presence=verify?'normal':['fullscreen','away'].includes(mediaState.presence)?mediaState.presence:'normal';
-  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},pc:pcStats?.state()||null,controls:systemControls?.state()||null,update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
+  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,calendar:calendar?calendar.state():{configured:false,events:[],updatedAt:null,error:null},tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},pc:pcStats?.state()||null,screenTime:screenTime?.state()||null,controls:systemControls?.state()||null,update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
 }
 async function pollSpotify(){if(spotifyBusy)return;spotifyBusy=true;try{spotifyState={...await spotify.getState(),player:spotifyState.player??null};broadcast();}catch{spotifyState={...spotifyState,error:'Spotify connection is unavailable.'};}finally{spotifyBusy=false;}}
 // Spotify's player state is polled faster while music plays so progress,
@@ -170,6 +179,8 @@ async function spotifyBrowse(kind,value){
 }
 async function pollWeather(){if(weatherBusy)return;weatherBusy=true;try{weatherState=await weather.getState();broadcast();}catch{weatherState={...weatherState,status:weatherState.updatedAt?'stale':'error',stale:Boolean(weatherState.updatedAt),error:'Weather is unavailable. Try again shortly.'};}finally{weatherBusy=false;}}
 async function saveWeather(input){config.saveWeather(input);weatherState=await weather.getState();broadcast();return state();}
+async function saveCalendar(url){config.saveCalendarUrl(typeof url==='string'?url:'');syncPcStats();await calendar.refresh();broadcast();return state();}
+async function refreshCalendar(){await calendar.refresh();broadcast();return state();}
 async function refreshWeather(){weatherState=await weather.refresh();broadcast();return state();}
 let appIcons;
 // Dock icons: only for saved apps; verification never reads real files or sites.
@@ -282,6 +293,7 @@ async function start() {
   const spotifyCacheFile=path.join(app.getPath('userData'),'spotify-cache.json');
   spotify=createSpotifyBridge({cache:verify?null:{read:()=>JSON.parse(fs.readFileSync(spotifyCacheFile,'utf8')),write:value=>{const temporary=spotifyCacheFile+'.tmp';fs.writeFileSync(temporary,JSON.stringify(value));fs.renameSync(temporary,spotifyCacheFile);}},webApi:pathname=>canvasClient?.web(pathname)??null,getConfig:()=>config.spotifyConfig(),saveTokens:tokens=>config.saveSpotifyTokens(tokens),openExternal:url=>shell.openExternal(url)});
   weather=createWeatherBridge({getConfig:()=>config.publicConfig().weather,...(verify?{fetchImpl:require('./scripts/weather-fixture.cjs').fetchWeatherFixture}:{})});
+  calendar=createCalendar({getUrl:()=>config.calendarUrl(),onChange:()=>{if(!calendarTimer)calendarTimer=setTimeout(()=>{calendarTimer=null;broadcast();},250);},...(verify?{fetchImpl:(url,options)=>require('./scripts/calendar-fixture.cjs').fetchCalendarFixture(url,options)}:{})});
   const weatherConfig=config.publicConfig().weather;
   weatherState={...weatherState,location:weatherConfig.location,configured:Boolean(weatherConfig.location),units:{system:weatherConfig.units,temperature:weatherConfig.units==='imperial'?'°F':'°C',windSpeed:weatherConfig.units==='imperial'?'mph':'km/h',precipitation:weatherConfig.units==='imperial'?'in':'mm'},status:weatherConfig.location?'loading':'unconfigured'};
   // Bambu cloud sign-in: only the access token is kept, encrypted like the other credentials.
@@ -356,6 +368,8 @@ async function startBrowser() {
     'weather:search':query=>weather.searchLocations(query),
     'weather:save':saveWeather,
     'weather:refresh':refreshWeather,
+    'calendar:save':saveCalendar,
+    'calendar:refresh':refreshCalendar,
     'music:save-playlist':input=>{config.savePlaylist(input);return state();},
     'music:remove-playlist':id=>{config.removePlaylist(id);return state();},
     'music:open-playlist':openPlaylist,
@@ -396,6 +410,7 @@ async function startBrowser() {
     const toastLine=createToastLines({directory:app.getPath('userData'),picture:id=>thumbnails?.picture(id)||null});
     systemControls=createSystemControls({onChange:()=>broadcast()});
     pcStats=createPcStats({onChange:()=>{if(!pcStatsTimer)pcStatsTimer=setTimeout(()=>{pcStatsTimer=null;broadcast();},250);}});
+    screenTime=createScreenTime({directory:app.getPath('userData'),onChange:()=>{if(!screenTimeTimer)screenTimeTimer=setTimeout(()=>{screenTimeTimer=null;broadcast();},30000);}});
     syncPcStats();
     notifier=createNotifier({send:note=>tray?.send(toastLine(note)),settings:()=>config.publicConfig().notifications});
     // Updates from GitHub releases: a minute after start, then every six hours.

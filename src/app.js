@@ -2,9 +2,9 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const preview = !window.edge;
-const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Spotify', 'Recently played; Tall is the full player'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory, video memory or a temperature'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], 'rain-wind': ['Weather details', 'The chance of rain and the wind'], 'daily-forecast': ['Daily forecast', 'The coming days'], 'sun-path': ['Sunrise and sunset', 'The sun today'], dial: ['Clock', 'The time on a clock face'], city: ['City clock', 'The time in another city'], 'world-clock': ['World clock', 'The time around the world'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Spotify', 'Recently played; Tall is the full player'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory, video memory or a temperature'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], calendar: ['Calendar', 'Your next events'], batteries: ['Batteries', 'Your devices\' charge'], reminders: ['Reminders', 'A checklist'], screentime: ['Screen Time', 'Your PC time today'], 'rain-wind': ['Weather details', 'The chance of rain and the wind'], 'daily-forecast': ['Daily forecast', 'The coming days'], 'sun-path': ['Sunrise and sunset', 'The sun today'], dial: ['Clock', 'The time on a clock face'], city: ['City clock', 'The time in another city'], 'world-clock': ['World clock', 'The time around the world'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
 // Widgets drawn by their own modules (widget-*.js), registered on window.EdgeWidgets.
-const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine', 'rain-wind', 'daily-forecast', 'sun-path', 'dial', 'city', 'world-clock']);
+const MODULE_TYPES = new Set(['batteries', 'reminders', 'screentime', 'calendar', 'gauge', 'switch', 'timer', 'machine', 'rain-wind', 'daily-forecast', 'sun-path', 'dial', 'city', 'world-clock']);
 const defaultConfig = {
   clock24: true, theme: 'dark', layout: {mode:'widgets'},
   weather: { location: null, units: 'metric' }, music: { savedPlaylists: [] },
@@ -56,6 +56,10 @@ const paths = {
   volume: '<path d="M11 4 6 8H2v8h4l5 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  battery: '<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><path d="M5 10h8v4H5z" fill="currentColor" stroke="none"/>',
+  reminders: '<circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><path d="M10 6h11M10 12h11M10 18h11"/>',
+  hourglass: '<path d="M7 3h10M7 21h10M8 3c0 5 8 6 8 9s-8 4-8 9M16 3c0 5-8 6-8 9s8 4 8 9"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
@@ -323,7 +327,7 @@ function render() {
   fullScreenButton.title = fullScreen ? 'Exit full screen' : 'Enter full screen'; fullScreenButton.setAttribute('aria-label', fullScreenButton.title);
   fullScreenButton.replaceChildren(icon(fullScreen ? 'exitFullscreen' : 'fullscreen'), document.createTextNode(fullScreenButton.title));
   $('#layout-done').hidden = !editingLayout; $('#widget-add').hidden = !editingLayout;
-  renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage();
+  renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage(); drawAppSheet();
   if (typeof dialog !== 'undefined' && dialog.open && activeTab === 'music') {
     const signature = JSON.stringify(state.spotify || {});
     if (signature !== musicSignature && !$('#settings-content input:focus')) { musicSignature = signature; renderSettings(); }
@@ -370,6 +374,7 @@ function renderCards(){
     panel.className=`widget container-card ${type}`;panel.dataset.widget=type;panel.dataset.size=card.size||'medium';panel.setAttribute('aria-label',cardTitle(card));
     panel.dataset.cardTitle=cardTitle(card);
     applyMood(panel,type,card,active);
+    panel.toggleAttribute('data-opens',!!appViewFor(card,active));
     let toolbar=$('.card-toolbar',panel);
     const chromeKey=JSON.stringify([card.title,items,items.map(item=>state.config.launchers.find(app=>app.id===item.launcherId)?.name),editingLayout,mode,card.size]);
     if(!toolbar){toolbar=el('div','card-toolbar');panel.prepend(toolbar);}
@@ -554,6 +559,70 @@ function confirmAction(title,message,confirmLabel){
     box.addEventListener('close',()=>{const notice=$('#toast');if(notice&&box.contains(notice))document.body.append(notice);box.remove();resolve(result);});box.showModal();no.focus();
   });
 }
+// ---- Opening a widget's "app", like iOS -----------------------------------------------
+// Tapping a widget (not one of its own buttons) opens the full view of what it shows:
+// the forecast for weather widgets, PC stats for a Gauge, the full Spotify player for
+// Small and Medium music, the agenda for Calendar. The sheet zooms out of the widget.
+const APP_VIEWS = {
+  weather: () => ({ action: showWeather }), 'rain-wind': () => ({ action: showWeather }), 'daily-forecast': () => ({ action: showWeather }), 'sun-path': () => ({ action: showWeather }),
+  gauge: () => ({ type: 'stats', title: 'PC stats' }),
+  media: card => ['small', 'medium'].includes(card.size) ? { type: 'media', title: 'Spotify' } : null,
+  calendar: () => ({ type: 'calendar', title: 'Calendar', item: { view: 'upnext' } }),
+  batteries: card => card.size === 'large' ? null : { type: 'batteries', title: 'Batteries' },
+  reminders: card => card.size === 'large' ? null : { type: 'reminders', title: 'Reminders' },
+  screentime: card => card.size === 'large' ? null : { type: 'screentime', title: 'Screen Time' },
+};
+function appViewFor(card, item) { const view = APP_VIEWS[item?.type]; return view ? view(card, item) : null; }
+let appSheet = null;
+function openWidgetApp(card, item, source) {
+  const view = appViewFor(card, item); if (!view) return false;
+  if (view.action) { view.action(); return true; }
+  if (!appSheet) {
+    appSheet = el('dialog', 'app-sheet'); appSheet.id = 'app-sheet'; appSheet.setAttribute('aria-labelledby', 'app-sheet-title');
+    appSheet.addEventListener('click', event => { if (event.target === appSheet) appSheet.close(); });
+    appSheet.addEventListener('close', () => { const notice = $('#toast'); if (notice && appSheet.contains(notice)) document.body.append(notice); appSheet.replaceChildren(); delete appSheet.dataset.key; });
+    document.body.append(appSheet);
+  }
+  const spans = window.EdgeLayout.WIDGET_SPANS.large, { cellWidth, cellHeight, gap } = gridShape;
+  const width = Math.round(spans.columns * cellWidth + gap), height = Math.round(spans.rows * cellHeight + gap);
+  const grid = el('div', 'widgets app-sheet-grid'); grid.dataset.layout = 'widgets'; grid.style.width = width + 'px'; grid.style.height = height + 'px';
+  grid.style.setProperty('--widget-columns', 2); grid.style.setProperty('--widget-rows', 2);
+  const viewItem = { id: `app-${view.type}-content`, type: view.type, ...(view.item || {}) };
+  const viewCard = { id: `app-${view.type}`, type: view.type, title: '', enabled: true, size: 'large', items: [viewItem], activeItemId: viewItem.id };
+  const panel = el('section', `widget container-card ${view.type}`); panel.dataset.widget = view.type; panel.dataset.size = 'large'; panel.dataset.app = 'true';
+  panel.style.gridColumn = '1 / span 2'; panel.style.gridRow = '1 / span 2';
+  const body = el('div', 'card-body'); panel.append(body); grid.append(panel);
+  const title = el('h2', 'sr-only', view.title); title.id = 'app-sheet-title';
+  const close = button('', () => appSheet.close(), { className: 'quiet-button app-sheet-close', icon: 'close', label: `Close ${view.title}` });
+  appSheet.replaceChildren(title, grid, close); appSheet.dataset.type = view.type;
+  appSheet.view = { card: viewCard, item: viewItem, panel, body };
+  if (!appSheet.open) appSheet.showModal();
+  drawAppSheet(true);
+  // Zoom out of the widget, like iOS.
+  const from = source?.getBoundingClientRect?.(), to = grid.getBoundingClientRect();
+  if (from && to.width && !stillMotion()) grid.animate([{ transform: `translate(${from.left + from.width / 2 - (to.left + to.width / 2)}px, ${from.top + from.height / 2 - (to.top + to.height / 2)}px) scale(${Math.min(from.width / to.width, from.height / to.height)})`, opacity: .6, borderRadius: '28px' }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,.86,.24,1)' });
+  close.focus({ preventScroll: true });
+  return true;
+}
+// Keeps the open sheet current as the dashboard's state changes.
+function drawAppSheet(force = false) {
+  if (!appSheet?.open || !appSheet.view) return;
+  const { card, item, panel, body } = appSheet.view, type = item.type;
+  const key = JSON.stringify(window.EdgeWidgets?.[type]?.signature ? [type, window.EdgeWidgets[type].signature(widgetContext(card, item, panel))] : type === 'stats' ? [state.pc, state.system?.presence] : type === 'calendar' ? [state.calendar, state.config.clock24, Math.floor(Date.now() / 60000)] : type);
+  if (!force && appSheet.dataset.key === key && type !== 'media') return;
+  appSheet.dataset.key = key;
+  try { if (type !== 'media') body.replaceChildren(); drawContent(body, card, item, panel, type); applyMood(panel, type, card, item); updateShape(panel); }
+  catch (error) { console.error('The widget view could not be drawn.', error); }
+}
+// A tap on a widget (not on its own controls) opens its app.
+const WIDGET_CONTROLS = 'button, a, input, select, textarea, label, iframe, [role=button], [role=switch], [role=slider], [contenteditable], .emw-rp-tile, .emw-rp-play';
+document.addEventListener('click', event => {
+  if (editingLayout || event.defaultPrevented) return;
+  const panel = event.target.closest?.('.page-grid > .container-card'); if (!panel || event.target.closest(WIDGET_CONTROLS)) return;
+  const card = state.config.widgets.find(w => w.id === panel.dataset.id); if (!card) return;
+  const item = stackActive(card, cardItems(card), panel);
+  if (openWidgetApp(card, item, panel)) event.preventDefault();
+});
 // Hold a widget: a menu like iOS (Edit widget, Edit Home Screen, its settings, Remove).
 let widgetMenuPanel=null;
 function openWidgetMenu(panel){
@@ -775,6 +844,7 @@ function widgetContext(card, item, panel) {
     clock24: () => state.config.clock24 !== false, showWeather,
     lowPower: () => document.documentElement.classList.contains('low-power'),
     editCard: () => showCardEditor(card.id),
+    openApp: () => openWidgetApp(card, item, panel),
     refreshMood: () => applyMood(panel, item?.type || card.type, card, item),
     saveItem: async patch => { const cfg = newConfig(); const target = cfg.widgets.find(w => w.id === card.id)?.items?.find(i => i.id === item?.id); if (!target) return; Object.assign(target, patch); await saveConfig(cfg); },
   };
@@ -1619,10 +1689,15 @@ async function closePrinterConsole() {
   try { await consoleMotion(source, true)?.finished; } catch {}
   printerConsole.close(); printerConsoleClosing = false; printerConsole.classList.remove('is-closing');
 }
-const CONNECTION_TABS = [['music', 'Music'], ['weather', 'Weather'], ['printers', 'Printers'], ['agents', 'Agents']];
+const CONNECTION_TABS = [['music', 'Music'], ['calendar', 'Calendar'], ['weather', 'Weather'], ['printers', 'Printers'], ['agents', 'Agents']];
+// Customize → Connections → Calendar is drawn by the calendar module (src/widget-calendar.js).
+function settingsCalendar(content) {
+  if (window.EdgeCalendar?.renderSettings) window.EdgeCalendar.renderSettings(content, { getState: () => state, bridge, updateState, toast, el, button, icon });
+  else content.append(el('p', 'intro', 'Calendar settings are unavailable. Reopen Edge Deck.'));
+}
 let lastConnectionTab = 'music';
 // Hold a widget (about 0.6 s) for its menu; hold an empty spot to edit the Home Screen.
-const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps', gauge: 'display', switch: 'display', machine: 'printers', 'rain-wind': 'weather', 'daily-forecast': 'weather', 'sun-path': 'weather', dial: 'display', city: 'display', 'world-clock': 'display' };
+const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps', gauge: 'display', switch: 'display', machine: 'printers', calendar: 'calendar', batteries: 'display', reminders: 'display', screentime: 'display', 'rain-wind': 'weather', 'daily-forecast': 'weather', 'sun-path': 'weather', dial: 'display', city: 'display', 'world-clock': 'display' };
 let pressTimer = null, pressStart = null, pressedCard = null, suppressClick = false;
 function cancelPress() { clearTimeout(pressTimer); pressTimer = null; pressedCard?.classList.remove('is-pressing'); pressedCard = null; }
 document.addEventListener('pointerdown', event => {
@@ -1666,7 +1741,7 @@ function renderSettings() {
       choice.setAttribute('aria-pressed', String(selected)); sub.append(choice);
     }
   }
-  ({ layout: content=>window.EdgeLayoutUI.renderSettings(content,layoutContext()), widgets: settingsWidgets, apps: settingsApps, agents: settingsAgents, music: settingsMusic, weather: settingsWeather, printers: settingsPrinters, control: settingsPrinterControls, display: settingsDisplay })[activeTab](content);
+  ({ layout: content=>window.EdgeLayoutUI.renderSettings(content,layoutContext()), widgets: settingsWidgets, apps: settingsApps, agents: settingsAgents, music: settingsMusic, calendar: settingsCalendar, weather: settingsWeather, printers: settingsPrinters, control: settingsPrinterControls, display: settingsDisplay })[activeTab](content);
 }
 function settingsAgents(content) {
   content.append(el('p', 'intro', 'See what Codex and Claude Code are doing, and answer Claude Code permission requests from this screen.'));
