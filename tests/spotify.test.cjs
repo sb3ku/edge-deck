@@ -438,3 +438,31 @@ test('an empty 200 or 202 answer from Spotify means nothing to report, not an er
   const player = await bridge.getPlayer();
   assert.ok(player === null || typeof player === 'object');
 });
+
+test('A home feed with a failed part keeps that part, is held three minutes and is read a few calls at a time', async t => {
+  const ALL = [...SCOPES, ...OPTIONAL_SCOPES].join(' ');
+  let inFlight = 0, peak = 0, albumsFail = false; const calls = [];
+  const { bridge, config, advance } = harness(t, async url => {
+    calls.push(url); inFlight++; peak = Math.max(peak, inFlight);
+    await new Promise(resolve => setTimeout(resolve, 2)); inFlight--;
+    if (url.includes('/me/player/recently-played')) return response({ items: Array.from({ length: 12 }, (_, index) => ({ context: { uri: `spotify:playlist:${String(index + 1).padStart(22, '0')}` },
+      track: { uri: `spotify:track:${'4'.repeat(22)}`, name: 'Song', artists: [], album: { name: 'Album', artists: [], images: [] } } })) });
+    if (url.includes('/me/albums')) return albumsFail ? response({ error: 'busy' }, 500) : response({ items: [{ album: { uri: `spotify:album:${'5'.repeat(22)}`, name: 'Kept album', artists: [], images: [] } }] });
+    if (url.includes('/v1/playlists/')) return response({ name: 'List', images: [], owner: { display_name: 'Me' } });
+    return response({ items: [] });
+  });
+  config.tokens.scope = ALL;
+  const complete = await bridge.home();
+  assert.equal(complete.recent.length, 8, 'At most eight recent items are described');
+  assert.equal(complete.albums[0].name, 'Kept album');
+  assert.ok(peak <= 3, `At most three calls run at once, saw ${peak}`);
+  advance(700000); albumsFail = true;
+  const degraded = await bridge.home();
+  assert.equal(degraded.albums[0].name, 'Kept album', 'The part Spotify did not answer keeps its last copy');
+  const count = calls.length;
+  await bridge.home();
+  assert.equal(calls.length, count, 'The degraded feed is served from memory');
+  advance(200000);
+  await bridge.home();
+  assert.ok(calls.length > count, 'After three minutes the feed is read again');
+});

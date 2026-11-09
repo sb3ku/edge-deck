@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Filament by AMS.** The Printers card and the Printer widget show each AMS on its own row with its four slots (empty ones too), then the external spool, with a spool look for the colours. The loaded spool is marked; on the H2D the mark says which nozzle (L or R). A slot whose colour was never set shows a striped spool. The printer panel's Filament tab shows the external spool as well.
+- Widgets no longer carry a header line (the printer count, "1 working", the uptime): their content has that room. Printer pictures (and the model being printed) sit further from the card's edge and from the text beside them.
+- **Plan usage rings.** The Agents card shows Claude's and Codex's usage as rings at its bottom right, like the ring in the Claude app: the 5-hour session's used share, yellow from 80%, red at the limit. Tap a ring for every limit window (session, week, Sonnet or Opus week) with its reset time. Claude's figures come from Anthropic's usage endpoint with the Claude Code sign-in stored on this PC (Customize → Connections → Agents turns this off; sign in with `claude` then `/login` in a terminal if there is none); Codex's come from its own activity. Today's reply and token counts moved into the details.
+- **Edit Home Screen** ends with a tap on an empty spot, and pages left empty disappear when editing ends, like iOS.
+- **Spotify asks for fewer calls.** The Recently Played feed is read a few calls at a time and, when a part of it fails, kept for a few minutes instead of being asked for again by every widget, which is what had Spotify limit the app. The player polls a little less often, and during a limit it keeps its last state and says when updates resume.
+- **Spotify Canvas** lookups that failed mid-song are retried instead of waiting for the next song.
+
 ## 0.17.0
 
 - **Calendar.** Up Next and Month widgets, like iOS, from your calendar's private iCal link (Google, Outlook.com or iCloud; Customize → Connections → Calendar). The link is stored encrypted and read every 15 minutes while a calendar widget is shown. Tap an event for its details. Weeks start on Monday.

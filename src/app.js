@@ -327,7 +327,7 @@ function render() {
   fullScreenButton.title = fullScreen ? 'Exit full screen' : 'Enter full screen'; fullScreenButton.setAttribute('aria-label', fullScreenButton.title);
   fullScreenButton.replaceChildren(icon(fullScreen ? 'exitFullscreen' : 'fullscreen'), document.createTextNode(fullScreenButton.title));
   $('#layout-done').hidden = !editingLayout; $('#widget-add').hidden = !editingLayout;
-  renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage(); drawAppSheet();
+  renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage(); drawAppSheet(); drawUsageSheet();
   if (typeof dialog !== 'undefined' && dialog.open && activeTab === 'music') {
     const signature = JSON.stringify(state.spotify || {});
     if (signature !== musicSignature && !$('#settings-content input:focus')) { musicSignature = signature; renderSettings(); }
@@ -645,8 +645,28 @@ function openWidgetMenu(panel){
 function closeWidgetMenu(){$('#widget-menu')?.remove();widgetMenuPanel?.classList.remove('is-menu-open');widgetMenuPanel=null;}
 document.addEventListener('pointerdown',event=>{if(!event.target.closest?.('#widget-menu'))closeWidgetMenu();},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('#widget-menu')){const panel=widgetMenuPanel;closeWidgetMenu();panel?.focus?.();}});
+// Edit Home Screen ends with a tap on an empty spot, like iOS (widgets, + and Done keep working).
+document.addEventListener('click',event=>{
+  if(!editingLayout||event.defaultPrevented||document.querySelector('dialog[open]'))return;
+  const target=event.target;
+  if(!target?.closest||target.closest('.container-card, button, a, input, select, textarea, label, [role=button], .deck-controls, #launchers, #page-tabs, #widget-menu'))return;
+  if(!target.closest('.deck'))return;
+  setEditing(false);
+});
 function setEditing(on){
   closeDeckMenu();closeWidgetMenu();editingLayout=!!on;editLayoutLabel();$('#edit-layout').setAttribute('aria-pressed',String(editingLayout));render();
+  if(!editingLayout)void pruneEmptyPages();
+}
+// Leaving Edit Home Screen drops pages with nothing on them, like iOS (the first page stays).
+async function pruneEmptyPages(){
+  const pages=pagesList();if(pages.length<2)return;
+  const used=new Set(state.config.widgets.filter(w=>w.type!=='launchers').map(w=>w.page||pages[0].id));
+  const keep=pages.filter((page,index)=>index===0||used.has(page.id));
+  if(keep.length===pages.length)return;
+  const cfg=newConfig();cfg.pages=structuredClone(keep);
+  try{await saveConfig(cfg);}catch{return;}
+  if(!keep.some(page=>page.id===currentPage()))showPage(keep[0].id);
+  const removed=pages.length-keep.length;toast(removed===1?'Empty page removed':`${removed} empty pages removed`);
 }
 function layoutContext(){return{getState:()=>state,bridge,updateState,toast,onEditCard:showCardEditor,onAddWidget:()=>openWidgetGallery(),onChooseApp:()=>{$('#layout-editor').close();showSettings('apps');},onClose:()=>$('#layout-editor').close()};}
 function showCardEditor(id){window.EdgeLayoutUI.renderEditor($('#layout-editor-content'),{...layoutContext(),cardId:id});const editor=$('#layout-editor');if(!editor.open){editor.showModal();renderApprovals();if(!matchMedia('(prefers-reduced-motion: reduce)').matches)editor.animate([{opacity:0,transform:'translateX(24px)'},{opacity:1,transform:'none'}],{duration:240,easing:'cubic-bezier(.2,.8,.2,1)'});}}
@@ -986,9 +1006,63 @@ function renderTasks(panel) {
   if (tasks.usage?.codex || tasks.usage?.claude) { const usage = el('div', 'task-usage'); usage.setAttribute('role', 'group'); usage.setAttribute('aria-label', 'Usage'); panel.append(usage); }
   updateTaskTimers(); updateTaskUsage();
 }
-// Plan usage at the foot of the card, in each agent's colour. Codex records how
-// much of each limit window is used; Claude Code's logs only record activity, and
-// a limit when one is reached.
+// Plan usage at the foot of the card: a ring per agent with the 5-hour session's
+// used share, like the ring in the Claude app; a tap opens every limit window.
+// Codex records its limits as it works; Claude's come from Anthropic's usage
+// endpoint with the Claude Code sign-in on this PC (Customize → Agents), and
+// Claude Code's logs add a limit when one is reached.
+const USAGE_AGENTS = { claude: 'Claude', codex: 'Codex' };
+function usageWindows(agent) {
+  const usage = state.tasks?.usage?.[agent]; if (!usage) return [];
+  const windows = (usage.windows || []).map(window => ({ ...window }));
+  if (agent === 'claude' && usage.limit) {
+    const id = usage.limit.type === 'seven_day' ? 'weekly' : 'session', hit = windows.find(window => window.id === id);
+    if (hit) { hit.usedPercent = 100; hit.resetsAt = hit.resetsAt || usage.limit.resetsAt; }
+    else windows.unshift({ id, label: id === 'weekly' ? 'Weekly' : '5-hour', usedPercent: 100, resetsAt: usage.limit.resetsAt });
+  }
+  return windows;
+}
+function usageTone(percent) { return percent >= 100 ? 'is-full' : percent >= 80 ? 'is-warning' : ''; }
+let usageSheet = null;
+function openUsageSheet(agent) {
+  if (!usageSheet) {
+    usageSheet = el('dialog', 'usage-sheet'); usageSheet.id = 'usage-sheet'; usageSheet.setAttribute('aria-labelledby', 'usage-sheet-title');
+    usageSheet.addEventListener('click', event => { if (event.target === usageSheet) usageSheet.close(); });
+    usageSheet.addEventListener('close', () => { const notice = $('#toast'); if (notice && usageSheet.contains(notice)) document.body.append(notice); delete usageSheet.dataset.key; });
+    document.body.append(usageSheet);
+  }
+  usageSheet.dataset.agent = agent;
+  drawUsageSheet(true);
+  if (!usageSheet.open) { usageSheet.showModal(); renderApprovals(); }
+}
+// Keeps the open sheet current as readings arrive and minutes pass.
+function drawUsageSheet(force = false) {
+  if (!usageSheet || (!usageSheet.open && !force)) return;
+  const agent = usageSheet.dataset.agent; if (!USAGE_AGENTS[agent]) return;
+  const usage = state.tasks?.usage?.[agent] || {}, windows = usageWindows(agent), name = USAGE_AGENTS[agent];
+  const key = JSON.stringify([agent, windows, usage.plan, usage.updatedAt, usage.error, usage.today, Math.floor(Date.now() / 60000)]);
+  if (!force && usageSheet.dataset.key === key) return; usageSheet.dataset.key = key;
+  const head = el('div', 'usage-sheet-head'); const title = el('h2', 'usage-sheet-title'); title.id = 'usage-sheet-title'; title.append(el('i'), document.createTextNode(`${name} usage`));
+  head.append(title, button('', () => usageSheet.close(), { className: 'quiet-button', icon: 'close', label: 'Close' }));
+  const parts = [head];
+  const plan = usage.plan ? (agent === 'codex' ? `ChatGPT ${usage.plan[0].toUpperCase()}${usage.plan.slice(1)}` : `Claude ${usage.plan}`) : '';
+  const asOf = usage.updatedAt ? `as of ${new Date(usage.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !state.config?.clock24 })}` : '';
+  if (plan || asOf) parts.push(el('p', 'usage-sheet-plan', [plan, asOf].filter(Boolean).join(' · ')));
+  for (const window of windows) {
+    const percent = Math.max(0, Math.min(100, window.usedPercent));
+    const row = el('div', `usage-window ${usageTone(percent)}`.trim());
+    const top = el('div', 'usage-window-top'); top.append(el('span', '', window.id === 'session' ? 'Current session' : window.id === 'weekly' ? 'Current week' : window.label), el('span', '', `${Math.round(percent)}% used`));
+    const bar = el('div', 'usage-window-bar'); bar.setAttribute('role', 'meter'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-valuenow', String(Math.round(percent))); bar.setAttribute('aria-label', `${name} ${window.label} limit`);
+    const fill = el('i'); fill.style.width = `${percent}%`; bar.append(fill);
+    row.append(top, bar, el('span', 'usage-window-reset', [window.label, window.resetsAt ? resetText(window.resetsAt) : ''].filter(Boolean).join(' · ')));
+    parts.push(row);
+  }
+  if (!windows.length) parts.push(el('p', 'usage-sheet-note', usage.error || (agent === 'codex' ? 'Codex reports its limits while it works. Start a Codex chat to see them.' : 'No usage has been reported yet.')));
+  else if (usage.error) parts.push(el('p', 'usage-sheet-note', usage.error));
+  if (agent === 'claude' && usage.today) parts.push(el('p', 'usage-sheet-note', `Today on this PC: ${compactCount(usage.today.requests)} ${usage.today.requests === 1 ? 'reply' : 'replies'} · ${compactCount(usage.today.output)} tokens written.`));
+  if (agent === 'codex') parts.push(el('p', 'usage-sheet-note', 'From Codex’s own activity on this PC; the figures update while a Codex chat works.'));
+  usageSheet.replaceChildren(...parts);
+}
 function resetText(iso) {
   const at = Date.parse(iso); if (!Number.isFinite(at)) return '';
   const hours = (at - Date.now()) / 3600000;
@@ -998,28 +1072,24 @@ function resetText(iso) {
 }
 function compactCount(value) { return value >= 1e6 ? `${(value / 1e6).toFixed(1)}M` : value >= 1e3 ? `${Math.round(value / 1e3)}k` : String(value); }
 function updateTaskUsage() {
-  const box = document.querySelector('.task-usage'); if (!box) return;
-  const { codex, claude } = state.tasks?.usage || {}, rows = [];
-  if (codex) for (const window of codex.windows || []) rows.push({ agent: 'codex', name: 'Codex', label: `${window.label} limit`, percent: window.usedPercent,
-    value: `${Math.round(window.usedPercent)}%`, detail: resetText(window.resetsAt) });
-  if (claude) {
-    if (claude.limit) rows.push({ agent: 'claude', name: 'Claude', label: `${claude.limit.type === 'seven_day' ? 'Weekly' : '5-hour'} limit reached`, percent: 100, value: '100%', detail: resetText(claude.limit.resetsAt) });
-    else rows.push({ agent: 'claude', name: 'Claude', label: 'Today', value: `${compactCount(claude.today.requests)} ${claude.today.requests === 1 ? 'reply' : 'replies'}`, detail: `${compactCount(claude.today.output)} tokens written` });
+  const boxes = document.querySelectorAll('.task-usage'); if (!boxes.length) return;
+  const usage = state.tasks?.usage || {}, rings = [];
+  for (const agent of ['claude', 'codex']) {
+    if (!usage[agent]) continue;
+    const windows = usageWindows(agent), session = windows.find(window => window.id === 'session') || windows[0] || null;
+    rings.push({ agent, name: USAGE_AGENTS[agent], percent: session ? Math.max(0, Math.min(100, session.usedPercent)) : null, label: session?.label || '',
+      reset: session?.resetsAt ? resetText(session.resetsAt) : '', detail: usage[agent].error || '' });
   }
-  const key = JSON.stringify(rows); if (box.dataset.key === key) return; box.dataset.key = key;
-  box.replaceChildren(...rows.map(row => {
-    const line = el('div', 'task-usage-row'); line.dataset.agent = row.agent;
-    const top = el('div', 'task-usage-top'); top.append(el('span', 'task-usage-name', row.name), el('span', 'task-usage-label', row.label));
-    if (row.detail) top.append(el('span', 'task-usage-detail', row.detail));
-    top.append(el('span', 'task-usage-value', row.value));
-    line.append(top);
-    if (Number.isFinite(row.percent)) {
-      const meter = el('div', 'task-usage-meter'); meter.setAttribute('role', 'meter'); meter.setAttribute('aria-valuemin', '0'); meter.setAttribute('aria-valuemax', '100');
-      meter.setAttribute('aria-valuenow', String(Math.round(row.percent))); meter.setAttribute('aria-label', `${row.name} ${row.label}`);
-      const fill = el('i'); fill.style.width = `${row.percent}%`; meter.append(fill); line.append(meter);
-    }
-    return line;
-  }));
+  const key = JSON.stringify(rings);
+  for (const box of boxes) { if (box.dataset.key === key) continue; box.dataset.key = key; box.replaceChildren(...rings.map(ring => {
+    const known = Number.isFinite(ring.percent);
+    const item = button('', () => openUsageSheet(ring.agent), { className: `usage-ring${known ? ` ${usageTone(ring.percent)}` : ''}`.trim(),
+      label: known ? `${ring.name} ${ring.label} limit: ${Math.round(ring.percent)} percent used${ring.reset ? `, ${ring.reset}` : ''}. Show details` : `${ring.name} usage: not available. ${ring.detail}`.trim() });
+    item.dataset.agent = ring.agent;
+    const dial = el('div', 'usage-ring-dial'); dial.append(printerRing(known ? ring.percent : 0, 'usage'), el('span', `usage-ring-value${known ? '' : ' is-empty'}`, known ? `${Math.round(ring.percent)}%` : '—'));
+    item.append(dial, el('span', 'usage-ring-name', ring.name));
+    return item;
+  })); }
 }
 // A chat's step list, drawn like the Claude app's task list: a card of steps,
 // each with a dashed circle (not started), a spinning ring (in progress) or a
@@ -1358,18 +1428,38 @@ function agoText(iso) {
 }
 // Idle: the spools loaded in the AMS, in their real colours; the one feeding
 // the nozzle is ringed.
+// The filament on the printer, grouped the way it is loaded: each AMS with its
+// four slots (empty ones too), then the external spool. The loaded spool is
+// marked; the H2D also says which nozzle (L or R).
 function filamentSpools(data) {
-  const filament = data.filament || {}; const slots = Array.isArray(filament.slots) ? filament.slots.slice(0, 8) : [];
+  const filament = data.filament || {}; const slots = Array.isArray(filament.slots) ? filament.slots : [];
+  const extruders = Array.isArray(filament.extruders) ? filament.extruders : [];
+  const external = filament.external && (filament.external.material || filament.external.color) ? filament.external : null;
+  if (!slots.length && !external) return null;
   const box = el('div', 'printer-spools'); box.setAttribute('role', 'list'); box.setAttribute('aria-label', 'Loaded filament');
-  const loaded = new Set((filament.extruders || []).filter(item => Number.isInteger(item.amsId) && Number.isInteger(item.slotId)).map(item => `${item.amsId}:${item.slotId}`));
-  for (const slot of slots) {
-    const color = /^[0-9A-F]{6}([0-9A-F]{2})?$/i.test(slot.color || '') ? `#${slot.color.slice(0, 6)}` : '#5a5a5e';
-    const item = el('span', `printer-spool${loaded.has(slot.id) ? ' is-loaded' : ''}`); item.setAttribute('role', 'listitem');
-    item.setAttribute('aria-label', `${slot.material || 'Filament'}, ${slot.label}${loaded.has(slot.id) ? ', loaded' : ''}`);
-    const swatch = el('i'); swatch.style.setProperty('--spool', color); item.append(swatch, el('span', '', (slot.material || '—').slice(0, 7)));
-    box.append(item);
+  const nozzleTag = extruders.length > 1 ? extruder => (String(extruder.label || '').startsWith('Left') ? 'L' : 'R') : () => '';
+  const loadedIn = (amsId, slotId) => extruders.find(item => item.hasFilament !== false && item.amsId === amsId && item.slotId === slotId) || null;
+  const spool = (slot, loaded, caption) => {
+    const nozzle = loaded ? nozzleTag(loaded) : '';
+    const item = el('span', `printer-spool${loaded ? ' is-loaded' : ''}${slot ? '' : ' is-empty'}`); item.setAttribute('role', 'listitem');
+    // Bambu sends 00000000 (fully transparent) for a slot whose colour was never set.
+    const color = slot && /^[0-9A-F]{6}(?:[0-9A-F]{2})?$/i.test(slot.color || '') && !/^[0-9A-F]{6}00$/i.test(slot.color) ? `#${slot.color.slice(0, 6)}` : null;
+    const swatch = el('i'); if (color) swatch.style.setProperty('--spool', color); else if (slot) swatch.classList.add('no-color');
+    if (nozzle) swatch.dataset.nozzle = nozzle;
+    item.append(swatch, el('span', '', slot ? (slot.material || '—').slice(0, 7) : 'Empty'));
+    item.setAttribute('aria-label', `${caption}: ${slot ? slot.material || 'filament' : 'empty'}${loaded ? `, loaded${nozzle ? ` in the ${nozzle === 'L' ? 'left' : 'right'} nozzle` : ''}` : ''}`);
+    return item;
+  };
+  const group = (name, label) => { const node = el('div', 'spool-group'); node.setAttribute('role', 'group'); node.setAttribute('aria-label', label); node.append(el('span', 'spool-group-name', name)); const row = el('div', 'spool-group-slots'); node.append(row); box.append(node); return row; };
+  for (const amsId of [...new Set(slots.map(slot => slot.amsId).filter(Number.isInteger))].sort((a, b) => a - b).slice(0, 4)) {
+    const row = group(`AMS ${amsId + 1}`, `AMS ${amsId + 1}`);
+    for (let slotId = 0; slotId < 4; slotId++) {
+      const slot = slots.find(item => item.amsId === amsId && item.slotId === slotId) || null;
+      row.append(spool(slot, slot ? loadedIn(amsId, slotId) : null, `AMS ${amsId + 1} slot ${slotId + 1}`));
+    }
   }
-  return slots.length ? box : null;
+  if (external) group('External', 'External spool').append(spool(external, extruders.find(item => item.hasFilament !== false && item.amsId === 254) || null, 'External spool'));
+  return box;
 }
 const PRINTER_FINISHED_MS = 5 * 60000;
 // Printers, Small widget: a progress ring per printer, its name and when it
@@ -1762,6 +1852,17 @@ function settingsAgents(content) {
   if (info.error) content.append(el('p', 'form-error', info.error));
   content.append(el('div', 'notice', 'This adds Edge Deck\'s hook to your Claude Code settings (~/.claude/settings.json, backed up first); turning it off removes only that hook. Restart Claude Code sessions or the Claude app to apply it. In the terminal version, Claude Code may wait up to a minute for an answer here before asking itself.'));
   content.append(el('div', 'notice', 'Codex approvals can\'t be answered from Edge Deck. When a Codex chat waits for approval, Agent chats tells you to answer it in Codex.'));
+  // Claude plan usage, read with the Claude Code sign-in on this PC.
+  const usage = state.tasks?.usage?.claude || {}, usageOn = state.config.agents?.claudeUsage !== false;
+  const usageRow = el('div', 'settings-row'); const usageCopy = el('div');
+  usageCopy.append(el('p', 'settings-row-title', 'Show Claude usage'), el('small', '', 'Reads your plan usage (the 5-hour session and the weekly limits) from Anthropic with the Claude Code sign-in stored on this PC, the way Claude Code’s /usage does. The sign-in is sent only to Anthropic and never shown.'));
+  const usageToggle = button('', async () => {
+    const cfg = newConfig(); cfg.agents = { ...(cfg.agents || {}), claudeUsage: !usageOn }; await saveConfig(cfg); renderSettings();
+    toast(usageOn ? 'Claude usage is hidden' : 'Claude usage is shown on the Agents card');
+  }, { className: 'toggle', label: 'Show Claude usage', disabled: preview });
+  usageToggle.setAttribute('role', 'switch'); usageToggle.setAttribute('aria-checked', String(usageOn));
+  usageRow.append(usageCopy, usageToggle); content.append(usageRow);
+  if (usageOn) content.append(el('div', 'notice', usage.windows?.length ? `Connected${usage.plan ? ` (Claude ${usage.plan})` : ''}. Tap a ring on the Agents card for every limit window.` : usage.error || 'Checking the Claude Code sign-in…'));
 }
 function settingsWeather(content){content.append(el('p','intro','Choose your city and temperature units in Weather.'));content.append(button('Open Weather',()=>{dialog.close();showWeather();},{icon:'monitor'}));}
 function settingsMusic(content) {

@@ -208,7 +208,7 @@ const played = context => ({ items: [{ context: { uri: context }, track: { uri: 
 const emptyLists = url => url.includes('/me/top/artists') || url.includes('/me/albums') ? json({ items: [] })
   : url.includes('/me/tracks') ? json({ items: [], total: 0 }) : url.includes('/me/following') ? json({ artists: { items: [] } }) : url.endsWith('/v1/me') ? json({ id: 'seb' }) : null;
 
-test('a temporary embed failure is retried, and the feed is not cached until names are known', async t => {
+test('a temporary embed failure is retried once the short hold on the partial feed ends', async t => {
   let embeds = 0, recent = 0;
   const { bridge, advance } = clocked(t, async url => {
     if (url.startsWith('https://open.spotify.com/oembed')) { embeds++; return embeds === 1 ? new Response('busy', { status: 503 }) : json({ title: 'Discover Weekly' }); }
@@ -218,7 +218,10 @@ test('a temporary embed failure is retried, and the feed is not cached until nam
   });
   assert.equal((await bridge.home()).recent[0].name, 'Playlist');
   advance(61000);
-  assert.equal((await bridge.home()).recent[0].name, 'Discover Weekly', 'A failed lookup is not kept for hours, and the partial feed was not cached');
+  assert.equal((await bridge.home()).recent[0].name, 'Playlist', 'The partial feed is held for a few minutes, not read again at once');
+  assert.equal(recent, 1);
+  advance(120000);
+  assert.equal((await bridge.home()).recent[0].name, 'Discover Weekly', 'A failed lookup is not kept for hours');
   assert.equal(recent, 2);
   await bridge.home();
   assert.equal(recent, 2, 'The complete feed is cached');
@@ -237,7 +240,7 @@ test('Refresh retries a failed embed lookup straight away', async t => {
   assert.equal((await bridge.home(true)).recent[0].name, 'Daily Mix 2');
 });
 
-test('a rate-limited detail request leaves the feed uncached instead of keeping generic names', async t => {
+test('a rate-limited detail request keeps a generic name for a few minutes only, then the feed is read again', async t => {
   let details = 0, recent = 0;
   const { bridge, advance } = clocked(t, async url => {
     if (url.startsWith('https://open.spotify.com/oembed')) return new Response('not found', { status: 404 });  // private playlist
@@ -247,9 +250,12 @@ test('a rate-limited detail request leaves the feed uncached instead of keeping 
   });
   assert.equal((await bridge.home()).recent[0].name, 'Playlist');
   advance(2000);
-  const second = await bridge.home();
-  assert.equal(second.recent[0].name, 'My road trip');
-  assert.equal(recent, 2, 'The degraded feed was read again');
+  assert.equal((await bridge.home()).recent[0].name, 'Playlist', 'The degraded feed is held rather than read again at once');
+  assert.equal(recent, 1);
+  advance(180000);
+  const later = await bridge.home();
+  assert.equal(later.recent[0].name, 'My road trip');
+  assert.equal(recent, 2, 'The degraded feed was read again after the hold');
 });
 
 test('a feed load that outlives Disconnect is not cached for the next account', async t => {

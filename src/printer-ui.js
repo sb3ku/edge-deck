@@ -43,7 +43,8 @@
   }
   function filamentColor(slot) {
     const value = slot?.color;
-    return typeof value === 'string' && /^#?[a-f0-9]{6}(?:[a-f0-9]{2})?$/i.test(value)
+    // A fully transparent colour (00000000) means the slot's colour was never set.
+    return typeof value === 'string' && /^#?[a-f0-9]{6}(?:[a-f0-9]{2})?$/i.test(value) && !/^#?[a-f0-9]{6}00$/i.test(value)
       ? `#${value.replace(/^#/, '').slice(0, 6)}` : null;
   }
 
@@ -297,7 +298,19 @@
       }
       group.append(grid); spoolArea.append(group);
     }
-    if (!groups.size) {
+    // The spool holder (external spool) is shown too; it is loaded by hand, so it is not selectable.
+    const externalSpool = printer.filament?.external && (printer.filament.external.material || printer.filament.external.color) ? printer.filament.external : null;
+    if (externalSpool) {
+      const group = element('div', 'printer-panel-ams'); group.append(element('h4', '', 'External spool'));
+      const grid = element('div', 'printer-panel-spools'); const tile = element('div', 'printer-panel-spool is-static');
+      const loaded = extruders.some(item => item.hasFilament !== false && item.amsId === 254);
+      const spool = element('span', 'printer-panel-spool-shape'); spool.setAttribute('aria-hidden', 'true');
+      const color = filamentColor(externalSpool);
+      if (color) { spool.style.setProperty('--filament-color', color); spool.classList.add('has-color'); }
+      tile.append(spool, element('strong', '', externalSpool.material || 'Unknown'), element('span', '', 'Spool holder'), element('small', '', loaded ? 'Loaded' : 'Not loaded'));
+      grid.append(tile); group.append(grid); spoolArea.append(group);
+    }
+    if (!groups.size && !externalSpool) {
       const empty = element('div', 'printer-panel-filament-empty'); empty.append(icon('spool'), element('h3', '', 'Waiting for AMS information'),
         element('p', '', 'Reported spools and their nozzle routes will appear here.')); spoolArea.append(empty);
     }

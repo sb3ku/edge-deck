@@ -62,6 +62,9 @@
     return typeof text === 'string' && text.length <= 600 && !/(?:[a-z]:[\\/]|bearer\s|(?:secret|token|password|access.?code)\s*[:=])/i.test(text)
       ? text.replace(/[\u0000-\u001f\u007f]/g, ' ') : fallback;
   }
+  function clockLabel(ms, clock24) {
+    try { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !clock24 }); } catch { return ''; }
+  }
   function playlistUri(value) {
     const text = String(value || '').trim(); if (playlistPattern.test(text)) return text;
     try {
@@ -1003,7 +1006,10 @@
       node.range.style.setProperty('--volume', `${node.range.value}%`);
     }
     n.devicesButton.hidden = !spotify.connected; n.queueButton.hidden = player.mode !== 'spotify';
-    n.mediaHelp.textContent = [!connected && media.error ? safeMessage(media.error) : '', spotify.playerError && spotify.connected ? safeMessage(spotify.playerError) : ''].filter(Boolean).join(' ');
+    // During a wait Spotify asked for, the player keeps its last state and says when updates resume.
+    const pauseUntil = spotify.connected && spotify.retryAt ? Date.parse(spotify.retryAt) : NaN;
+    const paused = pauseUntil > Date.now() ? `Spotify asked for a pause. Updates resume at ${clockLabel(pauseUntil, snapshot(view).config?.clock24)}.` : '';
+    n.mediaHelp.textContent = [!connected && media.error ? safeMessage(media.error) : '', paused || (spotify.playerError && spotify.connected ? safeMessage(spotify.playerError) : '')].filter(Boolean).join(' ');
     n.mediaHelp.hidden = !n.mediaHelp.textContent;
     // Library
     n.form.hidden = !view.adding; n.add.setAttribute('aria-expanded', String(view.adding));

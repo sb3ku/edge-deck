@@ -63,6 +63,9 @@ body::before {
 .card-edit-button { opacity: 1; }
 .card-edit-button:hover svg { color: var(--text); }
 .card-body > .widget-header { margin-bottom: 10px; }
+/* Widgets carry no header line: the badge it held (the printer count, "1 working",
+   the uptime) said what the content already shows, and the content has its room. */
+.widgets[data-layout=widgets] > .container-card > .card-body > .widget-header { display: none; }
 .badge { font-size: 12px; font-weight: 600; color: var(--label-2); }
 .badge.good { color: var(--green); } .badge.working { color: var(--accent-text); } .badge.warning { color: var(--amber); } .badge.error { color: var(--red); }
 
@@ -174,18 +177,40 @@ body::before {
 .print-progress-status { font-size: 15px; font-weight: 500; color: var(--text); }
 @media (forced-colors: active) { .print-progress-track span { forced-color-adjust: none; background: Highlight; } }
 /* Plan usage at the foot of the agents card */
-.task-usage { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; margin-top: 10px; }
+/* Plan usage: a ring per agent at the card's bottom right, like the ring in the
+   Claude app (the 5-hour session); a tap opens every limit window. */
+.task-usage { display: flex; justify-content: flex-end; align-items: flex-end; gap: 10px; flex-shrink: 0; margin-top: auto; padding-top: 8px; }
 .task-usage:empty { display: none; }
-.task-usage-row { --agent: var(--codex); flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 12px; background: rgb(255 255 255 / 4%); }
-.task-usage-row[data-agent=claude] { --agent: var(--claude); }
-.task-usage-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 13px; line-height: 18px; }
-.task-usage-name { color: var(--agent); font-weight: 600; }
-.task-usage-label { flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--label-2); }
-.task-usage-value { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-.task-usage-meter { height: 4px; border-radius: 2px; overflow: hidden; background: rgb(255 255 255 / 10%); }
-.task-usage-meter i { display: block; height: 100%; border-radius: inherit; background: var(--agent); }
-.task-usage-detail { flex: 1; min-width: 0; font-size: 12px; color: var(--label-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (forced-colors: active) { .task-usage-meter i { forced-color-adjust: none; background: Highlight; } }
+.usage-ring { --agent: var(--codex); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 8px 5px; border: 0; border-radius: 14px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.usage-ring[data-agent=claude] { --agent: var(--claude); }
+.usage-ring:hover { background: rgb(255 255 255 / 5%); }
+.usage-ring:active { transform: scale(.96); }
+.usage-ring-dial { position: relative; display: grid; place-items: center; width: 46px; height: 46px; }
+.usage-ring-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.usage-ring-dial .mini-ring-track, .usage-ring-dial .mini-ring-fill { stroke-width: 9; }
+.usage-ring-dial .mini-ring-fill { stroke: var(--agent); }
+.usage-ring.is-warning .mini-ring-fill { stroke: #ffd60a; } .usage-ring.is-full .mini-ring-fill { stroke: #ff453a; }
+.usage-ring-value { position: relative; font-size: 12px; font-weight: 700; letter-spacing: -.2px; font-variant-numeric: tabular-nums; }
+.usage-ring-value.is-empty { color: var(--label-3); font-weight: 600; }
+.usage-ring-name { font-size: 11px; font-weight: 600; color: var(--label-2); }
+dialog.usage-sheet { --agent: var(--codex); position: fixed; inset: 0; margin: auto; width: min(520px, 92vw); height: fit-content; max-height: calc(100dvh - 40px); overflow: clip; padding: 20px 22px 18px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 24px; background: rgb(28 28 30 / 97%); color: var(--text); box-shadow: 0 30px 90px rgb(0 0 0 / 60%); }
+dialog.usage-sheet[data-agent=claude] { --agent: var(--claude); }
+dialog.usage-sheet::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
+.usage-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.usage-sheet-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
+.usage-sheet-title i { width: 12px; height: 12px; border-radius: 50%; background: var(--agent); }
+.usage-sheet-plan { margin: 0 0 6px; font-size: 13px; color: var(--label-2); }
+.usage-window { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid rgb(255 255 255 / 8%); }
+.usage-window:first-of-type { border-top: 0; }
+.usage-window-top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 600; }
+.usage-window-top span:last-child { font-variant-numeric: tabular-nums; }
+.usage-window-bar { height: 6px; border-radius: 3px; overflow: hidden; background: rgb(255 255 255 / 10%); }
+.usage-window-bar i { display: block; height: 100%; border-radius: inherit; background: var(--agent); }
+.usage-window.is-warning .usage-window-bar i { background: #ffd60a; } .usage-window.is-full .usage-window-bar i { background: #ff453a; }
+.usage-window-reset { font-size: 13px; color: var(--label-2); }
+.usage-sheet-note { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--label-3); }
+.usage-sheet-note code { font: 600 12px/1 ui-monospace, Consolas, monospace; color: var(--label-2); }
+@media (forced-colors: active) { .usage-window-bar i, .usage-ring-dial .mini-ring-fill { forced-color-adjust: none; } .usage-window-bar i { background: Highlight; } }
 /* Steps and background tasks, drawn like the Claude app's */
 .task-steps { margin-top: 10px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 9%); border-radius: 14px; background: rgb(0 0 0 / 14%); }
 .task-step-list, .task-bg-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
@@ -363,10 +388,24 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .printer-ready { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text); }
 .printer-ready-dot { width: 9px; height: 9px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 0 rgb(48 209 88 / 55%); animation: printer-ready 2.4s ease-out infinite; }
 @keyframes printer-ready { 0% { box-shadow: 0 0 0 0 rgb(48 209 88 / 55%); } 70%, 100% { box-shadow: 0 0 0 9px rgb(48 209 88 / 0%); } }
-.printer-spools { display: flex; flex-wrap: wrap; gap: 10px 12px; }
-.printer-spool { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 34px; font-size: 11px; font-weight: 600; color: var(--label-2); }
-.printer-spool i { position: relative; width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #1c1c1e 0 21%, rgb(0 0 0 / 30%) 22% 27%, transparent 28%), radial-gradient(circle at 35% 30%, rgb(255 255 255 / 35%), transparent 55%), var(--spool); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%), 0 3px 8px rgb(0 0 0 / 35%); }
+/* One row per AMS (then the external spool), its name beside its four slots. */
+.printer-spools { --spool-size: 34px; display: flex; flex-direction: column; gap: 8px; }
+.spool-group { display: flex; align-items: flex-start; gap: 12px; }
+.spool-group-name { display: flex; align-items: center; flex: 0 0 auto; min-width: 62px; height: var(--spool-size); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--label-3); }
+.spool-group-slots { display: flex; gap: 8px; }
+/* Narrow cards (Tall): the AMS name sits above its slots. */
+.widgets[data-layout=widgets] > :is(.printers, .machine)[data-size=tall] .spool-group { flex-direction: column; align-items: flex-start; gap: 3px; }
+.widgets[data-layout=widgets] > :is(.printers, .machine)[data-size=tall] .spool-group-name { min-width: 0; height: auto; }
+.printer-spool { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 36px; font-size: 11px; font-weight: 600; color: var(--label-2); }
+/* A spool seen from above: the wound filament in its colour around a dark core. */
+.printer-spool i { position: relative; display: block; width: var(--spool-size); height: var(--spool-size); border-radius: 50%; --spool: #5a5a5e;
+  background: radial-gradient(circle, #141416 0 19%, rgb(0 0 0 / 55%) 20% 25%, transparent 26%), radial-gradient(circle at 32% 28%, rgb(255 255 255 / 40%), transparent 48%), var(--spool);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 22%), inset 0 0 0 4px rgb(0 0 0 / 16%), 0 3px 8px rgb(0 0 0 / 40%); }
+.printer-spool i.no-color { background: radial-gradient(circle, #141416 0 19%, transparent 20%), repeating-linear-gradient(45deg, #5a5a5e 0 4px, #6e6e73 4px 8px); }
+.printer-spool.is-empty i { background: transparent; box-shadow: none; border: 2px dashed rgb(255 255 255 / 18%); }
+.printer-spool.is-empty { color: var(--label-3); }
 .printer-spool.is-loaded i { outline: 2px solid #fff; outline-offset: 2px; }
+.printer-spool i[data-nozzle]::after { content: attr(data-nozzle); position: absolute; right: -7px; bottom: -5px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; background: #fff; color: #000; font-size: 10px; font-weight: 800; line-height: 17px; text-align: center; box-shadow: 0 1px 3px rgb(0 0 0 / 45%); }
 .printer-spool.is-loaded { color: var(--text); }
 .low-power .printer-ready-dot { animation: none; }
 @media (prefers-reduced-motion: reduce) { .printer-ready-dot { animation: none; } }
@@ -386,8 +425,9 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .printer-done { align-items: stretch; }
 .printer-done-meta span:last-child { flex-shrink: 0; white-space: nowrap; }
 .printer.is-rich .printer-figure.no-photo svg { width: 46%; height: 46%; color: var(--label-3); }
-/* Breathing room around the printer pictures; a larger status label. */
-.printer.is-rich .printer-figure { margin: 10px 6px 10px 10px; padding: 8px; }
+/* Breathing room around the printer pictures (away from the card's edge and from
+   the text beside them); a larger status label. */
+.printer.is-rich .printer-figure { margin: 10px 22px 10px 26px; padding: 8px; }
 .printer.is-rich .printer-figure.has-model { padding: 12px; }
 .printer.is-rich .printer-topline .badge { font-size: 15px; font-weight: 600; gap: 7px; }
 .printer.is-rich .printer-topline .badge::before { width: 8px; height: 8px; }

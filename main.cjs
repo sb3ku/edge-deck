@@ -11,6 +11,7 @@ const {createTaskBridge,readTail}=require('./lib/tasks.cjs');
 const {isDeepStrictEqual}=require('node:util');
 const {createPrinterBridge}=require('./lib/printers.cjs');
 const {createSpotifyBridge}=require('./lib/spotify.cjs');
+const {createClaudeUsage}=require('./lib/claude-usage.cjs');
 const {createCameraBridge,findFfmpeg}=require('./lib/camera.cjs');
 const {createThumbnailStore,findPicture,openSession:openPrinterFiles,locateJobFile,readEntries}=require('./lib/print-thumbnail.cjs');
 const {buildPlan}=require('./lib/reprint.cjs');
@@ -101,10 +102,16 @@ if(verify) app.setPath('userData',path.join(os.tmpdir(),'edge-deck-verification'
 else app.setPath('userData',path.join(app.getPath('appData'),'Edge Deck'));
 app.setName('Edge Deck');
 let printerNames=new Map();
-let win,config,media,printers,tasks,spotify,weather,cameras,thumbnails=null,bambuCloud=null,canvasClient=null,canvasState={trackUri:null,url:null},timer,spotifyTimer,weatherTimer,playerTimer,browserHost,dashboardWindow,windowsIntegration,busy=false,spotifyBusy=false,weatherBusy=false;
+let win,config,media,printers,tasks,claudeUsage=null,spotify,weather,cameras,thumbnails=null,bambuCloud=null,canvasClient=null,canvasState={trackUri:null,url:null},timer,spotifyTimer,weatherTimer,playerTimer,browserHost,dashboardWindow,windowsIntegration,busy=false,spotifyBusy=false,weatherBusy=false;
 let lastWindowsRefresh=0;
 let mediaState={connected:false,volume:null,error:'Connecting to Windows media…'};
 let taskState={connected:false,items:[]};
+// Claude's plan usage (Anthropic's usage endpoint) joins what the agents' logs say.
+function tasksWithUsage(){
+  const claude=claudeUsage?.state();if(!claude)return taskState;
+  const usage=taskState.usage||{};
+  return {...taskState,usage:{...usage,claude:{...(usage.claude||{}),enabled:claude.enabled,signedIn:claude.signedIn,plan:claude.plan,windows:claude.windows,updatedAt:claude.updatedAt,error:claude.error}}};
+}
 let spotifyState={connected:false,clientIdConfigured:false,playlists:[]};
 let weatherState={status:'unconfigured',location:null,units:'metric',current:null,hourly:[],daily:[],updatedAt:null,error:null};
 let ffmpegAvailable=false;
@@ -113,7 +120,7 @@ app.requestSingleInstanceLock(verify?`edge-deck-verify-${process.pid}`:'edge-dec
 app.on('second-instance',()=>{dashboardWindow?.setFullscreen(true).then(()=>verify?null:dashboardWindow?.hideFromTaskbar()).then(()=>dashboardWindow?.activate()).catch(error=>console.error(error.message));});
 for(const signal of ['SIGINT','SIGTERM','SIGBREAK'])process.on(signal,()=>app.quit());
 process.on('exit',()=>{try{pcStats?.stop();screenTime?.stop();systemControls?.stop();}catch{}});
-app.on('before-quit',()=>{tray?.close();approvals?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
+app.on('before-quit',()=>{tray?.close();approvals?.close();claudeUsage?.close();for(const watcher of taskWatchers)watcher.close();for(const wake of [...stateWaiters])wake();clearInterval(timer);clearInterval(spotifyTimer);clearTimeout(playerTimer);clearInterval(weatherTimer);media?.close();printers?.close();spotify?.close();weather?.close();cameras?.close();browserHost?.close();dashboardWindow?.close();});
 function state() {
   const publicConfig=config.publicConfig();
   const printerStates=printers.getState().map(printer=>{
@@ -128,7 +135,7 @@ function state() {
   });
   // Verification stays deterministic: a game in front must not change the UI under test.
   const presence=verify?'normal':['fullscreen','away'].includes(mediaState.presence)?mediaState.presence:'normal';
-  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,calendar:calendar?calendar.state():{configured:false,events:[],updatedAt:null,error:null},tasks:taskState,printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},pc:pcStats?.state()||null,screenTime:screenTime?.state()||null,controls:systemControls?.state()||null,update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
+  return {config:publicConfig,media:mediaState,spotify:spotifyState,weather:weatherState,calendar:calendar?calendar.state():{configured:false,events:[],updatedAt:null,error:null},tasks:tasksWithUsage(),printers:printerStates,bambuCloud:bambuCloud?.state()||{connected:false},pc:pcStats?.state()||null,screenTime:screenTime?.state()||null,controls:systemControls?.state()||null,update:updater?.state()||{state:'idle',current:packageInfo.version},spotifyCanvas:{...(canvasClient?.state()||{connected:false}),trackUri:canvasState.trackUri,url:canvasState.url},power:powerState(publicConfig.power?.mode,presence),approvals:approvals?approvals.list():[],system:{presence,claudeApprovals,hostname:os.hostname(),fullscreen:Boolean(dashboardWindow?.isFullScreen?.() || win?.isFullScreen()),windowsIntegration:windowsIntegration.getState()},updatedAt:new Date().toISOString()};
 }
 async function pollSpotify(){if(spotifyBusy)return;spotifyBusy=true;try{spotifyState={...await spotify.getState(),player:spotifyState.player??null};broadcast();}catch{spotifyState={...spotifyState,error:'Spotify connection is unavailable.'};}finally{spotifyBusy=false;}}
 // Spotify's player state is polled faster while music plays so progress,
@@ -138,14 +145,15 @@ async function pollPlayer(){
   clearTimeout(playerTimer);
   try{const player=await spotify.getPlayer();spotifyState={...spotifyState,player,playerError:null};playerError=null;broadcast();updateCanvas(player?.track?.uri);}
   catch(error){playerError=error.message;spotifyState={...spotifyState,playerError};}
-  finally{const playing=spotifyState.player?.isPlaying;playerTimer=setTimeout(pollPlayer,playerError?15000:playing?2500:spotifyState.player?6000:10000);}
+  finally{const playing=spotifyState.player?.isPlaying;playerTimer=setTimeout(pollPlayer,playerError?15000:playing?3000:spotifyState.player?8000:15000);}
 }
 // The Canvas video of the playing song (when signed in for Canvas).
 function updateCanvas(trackUri){
   if(!canvasClient?.state().connected){if(canvasState.trackUri){canvasState={trackUri:null,url:null};broadcast();}return;}
-  if(!trackUri||canvasState.trackUri===trackUri)return;
+  // A lookup that failed (not a song without Canvas) is tried again later in the same song.
+  if(!trackUri||(canvasState.trackUri===trackUri&&!(canvasState.retryAt&&Date.now()>=canvasState.retryAt)))return;
   canvasState={trackUri,url:null,looking:true};
-  canvasClient.forTrack(trackUri).then(url=>{if(canvasState.trackUri!==trackUri)return;canvasState={trackUri,url};broadcast();},()=>{});
+  canvasClient.forTrack(trackUri).then(url=>{if(canvasState.trackUri!==trackUri)return;const failed=!url&&Boolean(canvasClient.state().error);canvasState={trackUri,url,...(failed?{retryAt:Date.now()+11*60000}:{})};broadcast();},()=>{});
 }
 // Update checks: asked for (tray or Customize) ones always report back.
 async function checkForUpdate(asked){
@@ -290,6 +298,8 @@ async function start() {
   await windowsIntegration.refresh().catch(()=>{});lastWindowsRefresh=Date.now();
   config=createConfigStore(app.getPath('userData'),safeStorage);
   media=createMediaBridge();tasks=createTaskBridge();printers=createPrinterBridge();
+  // Claude plan usage with the Claude Code sign-in on this PC; verification never reads the real one.
+  claudeUsage=createClaudeUsage(verify?{home:app.getPath('userData')}:{});claudeUsage.setEnabled(config.publicConfig().agents?.claudeUsage!==false);claudeUsage.start();
   const spotifyCacheFile=path.join(app.getPath('userData'),'spotify-cache.json');
   spotify=createSpotifyBridge({cache:verify?null:{read:()=>JSON.parse(fs.readFileSync(spotifyCacheFile,'utf8')),write:value=>{const temporary=spotifyCacheFile+'.tmp';fs.writeFileSync(temporary,JSON.stringify(value));fs.renameSync(temporary,spotifyCacheFile);}},webApi:pathname=>canvasClient?.web(pathname)??null,getConfig:()=>config.spotifyConfig(),saveTokens:tokens=>config.saveSpotifyTokens(tokens),openExternal:url=>shell.openExternal(url)});
   weather=createWeatherBridge({getConfig:()=>config.publicConfig().weather,...(verify?{fetchImpl:require('./scripts/weather-fixture.cjs').fetchWeatherFixture}:{})});
@@ -328,7 +338,7 @@ async function startBrowser() {
     // Allow or Deny a Claude Code permission request shown on the dashboard.
     'claude:approvals':setClaudeApprovals,
     'agent:decide':(id,decision)=>{if(!approvals)throw Error('Agent approvals are not running.');approvals.decide(id,decision);broadcast();return state();},
-    'config:save':input=>{config.save(input);syncPcStats();return state();},
+    'config:save':input=>{config.save(input);syncPcStats();claudeUsage?.setEnabled(config.publicConfig().agents?.claudeUsage!==false);return state();},
     'pc:cpu-sensor':async enable=>{if(verify)throw Error('Sensor setup is disabled during verification.');if(!pcStats)throw Error('PC stats are unavailable.');await pcStats.setCpuSensor(enable===true);return state();},
     'system:list':async kind=>{if(verify)throw Error('System controls are disabled during verification.');if(!systemControls)throw Error('Quick controls are unavailable.');return systemControls.list(String(kind));},
     'system:control':async(action,value)=>{if(verify)throw Error('System controls are disabled during verification.');if(!systemControls)throw Error('Quick controls are unavailable.');await systemControls.command(String(action),value);return state();},

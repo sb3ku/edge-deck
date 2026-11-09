@@ -57,9 +57,10 @@
 .machine-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 0; font-size: 15px; line-height: 1.45; color: var(--label-2, #aaa); }
 .machine-detail > .button { align-self: flex-start; margin-top: 4px; }
 /* The loaded spools, larger than in the row. */
-.machine-widget .machine-detail .printer-spools { gap: 12px 14px; }
+.machine-widget .machine-detail .printer-spools { --spool-size: 44px; gap: 10px; }
+.machine-widget .machine-detail .spool-group { gap: 14px; }
+.machine-widget .machine-detail .spool-group-name { font-size: 12px; }
 .machine-widget .machine-detail .printer-spool { min-width: 46px; gap: 6px; font-size: 14px; }
-.machine-widget .machine-detail .printer-spool i { width: 44px; height: 44px; }
 /* The model being printed (its plate picture, else the printer's photo, smaller). */
 .machine-widget .machine-detail .printer-figure { display: grid; place-items: center; width: 100%; max-width: 250px; height: auto; aspect-ratio: 1; margin: 0; padding: 14px; border-radius: 22px; overflow: hidden; background: rgb(255 255 255 / 6%); color: var(--label-3, #888); justify-self: center; }
 .machine-widget .machine-detail .printer-figure:not(.has-model) { max-width: 190px; padding: 0; background: none; overflow: visible; }
@@ -77,7 +78,8 @@
 .widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail { justify-content: flex-start; align-items: center; padding-top: 4px; text-align: center; }
 .widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail > :is(.machine-facts, .machine-job, .machine-note) { align-self: stretch; }
 .widgets[data-layout=widgets] > .machine[data-size=tall] .machine-facts { justify-content: flex-start; text-align: left; }
-.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail .printer-spools { justify-content: center; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail .printer-spools { align-items: center; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail .spool-group { align-items: center; }
 .widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail > .button { align-self: center; }
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer { flex: 0 0 auto; }
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer.is-live { flex: 1 1 auto; }
@@ -95,9 +97,8 @@
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget > .printer :is(.printer-ready, .printer-spools, .printer-done-meta) { display: none; }
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-widget:not([data-status=not_configured]) > .printer .printer-note { display: none; }
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .machine-job { display: none; }
-.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spools { gap: 14px 18px; }
+.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spools { --spool-size: 56px; gap: 12px; }
 .widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spool { min-width: 56px; font-size: 15px; }
-.widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spool i { width: 56px; height: 56px; }
 /* Tall: an error's message is spelled out under the ring, so the status line stays short. */
 .widgets[data-layout=widgets] > .machine[data-size=tall] .machine-widget[data-status=error] .machine-status { display: none; }
 

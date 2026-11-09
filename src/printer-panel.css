@@ -172,3 +172,4 @@
 @container(max-width:740px){.printer-panel-machine-controls{grid-template-columns:1fr}.printer-panel-motion{border-left:0;padding:8px 0}.printer-panel-motion-pads{max-width:420px}.printer-panel-heater-heading h3{font-size:15px}}
 @container(max-width:560px){.printer-panel-heaters{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.printer-panel-screen{animation:none}.printer-panel *{transition:none!important}}
+.printer-panel-spool.is-static{cursor:default;pointer-events:none}
