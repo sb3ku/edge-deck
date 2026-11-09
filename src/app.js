@@ -56,6 +56,8 @@ const paths = {
   volume: '<path d="M11 4 6 8H2v8h4l5 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7Z"/>',
   actions: '<path d="M4 6h10M18 6h2M16 4v4M4 12h4M12 12h8M10 10v4M4 18h12M18 16v4"/>',
@@ -364,7 +366,7 @@ function renderCards(){
       let hash=2166136261;for(const ch of card.id)hash=Math.imul(hash^ch.charCodeAt(0),16777619)>>>0;hash=Math.imul(hash^(hash>>>15),2246822507)>>>0;
       panel.style.setProperty('--jiggle-delay',`-${hash%270}ms`);panel.style.setProperty('--jiggle-duration',`${250+(hash>>>16)%50}ms`);}
     else if(panel.parentElement!==grid){if(typeof grid.moveBefore==='function')grid.moveBefore(panel,null);else grid.append(panel);}
-    const items=cardItems(card), active=items.find(i=>i.id===card.activeItemId)||items[0],type=active?.type||'empty';
+    const items=cardItems(card), active=stackActive(card,items,panel),type=active?.type||'empty';
     panel.className=`widget container-card ${type}`;panel.dataset.widget=type;panel.dataset.size=card.size||'medium';panel.setAttribute('aria-label',cardTitle(card));
     panel.dataset.cardTitle=cardTitle(card);
     applyMood(panel,type,card,active);
@@ -384,21 +386,20 @@ function renderCards(){
         const remove=button('',()=>removeWidget(card.id),{className:'widget-remove',icon:'minus',label:`Remove ${cardTitle(card)}`});
         panel.append(shield,remove);
       }
-      $('.card-tabs',panel)?.remove();
+      $('.card-tabs',panel)?.remove();$(':scope > .stack-dots',panel)?.remove();
+      panel.toggleAttribute('data-stack',items.length>1);
       if(items.length>1){
-        const tabs=el('div','card-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',`${cardTitle(card)} views`);
-        for(const item of items){
-          const label=item.label||widgetCatalog[item.type]?.[0]||state.config.launchers.find(a=>a.id===item.launcherId)?.name||'View';
-          const tab=button(label,async()=>{const cfg=newConfig();cfg.widgets.find(w=>w.id===card.id).activeItemId=item.id;await saveConfig(cfg);},{className:'card-tab'});
-          tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(item.id===active.id));tab.id=`tab-${card.id}-${item.id}`;tab.setAttribute('aria-controls',`view-${card.id}-${item.id}`);tab.tabIndex=item.id===active.id?0:-1;
-          tab.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const all=[...tabs.children],i=all.indexOf(tab),next=event.key==='Home'?0:event.key==='End'?all.length-1:(i+(event.key==='ArrowRight'?1:-1)+all.length)%all.length;all[next].focus();all[next].click();});tabs.append(tab);
-        }toolbar.after(tabs);
-      }
+        // A stack, like iOS: swipe up or down; dots show where you are.
+        const dots=el('div','stack-dots');dots.setAttribute('aria-hidden','true');for(const item of items){const dot=el('i');dot.dataset.itemId=item.id;dots.append(dot);}panel.append(dots);
+        panel.setAttribute('aria-roledescription','stack');
+      }else panel.removeAttribute('aria-roledescription');
     }
+    for(const dot of panel.querySelectorAll(':scope > .stack-dots > i'))dot.classList.toggle('is-active',dot.dataset.itemId===active?.id);
+    if(items.length>1)panel.setAttribute('aria-label',`${cardTitle(card)}, ${widgetCatalog[active?.type]?.[0]||'widget'}, ${items.indexOf(active)+1} of ${items.length}. Swipe up or down for the others.`);
     for(const tab of panel.querySelectorAll(':scope > .card-tabs > .card-tab')){const selected=tab.id===`tab-${card.id}-${active?.id}`;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
     const bodyIds=new Set(items.map(i=>i.id));if(!items.length)bodyIds.add('empty');
     for(const body of panel.querySelectorAll(':scope > .card-body'))if(!bodyIds.has(body.dataset.itemId))body.remove();
-    for(const body of panel.querySelectorAll(':scope > .card-body'))body.hidden=body.dataset.itemId!==(active?.id||'empty');
+    for(const body of panel.querySelectorAll(':scope > .card-body'))if(!body.matches('.is-peeking, .is-leaving'))body.hidden=body.dataset.itemId!==(active?.id||'empty');
     let body=[...panel.children].find(n=>n.classList.contains('card-body')&&n.dataset.itemId===(active?.id||'empty'));
     if(!body){body=el('div','card-body');body.dataset.itemId=active?.id||'empty';body.id=`view-${card.id}-${active?.id||'empty'}`;panel.append(body);}
     body.hidden=false;body.setAttribute('role',items.length>1?'tabpanel':'group');body.setAttribute('aria-label',cardTitle(card));
@@ -503,15 +504,16 @@ function widgetPreview(type,size,item={}){
   const body=el('div','card-body');panel.append(body);grid.append(panel);
   return{node:grid,width,height,draw:()=>{try{applyMood(panel,type,card,view);drawContent(body,card,view,panel,type);updateShape(panel);}catch(error){console.error('A widget preview could not be drawn.',error);}}};
 }
-function galleryContext(){return{getState:()=>state,el,button,icon,layout:window.EdgeLayout,preview:widgetPreview,addWidget,saveCard,removeWidget,fitsSize,pages:pagesList,currentPage,cardTitle,catalog:widgetCatalog,openCardEditor:showCardEditor,showSettings,toast};}
+function galleryContext(){return{getState:()=>state,el,button,icon,layout:window.EdgeLayout,stackShown:id=>stackShown.get(id),showInStack:(cardId,itemId)=>{stackShown.set(cardId,itemId);render();},preview:widgetPreview,addWidget,saveCard,removeWidget,fitsSize,pages:pagesList,currentPage,cardTitle,catalog:widgetCatalog,openCardEditor:showCardEditor,showSettings,toast};}
 function openWidgetGallery(){closeDeckMenu();closeWidgetMenu();if(window.EdgeWidgetGallery)window.EdgeWidgetGallery.openGallery(galleryContext());}
 function openWidgetEditor(id){closeWidgetMenu();if(window.EdgeWidgetGallery)window.EdgeWidgetGallery.openEditor(galleryContext(),id);}
 // Adds a widget to the page in front, or the next page with room, or a new page.
-async function addWidget(type,size,extra={}){
+async function addWidget(type,size,extra={},stack=null){
   const cfg=newConfig();cfg.pages=structuredClone(pagesList());
   if(cfg.widgets.filter(w=>w.type!=='launchers').length>=40)throw new Error('You have 40 widgets. Remove one to add another.');
   const id=`w-${crypto.randomUUID().slice(0,8)}`,item={id:`${id}-content`,type,...extra};
-  const card={id,type,title:'',enabled:true,size,items:[item],activeItemId:item.id};cfg.widgets.push(card);
+  const items=Array.isArray(stack)&&stack.length?stack.slice(0,6).map((entry,index)=>({id:`${id}-${index}`,...entry})):[item];
+  const card={id,type:items[0].type,title:'',enabled:true,size,items,activeItemId:items[0].id};cfg.widgets.push(card);
   const order=[currentPage(),...cfg.pages.map(page=>page.id).filter(page=>page!==currentPage())];
   let page=order.find(candidate=>{card.page=candidate;return fitsOnPage(cfg,candidate);});
   if(!page){
@@ -519,7 +521,7 @@ async function addWidget(type,size,extra={}){
     page=`page-${crypto.randomUUID().slice(0,8)}`;cfg.pages.push({id:page,name:`Page ${cfg.pages.length+1}`});
   }
   card.page=page;await saveConfig(cfg);showPage(page);
-  const name=widgetCatalog[type]?.[0]||'Widget';
+  const name=items.length>1?'Smart Stack':widgetCatalog[type]?.[0]||'Widget';
   toast(page===order[0]?`${name} added`:`${name} added to ${pageName(page)}`);
   requestAnimationFrame(()=>{const panel=document.querySelector(`.page-grid > [data-id="${CSS.escape(id)}"]`);if(panel&&!stillMotion())panel.animate([{transform:'scale(.6)',opacity:0},{transform:'scale(1.03)',opacity:1,offset:.7},{transform:'none',opacity:1}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});});
   return id;
@@ -580,7 +582,8 @@ function setEditing(on){
 }
 function layoutContext(){return{getState:()=>state,bridge,updateState,toast,onEditCard:showCardEditor,onAddWidget:()=>openWidgetGallery(),onChooseApp:()=>{$('#layout-editor').close();showSettings('apps');},onClose:()=>$('#layout-editor').close()};}
 function showCardEditor(id){window.EdgeLayoutUI.renderEditor($('#layout-editor-content'),{...layoutContext(),cardId:id});const editor=$('#layout-editor');if(!editor.open){editor.showModal();renderApprovals();if(!matchMedia('(prefers-reduced-motion: reduce)').matches)editor.animate([{opacity:0,transform:'translateX(24px)'},{opacity:1,transform:'none'}],{duration:240,easing:'cubic-bezier(.2,.8,.2,1)'});}}
-async function moveCard(id,targetId,after,pageId){
+async function moveCard(id,targetId,after,pageId,into){
+  if(into&&targetId)return stackInto(id,targetId);
   const cfg=newConfig(),from=cfg.widgets.findIndex(w=>w.id===id);if(from<0||id===targetId)return;
   cfg.pages=structuredClone(pagesList());
   const target=targetId?cfg.widgets.find(w=>w.id===targetId):null;
@@ -607,6 +610,11 @@ function header(panel, name, symbol, status) {
 // when the PC runs hot. Music and weather keep their own artwork and skies.
 const MOODS = { claude: '217 119 87', codex: '16 163 127', chatgpt: '167 139 250', print: '155 225 93', done: '48 209 88', paused: '255 214 10', error: '255 69 58', hot: '255 159 10' };
 function applyMood(panel, type, card, item) {
+  const { mood, attention } = moodFor(panel, type, card, item);
+  if (mood) { panel.dataset.mood = mood; panel.style.setProperty('--mood', MOODS[mood]); } else { delete panel.dataset.mood; panel.style.removeProperty('--mood'); }
+  panel.toggleAttribute('data-needs-you', attention);
+}
+function moodFor(panel, type, card, item) {
   let mood = '', attention = false;
   if (window.EdgeWidgets?.[type]?.mood) {
     const result = window.EdgeWidgets[type].mood(widgetContext(card, item, panel)) || {};
@@ -625,8 +633,135 @@ function applyMood(panel, type, card, item) {
   } else if (type === 'stats') {
     if ((state.pc?.cpu?.temperature >= 85) || (state.pc?.gpu?.temperature >= 83)) mood = 'hot';
   }
-  if (mood) { panel.dataset.mood = mood; panel.style.setProperty('--mood', MOODS[mood]); } else { delete panel.dataset.mood; panel.style.removeProperty('--mood'); }
-  panel.toggleAttribute('data-needs-you', attention);
+  return { mood, attention };
+}
+// ---- Smart Stack ------------------------------------------------------------------------
+// The widget a stack shows: the one you last swiped to (kept here and saved a
+// moment later), turned to a widget that starts needing you when Smart Rotate is on.
+const stackShown = new Map(), stackNeeds = new Map();
+function stackActive(card, items, panel) {
+  let id = stackShown.get(card.id) || card.activeItemId;
+  if (items.length > 1 && card.rotate !== false) {
+    const before = stackNeeds.get(card.id) || {}, now = {};
+    for (const item of items) { try { now[item.id] = moodFor(panel, item.type, card, item).attention; } catch { now[item.id] = false; } }
+    stackNeeds.set(card.id, now);
+    const shown = items.find(item => item.id === id) || items[0];
+    const rising = items.find(item => now[item.id] && !before[item.id]);
+    if (rising && !now[shown.id] && rising.id !== shown.id) { id = rising.id; stackShown.set(card.id, id); flashStackDots(card.id); }
+  }
+  return items.find(item => item.id === id) || items[0];
+}
+function flashStackDots(cardId) {
+  requestAnimationFrame(() => { const dots = document.querySelector(`.page-grid > [data-id="${CSS.escape(cardId)}"] > .stack-dots`); if (!dots) return; dots.classList.add('is-visible'); clearTimeout(dots.hideTimer); dots.hideTimer = setTimeout(() => dots.classList.remove('is-visible'), 1600); });
+}
+let stackSaveTimer = null;
+// Shows the next (1) or previous (-1) widget of a stack, sliding like iOS.
+function turnStack(panel, direction) {
+  const card = state.config.widgets.find(w => w.id === panel.dataset.id); if (!card) return false;
+  const items = cardItems(card), current = stackActive(card, items, panel), index = items.indexOf(current), next = items[index + direction];
+  if (!next) return false;
+  const outgoing = panel.querySelector(`:scope > .card-body[data-item-id="${CSS.escape(current.id)}"]`);
+  stackShown.set(card.id, next.id); renderCards(); flashStackDots(card.id);
+  const incoming = panel.querySelector(`:scope > .card-body[data-item-id="${CSS.escape(next.id)}"]`);
+  if (!stillMotion() && outgoing && incoming && outgoing !== incoming) {
+    const height = panel.clientHeight || 300, easing = 'cubic-bezier(.2,.86,.24,1)';
+    outgoing.hidden = false; outgoing.classList.add('is-leaving');
+    outgoing.animate([{ transform: `translateY(${outgoing.dataset.offset || 0}px)`, opacity: 1 }, { transform: `translateY(${-direction * height}px)`, opacity: 0 }], { duration: 380, easing }).finished.catch(() => {}).then(() => { outgoing.classList.remove('is-leaving'); outgoing.style.transform = ''; if (outgoing.dataset.itemId !== stackShown.get(card.id)) outgoing.hidden = true; });
+    const peeked = incoming.dataset.offset !== undefined, start = peeked ? Number(incoming.dataset.offset) : direction * height; delete incoming.dataset.offset;
+    incoming.style.transform = '';
+    incoming.animate([{ transform: `translateY(${start}px)`, opacity: peeked ? 1 : 0 }, { transform: 'none', opacity: 1 }], { duration: 380, easing });
+  }
+  delete (outgoing || {}).dataset?.offset;
+  clearTimeout(stackSaveTimer);
+  stackSaveTimer = setTimeout(async () => { const cfg = newConfig(), target = cfg.widgets.find(w => w.id === card.id); if (!target || target.activeItemId === stackShown.get(card.id)) return; target.activeItemId = stackShown.get(card.id); try { await saveConfig(cfg); } catch {} }, 1200);
+  return true;
+}
+// Swipe up or down on a stack (not while editing); the widget follows the finger.
+let stackDrag = null;
+document.addEventListener('pointerdown', event => {
+  if (editingLayout || !event.isPrimary || event.button > 0 || event.target.closest?.('input, select, textarea, iframe, .printer-live, .emw-browse, [data-no-stack-swipe]')) return;
+  const panel = event.target.closest?.('.page-grid > .container-card[data-stack]'); if (!panel) return;
+  stackDrag = { panel, id: event.pointerId, x: event.clientX, y: event.clientY, started: false, offset: 0, at: performance.now() };
+}, true);
+document.addEventListener('pointermove', event => {
+  const drag = stackDrag; if (!drag || event.pointerId !== drag.id) return;
+  const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+  if (!drag.started) {
+    if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) { stackDrag = null; return; }
+    if (Math.abs(dy) < 12 || Math.abs(dy) < Math.abs(dx) * 1.2) return;
+    drag.started = true; drag.y = event.clientY; cancelPress(); drag.panel.classList.add('is-stack-dragging');
+    drag.body = drag.panel.querySelector(':scope > .card-body:not([hidden])');
+    drag.panel.querySelector(':scope > .stack-dots')?.classList.add('is-visible');
+    try { drag.panel.setPointerCapture(event.pointerId); } catch {}
+  }
+  const card = state.config.widgets.find(w => w.id === drag.panel.dataset.id), items = card ? cardItems(card) : [];
+  const index = items.indexOf(stackActive(card, items, drag.panel)), moved = event.clientY - drag.y;
+  const pastEnd = (index === 0 && moved > 0) || (index === items.length - 1 && moved < 0);
+  drag.offset = pastEnd ? moved * 0.3 : moved;
+  if (drag.body) { drag.body.style.transform = `translateY(${drag.offset}px)`; drag.body.style.opacity = String(Math.max(.35, 1 - Math.abs(drag.offset) / ((drag.panel.clientHeight || 300) * 1.4))); }
+  // The neighbour in the direction of the swipe peeks in.
+  const neighbour = drag.offset === 0 || pastEnd ? null : items[index + (drag.offset < 0 ? 1 : -1)];
+  if (drag.peek && drag.peek.dataset.itemId !== neighbour?.id) { drag.peek.classList.remove('is-peeking'); drag.peek.style.transform = ''; drag.peek.hidden = true; drag.peek = null; }
+  if (neighbour) {
+    drag.peek = drag.peek || stackBody(drag.panel, card, neighbour);
+    const height = drag.panel.clientHeight || 300;
+    drag.peek.style.transform = `translateY(${drag.offset + (drag.offset < 0 ? height : -height)}px)`;
+  }
+}, { passive: true });
+// A widget of a stack drawn ahead of time (for the peek), reused when it is shown.
+function stackBody(panel, card, item) {
+  let body = panel.querySelector(`:scope > .card-body[data-item-id="${CSS.escape(item.id)}"]`);
+  if (!body) {
+    body = el('div', 'card-body'); body.dataset.itemId = item.id; body.id = `view-${card.id}-${item.id}`; panel.append(body);
+    try { drawContent(body, card, item, panel, item.type); } catch (error) { console.error('A stacked widget could not be drawn ahead of time.', error); }
+  }
+  body.hidden = false; body.classList.add('is-peeking');
+  return body;
+}
+function endStackDrag(event, cancelled) {
+  const drag = stackDrag; if (!drag || event.pointerId !== drag.id) return; stackDrag = null;
+  if (!drag.started) return;
+  drag.panel.classList.remove('is-stack-dragging');
+  try { drag.panel.releasePointerCapture(event.pointerId); } catch {}
+  suppressSwipeClick = true; setTimeout(() => { suppressSwipeClick = false; }, 350);
+  const velocity = drag.offset / Math.max(1, performance.now() - drag.at), far = Math.abs(drag.offset) > (drag.panel.clientHeight || 300) * 0.18;
+  const direction = drag.offset < 0 ? 1 : -1;
+  if (drag.body) { drag.body.dataset.offset = String(drag.offset); drag.body.style.opacity = ''; }
+  const peek = drag.peek; drag.peek = null;
+  if (peek) { peek.dataset.offset = peek.style.transform.match(/-?[\d.]+/)?.[0] || '0'; peek.classList.remove('is-peeking'); }
+  if (cancelled || !(far || Math.abs(velocity) > 0.5) || !turnStack(drag.panel, direction)) {
+    if (peek) { const from = Number(peek.dataset.offset) || 0, height = drag.panel.clientHeight || 300; peek.style.transform = ''; delete peek.dataset.offset; peek.hidden = true; if (!stillMotion()) { peek.hidden = false; peek.classList.add('is-leaving'); peek.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${from < 0 ? -height : height}px)` }], { duration: 300, easing: 'cubic-bezier(.2,.86,.24,1)' }).finished.catch(() => {}).then(() => { peek.classList.remove('is-leaving'); if (peek.dataset.itemId !== stackShown.get(drag.panel.dataset.id)) peek.hidden = true; }); } }
+    if (drag.body) { const from = drag.offset; drag.body.style.transform = ''; delete drag.body.dataset.offset; if (!stillMotion()) drag.body.animate([{ transform: `translateY(${from}px)` }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,.86,.24,1)' }); }
+    flashStackDots(drag.panel.dataset.id);
+  } else if (drag.body) drag.body.style.transform = '';
+}
+document.addEventListener('pointerup', event => endStackDrag(event, false), true);
+document.addEventListener('pointercancel', event => endStackDrag(event, true), true);
+// Keyboard: Arrow Up and Down turn a stack that has focus.
+document.addEventListener('keydown', event => {
+  if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.target.closest?.('input, select, textarea, dialog')) return;
+  const panel = event.target.closest?.('.page-grid > .container-card[data-stack]'); if (!panel) return;
+  if (turnStack(panel, event.key === 'ArrowDown' ? 1 : -1)) event.preventDefault();
+});
+// Drop a widget onto another to stack them (up to six; the stack keeps the sizes they share).
+async function stackInto(id, targetId) {
+  const cfg = newConfig(), source = cfg.widgets.find(w => w.id === id), target = cfg.widgets.find(w => w.id === targetId);
+  if (!source || !target || id === targetId) return;
+  const items = [...cardItems(target), ...cardItems(source)];
+  if (items.length > 6) throw new Error('A stack holds up to six widgets.');
+  const types = items.map(item => item.type), allowed = window.EdgeLayout.allowedSizes(types);
+  if (!allowed.includes(target.size)) throw new Error(`These widgets do not share the ${target.size} size, so they cannot stack.`);
+  target.items = items; target.activeItemId = cardItems(source)[0]?.id || target.activeItemId;
+  cfg.widgets = cfg.widgets.filter(w => w.id !== id);
+  stackShown.set(target.id, target.activeItemId);
+  await saveConfig(cfg); flashStackDots(target.id);
+  toast(`Stack made: ${items.length} widgets. Swipe up or down to flip through them.`);
+}
+function canStack(id, targetId) {
+  const source = state.config.widgets.find(w => w.id === id), target = state.config.widgets.find(w => w.id === targetId);
+  if (!source || !target || id === targetId) return false;
+  const items = [...cardItems(target), ...cardItems(source)];
+  return items.length <= 6 && window.EdgeLayout.allowedSizes(items.map(item => item.type)).includes(target.size);
 }
 // What a widget module gets: its card and view, the helpers the built-in cards
 // use, and a way to save the view's own options (which reading, which printer).
@@ -1875,7 +2010,7 @@ function closeDeckMenu(){ $('#deck-menu-list').hidden = true; $('#deck-menu').se
 $('#deck-menu').addEventListener('click', event => { event.stopPropagation(); const open = $('#deck-menu-list').hidden; $('#deck-menu-list').hidden = !open; $('#deck-menu').setAttribute('aria-expanded', String(open)); if (open) $('#deck-menu-list button')?.focus(); });
 document.addEventListener('pointerdown', event => { if (!event.target.closest?.('.deck-controls')) closeDeckMenu(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#deck-menu-list').hidden) { closeDeckMenu(); $('#deck-menu').focus(); } });
-window.EdgeCardDrag.attach($('#widgets'),{onMove:moveCard,onError:error=>toast(error.message),onEdge:direction=>{const next=pagesList()[pageIndex()+direction];if(next)showPage(next.id);},canStart:()=>editingLayout});
+window.EdgeCardDrag.attach($('#widgets'),{onMove:moveCard,onError:error=>toast(error.message),onEdge:direction=>{const next=pagesList()[pageIndex()+direction];if(next)showPage(next.id);},canStart:()=>editingLayout,canStack});
 // Card titles and options stay hidden until the top strip of a card is
 // hovered with a mouse or tapped; keyboard focus and Edit layout show them too.
 const chromeTimers=new WeakMap();

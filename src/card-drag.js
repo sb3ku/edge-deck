@@ -1,7 +1,7 @@
 /* A deliberate hold starts a move; ordinary taps and scrolling stay native. */
 (function(root){
   'use strict';
-  function attach(container,{onMove,onError=()=>{},onEdge=null,canStart=()=>true}){
+  function attach(container,{onMove,onError=()=>{},onEdge=null,canStart=()=>true,canStack=null}){
     let pending=null,active=null,suppressUntil=0,raf=0;
     const announce=document.createElement('div');announce.className='visually-hidden';announce.setAttribute('role','status');announce.setAttribute('aria-live','polite');document.body.append(announce);
     const say=text=>{announce.textContent=text;};
@@ -41,7 +41,9 @@
       const box=target.getBoundingClientRect(),sourceBox=active.card.getBoundingClientRect();
       const horizontal=(container.dataset.layout==='overview'&&innerWidth>=1000)||Math.abs(sourceBox.top-box.top)<16;
       const after=horizontal?x>box.left+box.width/2:y>box.top+box.height/2;
-      if(active.target!==target||active.after!==after){clearTargets();active.target=target;active.after=after;target.dataset.drop=after?'after':'before';target.dataset.dropAxis=horizontal?'x':'y';say(`${after?'After':'Before'} ${target.dataset.cardTitle}`);}
+      // Over the middle of a widget that can take it: a stack, like iOS.
+      const into=!!(canStack&&hit===target&&x>box.left+box.width*.22&&x<box.right-box.width*.22&&y>box.top+box.height*.22&&y<box.bottom-box.height*.22&&canStack(active.card.dataset.id,target.dataset.id));
+      if(active.target!==target||active.after!==after||active.into!==into){clearTargets();active.target=target;active.after=after;active.into=into;target.dataset.drop=into?'into':after?'after':'before';target.dataset.dropAxis=horizontal?'x':'y';say(into?`Stack with ${target.dataset.cardTitle}`:`${after?'After':'Before'} ${target.dataset.cardTitle}`);}
     }
     function scroll(){
       if(!active)return;const box=container.getBoundingClientRect(),edge=50;
@@ -62,7 +64,7 @@
       if(!active)return;const moving=active;active=null;cancelAnimationFrame(raf);
       suppressUntil=performance.now()+650;delete moving.card.dataset.dragging;delete container.dataset.dragging;clearTargets();moving.ghost.remove();
       try{if(container.hasPointerCapture(moving.pointerId))container.releasePointerCapture(moving.pointerId);}catch{}
-      if(commit&&(moving.target||moving.page)){Promise.resolve(onMove(moving.card.dataset.id,moving.target?.dataset.id||null,moving.after,moving.target?null:moving.page)).then(()=>say(`${moving.card.dataset.cardTitle} moved`)).catch(error=>{say('The card could not be moved.');onError(error);});}
+      if(commit&&(moving.target||moving.page)){Promise.resolve(onMove(moving.card.dataset.id,moving.target?.dataset.id||null,moving.after,moving.target?null:moving.page,!!moving.into)).then(()=>say(`${moving.card.dataset.cardTitle} moved`)).catch(error=>{say('The card could not be moved.');onError(error);});}
       else say('Move cancelled');
     }
     container.addEventListener('pointerdown',event=>{

@@ -100,18 +100,22 @@ async function verifyLayoutUI(page, directory) {
     await page.getByRole('button', { name: 'Close card editor', exact: true }).click();
     await closeSettings();
     const card = page.locator(`.container-card[data-id="${added.id}"]`);
-    await card.getByRole('tab', { name: 'Clock & date', exact: true }).click();
+    // A card with several widgets is a Smart Stack: swipe up for the next, down for the previous.
+    assert.equal(await card.getAttribute('aria-roledescription'), 'stack');
+    assert.equal(await card.locator('.stack-dots i').count(), 2);
     const clock = added.items[0];
+    const swipe = async direction => { const box = await card.boundingBox(); const x = box.x + box.width / 2, y = box.y + box.height / 2; await page.mouse.move(x, y); await page.mouse.down(); for (let step = 1; step <= 8; step++) await page.mouse.move(x, y - direction * step * 18); await page.mouse.up(); };
+    await swipe(1);
     await waitCard(added.id, 'activeItemId', clock.id);
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Clock & date', 'Active tab preserves focus');
-    await page.keyboard.press('ArrowLeft');
+    assert.equal(await card.locator('.stack-dots i.is-active').count(), 1);
+    await swipe(-1);
     await waitCard(added.id, 'activeItemId', weather.id);
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Outlook', 'Arrow navigation preserves roving focus');
+    assert.equal(await page.locator('dialog[open]').count(), 0, 'A swipe does not open anything');
     await page.reload(); await card.waitFor();
     const persisted = (await read()).widgets.find(card => card.id === added.id);
     assert.equal(persisted.title, 'Focus panel'); assert.equal(persisted.size, 'large');
     assert.equal(persisted.items[0].label, 'Outlook'); assert.equal(persisted.activeItemId, weather.id);
-    checks.push('Card creation, name, size, view order, default view, deletion/Undo, and accessible tabs persist through reload');
+    checks.push('Card creation, name, size, view order, default view, deletion/Undo persist through reload; a card with several widgets is a Smart Stack turned by swiping up and down');
 
     await page.locator('#deck-menu').click();await page.locator('#edit-layout').click();
     const before = await order();

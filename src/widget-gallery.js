@@ -40,6 +40,8 @@
     const pages = [];
     const push = (kind, size, extra = {}, title = kind.title, detail = kind.detail) => pages.push({ type: kind.type, size, item: { ...defaults(ctx, kind.type), ...extra }, title, detail, source: kind.source });
     if (sourceId === 'suggestions') {
+      // A Smart Stack, like iOS: several widgets in one place that flip to what needs you.
+      pages.push({ type: 'weather', size: 'medium', item: {}, title: 'Smart Stack', detail: 'Forecast, 3D printers and Agent chats in one place. Swipe up or down; it flips to whatever needs you.', source: 'suggestions', stack: [{ type: 'weather' }, { type: 'printers' }, { type: 'tasks' }] });
       for (const [type, size, extra] of SUGGESTIONS) { const kind = kindOf(ctx, type); const variant = (kind?.variants || []).find(entry => Object.entries(extra || {}).every(([key, value]) => entry.item?.[key] === value)); if (kind && kind.source && kind.sizes.includes(size)) push(kind, size, extra || {}, variant?.title || kind.title, variant?.detail || kind.detail); }
       return pages;
     }
@@ -161,7 +163,7 @@
     for (let i = 0; i < pages.length; i++) dots.append(ctx.el('i', i === v.index ? 'is-active' : ''));
     const add = ctx.button('Add widget', async () => {
       if (v.busy) return; v.busy = true; add.disabled = true;
-      try { await ctx.addWidget(page.type, page.size, page.item); sheet.close(); }
+      try { await ctx.addWidget(page.type, page.size, page.item, page.stack || null); sheet.close(); }
       catch (error) { ctx.toast(error.message || 'The widget could not be added.'); v.busy = false; add.disabled = false; }
     }, { className: 'button primary ws-add', icon: 'plus' });
     main.append(copy, carousel, dots, add);
@@ -175,9 +177,9 @@
     const root = ctx.el('div', 'ws-panel ws-editor');
     if (!card) { setTimeout(() => sheet?.close()); return root; }
     const items = Array.isArray(card.items) ? card.items : [];
-    const item = items.find(entry => entry.id === card.activeItemId) || items[0] || { type: 'empty' };
+    const item = items.find(entry => entry.id === (ctx.stackShown?.(card.id) || card.activeItemId)) || items[0] || { type: 'empty' };
     const allowed = ctx.layout.allowedSizes(items.length ? items.map(entry => entry.type) : ['empty']);
-    const head = ctx.el('header', 'ws-head'); const title = ctx.el('h2', '', `Edit ${ctx.cardTitle(card)}`); title.id = 'widget-sheet-title';
+    const head = ctx.el('header', 'ws-head'); const title = ctx.el('h2', '', items.length > 1 ? 'Edit Stack' : `Edit ${ctx.cardTitle(card)}`); title.id = 'widget-sheet-title';
     head.append(title, closeButton(ctx)); root.append(head);
     const body = ctx.el('div', 'ws-editor-body');
     const preview = ctx.el('div', 'ws-stage ws-editor-stage');
@@ -200,6 +202,28 @@
       sizes.append(choice);
     }
     form.append(section(ctx, 'Size', sizes));
+    // Edit Stack: the widgets in it, in order; which one shows; Smart Rotate.
+    if (items.length > 1) {
+      const shown = ctx.stackShown?.(card.id) || card.activeItemId;
+      const list = ctx.el('div', 'ws-stack'); list.setAttribute('role', 'list');
+      items.forEach((entry, index) => {
+        const name = entry.label || ctx.catalog[entry.type]?.[0] || 'Widget';
+        const row = ctx.el('div', `ws-stack-row${entry.id === shown ? ' is-shown' : ''}`); row.setAttribute('role', 'listitem');
+        const show = ctx.button(name, () => { ctx.showInStack(card.id, entry.id); draw(); }, { className: 'ws-stack-name', label: `Show ${name}` });
+        show.setAttribute('aria-pressed', String(entry.id === shown));
+        const move = step => change(next => { const list = next.items; const at = list.findIndex(other => other.id === entry.id); const to = at + step; if (at < 0 || to < 0 || to >= list.length) return; [list[at], list[to]] = [list[to], list[at]]; });
+        row.append(show,
+          ctx.button('', () => move(-1), { className: 'quiet-button ws-stack-move', icon: 'up', label: `Move ${name} up`, disabled: v.busy || index === 0 }),
+          ctx.button('', () => move(1), { className: 'quiet-button ws-stack-move', icon: 'down', label: `Move ${name} down`, disabled: v.busy || index === items.length - 1 }),
+          ctx.button('', () => change(next => { next.items = next.items.filter(other => other.id !== entry.id); if (next.activeItemId === entry.id) next.activeItemId = next.items[0]?.id; if (next.items.length < 2) delete next.rotate; }, `${name} removed from the stack.`), { className: 'quiet-button ws-stack-remove', icon: 'minus', label: `Remove ${name} from the stack`, disabled: v.busy }));
+        list.append(row);
+      });
+      const rotate = ctx.button('', () => change(next => { if (next.rotate === false) delete next.rotate; else next.rotate = false; }), { className: 'ws-rotate', label: 'Smart Rotate', disabled: v.busy });
+      rotate.setAttribute('role', 'switch'); rotate.setAttribute('aria-checked', String(card.rotate !== false));
+      rotate.append(ctx.el('span', 'ws-rotate-copy', 'Smart Rotate'), ctx.el('small', '', 'Shows the widget that needs you'), ctx.el('i', 'ws-rotate-knob'));
+      const box = ctx.el('div', 'ws-stack-box'); box.append(list, rotate);
+      form.append(section(ctx, `Stack · ${items.length} widgets`, box));
+    }
     // The widget's own options (which reading, control, printer, face or cities).
     const options = OPTIONS[item.type] || [];
     if (options.length) {
@@ -231,11 +255,12 @@
     const actions = ctx.el('div', 'ws-editor-actions');
     actions.append(
       ctx.button('More options', () => { sheet.close(); ctx.openCardEditor(card.id); }, { className: 'button subtle', icon: 'settings' }),
-      ctx.button('Remove widget', async () => { sheet.close(); await ctx.removeWidget(card.id); }, { className: 'button danger', icon: 'trash' }),
+      ctx.button(items.length > 1 ? 'Remove stack' : 'Remove widget', async () => { sheet.close(); await ctx.removeWidget(card.id); }, { className: 'button danger', icon: 'trash' }),
     );
-    form.append(actions);
     body.append(preview, form); root.append(body);
-    root.append(ctx.button('Done', () => sheet.close(), { className: 'button primary ws-done' }));
+    // Footer: More options and Remove on the left, Done on the right.
+    const footer = ctx.el('div', 'ws-editor-footer'); footer.append(actions, ctx.button('Done', () => sheet.close(), { className: 'button primary ws-done' }));
+    root.append(footer);
     return root;
   }
   function sizeHint(size) { return { small: '1 × 1', medium: '2 × 1', large: '2 × 2', tall: '1 × 2' }[size] || ''; }

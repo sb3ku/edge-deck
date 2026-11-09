@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.16.0
 
 - **A Home Screen like iOS.** Widgets are the only layout. Pages of widgets sit side by side: swipe and they follow your finger, or tap the dots at the bottom right.
 - **Add widgets from a gallery.** Search, or pick a source (Clock, Weather, Music, 3D printers, PC, Agents, Controls, Timer, Apps), then swipe through live previews of each widget in each of its sizes and tap Add widget. It goes where there is room, or onto a new page.
@@ -10,6 +10,7 @@
 - **Clock and weather are separate widgets**, with the sizes and layouts of iOS: Clock digital and three analog faces, City and World clock; Forecast (Small, Medium, Large), Details, Daily forecast and Sunrise and sunset, all over Edge Deck's living sky. A Time & weather widget becomes Clock digital plus Forecast.
 - **Spotify like iOS:** Small and Medium show Recently Played (the song, DJ, Liked Songs and your latest playlists); Large and Tall are the full player with Canvas.
 - The page goes full screen inside the full-screen window, so Edge's toolbar no longer drops down over the widgets when the mouse touches the top edge.
+- **Smart Stack.** Several widgets in one place: swipe up or down to flip through them (dots show where you are). Drag a widget onto another in Edit Home Screen to stack them, or add the ready-made Smart Stack from the gallery. Smart Rotate turns the stack to a widget that needs you, such as a printer error or an agent waiting for approval. Edit Stack reorders, removes and picks the shown widget.
 - Up to 40 widgets over six pages. Earlier layouts move to Widgets automatically, spread over pages so every widget fits.
 
 ## 0.15.0

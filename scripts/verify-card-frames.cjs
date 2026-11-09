@@ -37,9 +37,11 @@ async function verifyCardFrames(page){
     assert.equal(await frame.evaluate(()=>window.edgeDeckTestMarker),'preserved');
 
     const card=page.locator('[data-card-id="frame-fixture"]');
-    await card.getByRole('tab',{name:'Time',exact:true}).click();
+    // The card is a Smart Stack: swipe up for the clock (from the title row; the live page itself does not take swipes), down for the website.
+    const swipe=async(locator,direction)=>{const box=await locator.boundingBox();const x=box.x+box.width/2,y=box.y+box.height/2;await page.mouse.move(x,y);await page.mouse.down();for(let step=1;step<=8;step++)await page.mouse.move(x,y-direction*step*18);await page.mouse.up();};
+    await swipe(card.locator('.app-card-summary'),1);
     await page.waitForFunction(()=>document.querySelector('[data-card-id="frame-fixture"]').dataset.widget==='clock');
-    await card.getByRole('tab',{name:'Fixture site',exact:true}).click();
+    await swipe(card,-1);
     await page.waitForFunction(()=>document.querySelector('[data-card-id="frame-fixture"]').dataset.widget==='website');
     assert.equal(loads,expectedLoads,'Switching views retains the hidden website document');
     assert.equal(await frame.evaluate(()=>window.edgeDeckTestMarker),'preserved');
