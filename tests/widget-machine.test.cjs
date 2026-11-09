@@ -93,7 +93,8 @@ test('the finish time names the day when the print ends on another day', () => {
 test('facts while printing come in order; paused prints have no end time; idle has none', () => {
   const { facts } = load().helpers;
   const done = clock(new Date(NOW + 29 * 60000), true);
-  deep(facts(printing, true, NOW), [['Job', 'RACK PRINT Top'], ['Layer', '624 of 746'], ['Time left', '29 min'], ['Ends at', done], ['Started', '2h ago'], ['Stage', 'Printing']]);
+  deep(facts(printing, true, NOW), [['Job', 'RACK PRINT Top'], ['Layer', '624 of 746'], ['Time left', '29 min'], ['Ends at', done], ['Started', '2h ago']]);
+  deep(facts({ ...printing, stage: { label: 'Heating bed' } }, true, NOW).at(-1), ['Stage', 'Heating bed']);
   const paused = { ...printing, status: 'paused', remainingMinutes: 83, layer: 900, stage: { label: 'Paused by user' }, jobStartedAt: iso(50) };
   deep(facts(paused, true, NOW), [['Job', 'RACK PRINT Top'], ['Layer', '746 of 746'], ['Time left', '1h 23m'], ['Started', '50 min ago'], ['Stage', 'Paused by user']]);
   deep(facts({ status: 'printing', progress: 10 }, true, NOW), [], 'nothing known: no facts');

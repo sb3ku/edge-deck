@@ -193,26 +193,26 @@ input[aria-invalid=true],select[aria-invalid=true] { border-color: var(--red); }
 /* A short card is a glanceable view. Keep its primary information and actions
    visible; expanded weather and secondary music controls remain accessible. */
 @container deck-card (max-height:360px) {
-  .container-card.clock .clock-day { font-size: 18px; line-height: 1.2; }
+  .container-card.clock .clock-day { font-size: 22px; line-height: 1.2; }
   .container-card.clock .clock-time { font-size: clamp(40px,14cqw,64px); line-height: 1; margin-top: 8px; }
-  .container-card.clock .clock-time span { font-size: 14px; }
-  .container-card.clock .clock-date { font-size: 14px; line-height: 1.4; margin-top: 8px; }
+  .container-card.clock .clock-time span { font-size: 17px; }
+  .container-card.clock .clock-date { font-size: 17px; line-height: 1.4; margin-top: 8px; }
   .container-card.clock .clock-bottom { display: none; }
 
   .container-card.weather .weather-widget { min-height: 160px; padding: 12px 16px; }
   .container-card.weather .weather-card-heading { min-height: 18px; margin-bottom: 4px; }
-  .container-card.weather .weather-card-city { font-size: 20px; line-height: 1.2; }
+  .container-card.weather .weather-card-city { font-size: 24px; line-height: 1.2; }
   .container-card.weather .weather-card-main {
     display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1fr);
     grid-template-rows: auto auto; align-content: center;
     column-gap: 12px; row-gap: 4px; padding: 8px 0;
   }
   .container-card.weather .weather-card-temperature { grid-column: 1; grid-row: 1/span 2; align-self: center; font-size: 60px; letter-spacing: -4px; }
-  .container-card.weather .weather-card-condition { grid-column: 2; grid-row: 1; align-self: end; margin: 0; font-size: 14px; line-height: 1.3; }
-  .container-card.weather .weather-high-low { grid-column: 2; grid-row: 2; align-self: start; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 12px; }
+  .container-card.weather .weather-card-condition { grid-column: 2; grid-row: 1; align-self: end; margin: 0; font-size: 17px; line-height: 1.3; }
+  .container-card.weather .weather-high-low { grid-column: 2; grid-row: 2; align-self: start; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 14px; }
   .container-card.weather .weather-card-hours { display: none; }
-  .container-card.weather .weather-card-note { margin-top: 6px; font-size: 11px; }
-  .container-card.weather .weather-card-source { margin-top: 2px; font-size: 10px; }
+  .container-card.weather .weather-card-note { margin-top: 6px; font-size: 13px; }
+  .container-card.weather .weather-card-source { margin-top: 2px; font-size: 12px; }
 
     grid-template-columns: 64px minmax(0,1fr);
     grid-template-rows: 40px 48px 60px;

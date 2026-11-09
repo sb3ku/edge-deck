@@ -19,35 +19,35 @@
 .rem-row.is-ticking .rem-circle { animation: rem-pop 260ms var(--ease, ease); }
 .rem-check:active .rem-circle { transform: scale(.88); }
 .rem-check:focus-visible, .rem-delete:focus-visible, .rem-clear:focus-visible, .rem-add-button:focus-visible { outline: 2px solid var(--rem-blue); outline-offset: -2px; }
-.rem-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 1.3; -webkit-user-select: none; user-select: none; }
+.rem-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 1.3; -webkit-user-select: none; user-select: none; }
 .rem-row.is-done .rem-text { color: rgb(255 255 255 / 60%); text-decoration: line-through; text-decoration-color: rgb(255 255 255 / 30%); }
 .rem-delete { display: none; color: rgb(255 255 255 / 50%); }
 .rem-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 .rem-delete:active { color: #ff453a; }
 
-.rem-more { flex: none; align-self: flex-start; padding: 0 4px; font-size: 14px; line-height: 1.3; color: rgb(255 255 255 / 55%); }
+.rem-more { flex: none; align-self: flex-start; padding: 0 4px; font-size: 17px; line-height: 1.3; color: rgb(255 255 255 / 55%); }
 .rem-head { align-items: center; }
-.rem-clear { margin-left: auto; min-width: 48px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: var(--rem-blue); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.rem-clear { margin-left: auto; min-width: 48px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: var(--rem-blue); font: inherit; font-size: 19px; font-weight: 600; cursor: pointer; }
 .rem-clear:active { opacity: .6; }
 
 .rem-empty { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; text-align: center; }
-.rem-empty-title { font-size: 18px; font-weight: 600; color: rgb(255 255 255 / 85%); }
-.rem-empty-note { max-width: 30ch; font-size: 14px; line-height: 1.4; color: rgb(255 255 255 / 50%); }
+.rem-empty-title { font-size: 22px; font-weight: 600; color: rgb(255 255 255 / 85%); }
+.rem-empty-note { max-width: 30ch; font-size: 17px; line-height: 1.4; color: rgb(255 255 255 / 50%); }
 
 .rem-add { flex: none; display: flex; align-items: center; gap: 8px; min-height: 52px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgb(255 255 255 / 9%); }
-.rem-input { flex: 1 1 auto; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 12px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 17px; }
+.rem-input { flex: 1 1 auto; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 12px; background: rgb(255 255 255 / 8%); color: #fff; font: inherit; font-size: 20px; }
 .rem-input::placeholder { color: rgb(255 255 255 / 45%); }
 .rem-input:focus { outline: 2px solid var(--rem-blue); outline-offset: -2px; }
-.rem-add-button { flex: none; min-width: 72px; height: 48px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--rem-blue); color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.rem-add-button { flex: none; min-width: 72px; height: 48px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--rem-blue); color: #fff; font: inherit; font-size: 19px; font-weight: 600; cursor: pointer; }
 .rem-add-button:active { opacity: .75; }
 
 /* Small: title and count over up to three rows. */
 .widgets[data-layout=widgets] > .reminders[data-size=small] .rem-widget { gap: 0; }
-.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-title { font-size: 18px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-title { font-size: 22px; }
 .widgets[data-layout=widgets] > .reminders[data-size=small] .rem-count { font-size: 32px; }
 .widgets[data-layout=widgets] > .reminders[data-size=small] .rem-row + .rem-row::before { left: 48px; }
-.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-title { font-size: 16px; }
-.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-note { font-size: 13px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-title { font-size: 19px; }
+.widgets[data-layout=widgets] > .reminders[data-size=small] .rem-empty-note { font-size: 16px; }
 
 /* Medium: two columns of three. */
 .widgets[data-layout=widgets] > .reminders[data-size=medium] .rem-list { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: repeat(3, var(--rem-row)); grid-auto-flow: column; column-gap: 24px; }
@@ -57,7 +57,7 @@
 .widgets[data-layout=widgets] > .reminders[data-size=large] .rem-widget { --rem-row: 44px; gap: 2px; }
 .widgets[data-layout=widgets] > .reminders[data-size=large] .rem-title { font-size: 24px; }
 .widgets[data-layout=widgets] > .reminders[data-size=large] .rem-count { font-size: 40px; }
-.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-text { font-size: 18px; }
+.widgets[data-layout=widgets] > .reminders[data-size=large] .rem-text { font-size: 22px; }
 .widgets[data-layout=widgets] > .reminders[data-size=large] .rem-delete { display: grid; }
 
 @keyframes rem-pop { 50% { transform: scale(1.18); } }

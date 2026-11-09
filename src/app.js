@@ -1446,7 +1446,9 @@ function printProgress(name, data) {
   track.setAttribute('aria-valuenow', String(Math.round(progress))); track.setAttribute('aria-valuemin', '0'); track.setAttribute('aria-valuemax', '100');
   const fill = el('span'); glide(`print:${name}`, fill, 'width', `${progress}%`); track.append(fill);
   const bottom = el('div', 'print-progress-facts');
-  bottom.append(el('span', 'print-progress-status', data.status === 'paused' ? 'Paused' : data.status === 'finished' ? 'Finished' : data.stage?.label || 'Printing'));
+  // The status itself is in the row's badge; a stage is named only when it says more ("Heating bed").
+  const stage = String(data.stage?.label || '').trim();
+  bottom.append(el('span', 'print-progress-status', data.status === 'printing' && stage && !/^printing$/i.test(stage) ? stage : ''));
   if (Number.isFinite(data.remainingMinutes) && data.status === 'printing' && data.remainingMinutes > 0) {
     const done = new Date(Date.now() + data.remainingMinutes * 60000);
     const day = done.toDateString() === new Date().toDateString() ? '' : `${done.toLocaleDateString([], { weekday: 'short' })} `;
@@ -1573,11 +1575,11 @@ function printerRow(config) {
     // Finished: a clear done state, what was printed, when and how long it took.
     if (data.jobName) { const job = el('p', 'printer-job', data.jobName); job.title = data.jobName; detail.append(job); }
     const done = el('div', 'printer-done');
-    const head = el('div', 'printer-done-head'); const title = el('span', 'printer-done-title'); title.append(icon('check'), document.createTextNode('Done'));
+    const head = el('div', 'printer-done-head'); const title = el('span', 'printer-done-title'); title.append(icon('check'), document.createTextNode(data.finishedAt ? agoText(data.finishedAt).replace(/^./, c => c.toUpperCase()) : 'Just now'));
     head.append(title, el('span', 'printer-done-percent', '100%'));
     const bar = el('div', 'printer-done-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-label', `${displayName} print finished`); bar.setAttribute('aria-valuenow', '100'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.append(el('span'));
     const took = data.jobStartedAt && data.finishedAt ? durationText(Date.parse(data.finishedAt) - Date.parse(data.jobStartedAt)) : '';
-    const meta = el('div', 'printer-done-meta'); meta.append(el('span', '', [data.finishedAt ? `Finished ${agoText(data.finishedAt)}` : 'Print finished', took ? `took ${took}` : ''].filter(Boolean).join(' · ')), el('span', '', 'Clear the plate'));
+    const meta = el('div', 'printer-done-meta'); meta.append(el('span', '', took ? `Took ${took}` : ''), el('span', '', 'Clear the plate'));
     done.append(head, bar, meta); detail.append(done);
   } else if (data.status === 'idle') {
     // Ready (the status above says so): the loaded filament.

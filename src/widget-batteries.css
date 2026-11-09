@@ -40,8 +40,8 @@
 .batt-badge { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 10%); color: #f5f5f7; }
 .batt-badge .batt-icon { width: 26px; height: 26px; }
 .batt-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.batt-name { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
-.batt-note { font-size: 13px; line-height: 1.2; color: var(--muted, #a1a1a9); }
+.batt-name { font-size: 23px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+.batt-note { font-size: 16px; line-height: 1.2; color: var(--muted, #a1a1a9); }
 .batt-bar { --batt-tone: #30d158; height: 12px; border-radius: 6px; background: rgb(255 255 255 / 14%); overflow: clip; }
 .batt-bar-fill { display: block; height: 100%; min-width: 12px; border-radius: 6px; background: var(--batt-tone); transition: width .6s ease; }
 .batt-row .batt-percent { justify-content: flex-end; font-size: 22px; }
@@ -52,14 +52,14 @@
 .batt-empty { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 0 12px; }
 .batt-empty-symbol { width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted, #a1a1a9); }
 .batt-empty-symbol svg { width: 36px; height: 36px; }
-.batt-empty-title { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
-.batt-empty-text { margin: 0; max-width: 30ch; font-size: 14px; line-height: 1.4; color: var(--muted, #a1a1a9); }
+.batt-empty-title { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.batt-empty-text { margin: 0; max-width: 30ch; font-size: 17px; line-height: 1.4; color: var(--muted, #a1a1a9); }
 .widgets[data-layout=widgets] > .batteries[data-size=small] .batt-empty-symbol { display: none; }
-.widgets[data-layout=widgets] > .batteries[data-size=small] .batt-empty-title { font-size: 17px; }
-.widgets[data-layout=widgets] > .batteries[data-size=small] .batt-empty-text { font-size: 13px; }
+.widgets[data-layout=widgets] > .batteries[data-size=small] .batt-empty-title { font-size: 20px; }
+.widgets[data-layout=widgets] > .batteries[data-size=small] .batt-empty-text { font-size: 16px; }
 .widgets[data-layout=widgets] > .batteries[data-size=large] .batt-empty-symbol { width: 64px; height: 64px; }
 .widgets[data-layout=widgets] > .batteries[data-size=large] .batt-empty-symbol svg { width: 52px; height: 52px; }
 .widgets[data-layout=widgets] > .batteries[data-size=large] .batt-empty-title { font-size: 26px; }
-.widgets[data-layout=widgets] > .batteries[data-size=large] .batt-empty-text { font-size: 16px; }
+.widgets[data-layout=widgets] > .batteries[data-size=large] .batt-empty-text { font-size: 19px; }
 
 @media (prefers-reduced-motion: reduce) { .batt-fill, .batt-bar-fill { transition: none; } }

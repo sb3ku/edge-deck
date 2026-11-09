@@ -73,7 +73,8 @@
     const left = leftText(data.remainingMinutes); if (left) list.push(['Time left', left]);
     const ends = finishText(data, clock24, now); if (ends) list.push(['Ends at', ends]);
     const started = agoText(data.jobStartedAt, now); if (started) list.push(['Started', started]);
-    if (data.stage?.label) list.push(['Stage', String(data.stage.label)]);
+    // The stage only when it says more than the status ("Printing" is the status itself).
+    if (data.stage?.label && !/^(printing|paused)$/i.test(String(data.stage.label).trim())) list.push(['Stage', String(data.stage.label)]);
     return list;
   }
   function tone(status) { return TONES[status] || ''; }
@@ -121,8 +122,8 @@
     if (fill) ctx.glide(`machine:${ctx.card.id}:${ctx.item.id || ''}`, fill, 'strokeDasharray', `${value * 2.639} 263.9`);
     ring.append(svg, ctx.el('strong', `machine-ring-value is-${data.status || 'unknown'}`, centreText(data)));
     const copy = ctx.el('div', 'machine-copy'); copy.setAttribute('aria-hidden', 'true');
-    // Ready: the ring already says so, so the line under the name gives the model.
-    copy.append(ctx.el('span', 'machine-name', name), ctx.el('span', 'machine-status', data.status === 'idle' ? `Bambu Lab ${config.model || ''}`.trim() : statusLine(data, ctx.clock24(), now)));
+    // Ready and finished: the ring already says so, so the line under the name gives the model.
+    copy.append(ctx.el('span', 'machine-name', name), ctx.el('span', 'machine-status', ['idle', 'finished'].includes(data.status) ? `Bambu Lab ${config.model || ''}`.trim() : statusLine(data, ctx.clock24(), now)));
     open.append(ring, copy);
     return open;
   }
@@ -156,7 +157,8 @@
       box.classList.add('is-done');
       const took = data.jobStartedAt && data.finishedAt ? durationText(Date.parse(data.finishedAt) - Date.parse(data.jobStartedAt)) : '';
       const ago = data.finishedAt || data.finishedSeenAt ? agoText(data.finishedAt || data.finishedSeenAt, now) : '';
-      box.append(headline(ctx, ago ? `Finished ${ago}` : 'Finished', 'done', 'check'));
+      // The status (Finished) is shown above; here only when it finished.
+      box.append(headline(ctx, ago ? `${ago[0].toUpperCase()}${ago.slice(1)}` : 'Just now', 'done', 'check'));
       if (took) box.append(ctx.el('p', 'machine-sub', `took ${took}`));
       if (data.jobName) { const job = ctx.el('p', 'machine-job', data.jobName); job.title = data.jobName; box.append(job); }
       box.append(ctx.el('p', 'machine-note', 'Clear the plate.'));
@@ -165,7 +167,8 @@
       box.append(ctx.button('Set up', () => ctx.showSettings('printers'), { className: 'button subtle', icon: 'settings' }));
     } else {
       const kind = status === 'error' ? 'error' : 'quiet';
-      box.append(headline(ctx, status === 'error' ? 'Needs attention' : LABELS[status] || 'Unknown', kind, status === 'error' ? 'warning' : 'printer'));
+      // Large shows the status in the row above; Tall's ring does not spell it out.
+      if (!withFigure) box.append(headline(ctx, status === 'error' ? 'Needs attention' : LABELS[status] || 'Unknown', kind, status === 'error' ? 'warning' : 'printer'));
       box.append(ctx.el('p', 'machine-note', String(data.message || NOTES[status] || '')));
     }
     return box;

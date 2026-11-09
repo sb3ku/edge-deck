@@ -19,7 +19,8 @@ function node(tag) {
 }
 const fakeDocument = { createElement: tag => node(tag), createElementNS: (namespace, tag) => node(tag) };
 function load() {
-  const context = { document: fakeDocument };
+  // Share this realm's Date so withClock() also sets the clock the widgets read.
+  const context = { document: fakeDocument, Date };
   context.window = context; vm.createContext(context);
   for (const file of ['weather-ui.js', 'widget-weather-kinds.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', file), 'utf8'), context);
   return context.EdgeWidgets;

@@ -19,7 +19,7 @@
 .timer-time { font-size: var(--timer-time); font-weight: 600; line-height: 1.05; letter-spacing: -.025em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .timer-widget[data-long] .timer-time { font-size: calc(var(--timer-time) * .72); }
 .timer-widget[data-status=done] .timer-time { color: #30d158; }
-.timer-sub { font-size: 13px; font-weight: 600; color: var(--label-2, #aaa); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timer-sub { font-size: 16px; font-weight: 600; color: var(--label-2, #aaa); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .timer-widget[data-status=paused] .timer-sub { color: #ffd60a; }
 /* Done: a soft pulse, three times, while motion is allowed. */
 .timer-widget[data-status=done] .timer-ring { animation: timer-done 1.3s ease-in-out 3; }
@@ -41,13 +41,13 @@ html.low-power .timer-widget .timer-fill { transition: none; }
 .timer-reset svg { width: 18px; height: 18px; stroke-width: 2.2; }
 .timer-controls { display: flex; align-items: center; gap: 8px; }
 .timer-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.timer-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: 48px; padding: 0 6px; border: 0; border-radius: 14px; background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.timer-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: 48px; padding: 0 6px; border: 0; border-radius: 14px; background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); font-size: 17px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: background 160ms var(--ease), color 160ms var(--ease); }
 .timer-chip:not(:disabled):hover { background: rgb(255 255 255 / 13%); color: var(--text); }
 /* While a timer runs the presets are inactive: plainly dimmed (the app's grey button:disabled surface is
    invisible on this card), and taps fall through to the root so "tap anywhere" still dismisses a done timer. */
 .timer-chip:disabled { opacity: .38; background: rgb(255 255 255 / 8%); color: var(--label-2, #aaa); pointer-events: none; }
 .timer-chip[aria-pressed=true] { background: rgb(10 132 255 / 24%); color: #fff; }
-.timer-status { margin: 0; min-height: 18px; font-size: 14px; line-height: 18px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-status { margin: 0; min-height: 18px; font-size: 17px; line-height: 18px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- Medium (and every other layout mode): the ring left, presets right ---- */
 .timer-widget[data-layout=medium], .timer-widget[data-layout=large] { flex-direction: row; align-items: center; gap: 24px; }
@@ -82,10 +82,10 @@ html.low-power .timer-widget .timer-fill { transition: none; }
 .widgets[data-layout=widgets] > .timer[data-size=large] .timer-widget { --timer-ring: 280px; --timer-time: 56px; gap: 28px; }
 .widgets[data-layout=widgets] > .timer[data-size=large] .timer-side { gap: 16px; }
 .widgets[data-layout=widgets] > .timer[data-size=large] .timer-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.widgets[data-layout=widgets] > .timer[data-size=large] .timer-chip { min-height: 56px; border-radius: 16px; font-size: 16px; }
+.widgets[data-layout=widgets] > .timer[data-size=large] .timer-chip { min-height: 56px; border-radius: 16px; font-size: 19px; }
 .widgets[data-layout=widgets] > .timer[data-size=large] .timer-main { min-height: 56px; }
-.widgets[data-layout=widgets] > .timer[data-size=large] .timer-sub { font-size: 15px; }
-.widgets[data-layout=widgets] > .timer[data-size=large] .timer-status { font-size: 15px; }
+.widgets[data-layout=widgets] > .timer[data-size=large] .timer-sub { font-size: 18px; }
+.widgets[data-layout=widgets] > .timer[data-size=large] .timer-status { font-size: 18px; }
 
 /* ---- Tall: the ring on top, presets in two columns, controls at the bottom ---- */
 .timer-widget[data-layout=tall] { align-items: center; justify-content: center; gap: 14px; }

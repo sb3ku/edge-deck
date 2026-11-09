@@ -66,7 +66,7 @@ body::before {
 /* Widgets carry no header line: the badge it held (the printer count, "1 working",
    the uptime) said what the content already shows, and the content has its room. */
 .widgets[data-layout=widgets] > .container-card > .card-body > .widget-header { display: none; }
-.badge { font-size: 12px; font-weight: 600; color: var(--label-2); }
+.badge { font-size: 14px; font-weight: 600; color: var(--label-2); }
 .badge.good { color: var(--green); } .badge.working { color: var(--accent-text); } .badge.warning { color: var(--amber); } .badge.error { color: var(--red); }
 
 /* Card chrome on demand: the title and options float over the top of the
@@ -135,12 +135,12 @@ body::before {
 .task { --agent: var(--codex); } .task[data-agent=claude] { --agent: var(--claude); } .task[data-agent=chatgpt] { --agent: var(--chatgpt); }
 .task::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--agent); }
 .task-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; min-width: 0; }
-.task-agent { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .2px; color: var(--agent); background: color-mix(in srgb, var(--agent) 16%, transparent); flex-shrink: 0; }
-.task-project { font-size: 12px; color: var(--label-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-name { font-size: 16px; font-weight: 600; }
+.task-agent { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .2px; color: var(--agent); background: color-mix(in srgb, var(--agent) 16%, transparent); flex-shrink: 0; }
+.task-project { font-size: 14px; color: var(--label-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-name { font-size: 19px; font-weight: 600; }
 .task-progress { margin-top: 8px; }
 .task[data-agent=claude] .working-wave i { background: var(--claude); }
-.task-progress-message { color: var(--label-2); font-size: 13px; margin-top: 6px; }
+.task-progress-message { color: var(--label-2); font-size: 16px; margin-top: 6px; }
 .task-meta { margin-top: 10px; padding-top: 10px; border-top-color: var(--separator); color: var(--label-3); }
 .task-elapsed { color: var(--label-2); }
 
@@ -222,13 +222,13 @@ dialog.usage-sheet::backdrop { background: rgb(0 0 0 / 22%); backdrop-filter: no
 .task-step.is-done .task-step-mark { border: 0; background: rgb(235 235 245 / 50%); }
 .task-step.is-done .task-step-mark::after { content: ""; position: absolute; inset: 0; background: var(--task-surface); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4.6 8.3 2.2 2.2 4.6-4.8' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 15px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4.6 8.3 2.2 2.2 4.6-4.8' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 15px no-repeat; }
 @keyframes task-spin { to { transform: rotate(360deg); } }
-.task-step-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; color: rgb(245 245 247 / 92%); }
+.task-step-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 20px; color: rgb(245 245 247 / 92%); }
 .task-step.is-done .task-step-text { color: rgb(235 235 245 / 45%); }
 .task-step.is-current .task-step-text { color: var(--text); }
-.task-step-more { padding: 2px 0 2px 25px; font-size: 12px; line-height: 18px; color: var(--label-3); }
+.task-step-more { padding: 2px 0 2px 25px; font-size: 14px; line-height: 18px; color: var(--label-3); }
 /* Background tasks: animated dots in the agent's colour, then a bordered list */
 .task-background { margin-top: 10px; }
-.task-bg-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 13px; color: var(--label-2); }
+.task-bg-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 16px; color: var(--label-2); }
 .task-bg-dots { display: inline-flex; gap: 3px; }
 .task-bg-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--agent); animation: task-dot 1.2s ease-in-out infinite; }
 .task-bg-dots i:nth-child(2) { animation-delay: .2s; } .task-bg-dots i:nth-child(3) { animation-delay: .4s; }
@@ -237,11 +237,11 @@ dialog.usage-sheet::backdrop { background: rgb(0 0 0 / 22%); backdrop-filter: no
 .task-bg { display: flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; min-height: 36px; padding: 7px 12px; }
 .task-bg + .task-bg { border-top: 1px solid rgb(255 255 255 / 7%); }
 .task-bg-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.task-bg-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 20px; color: var(--label-2); }
-.task-bg-time { flex-shrink: 0; font-size: 12px; color: var(--label-3); font-variant-numeric: tabular-nums; }
-.task-bg-more { min-height: 28px; font-size: 12px; color: var(--label-3); }
-.task-bg-sub { font-size: 12px; line-height: 16px; color: var(--label-3); }
-.task-section-more { margin-top: 3px; font-size: 12px; color: var(--label-3); }
+.task-bg-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 20px; color: var(--label-2); }
+.task-bg-time { flex-shrink: 0; font-size: 14px; color: var(--label-3); font-variant-numeric: tabular-nums; }
+.task-bg-more { min-height: 28px; font-size: 14px; color: var(--label-3); }
+.task-bg-sub { font-size: 14px; line-height: 16px; color: var(--label-3); }
+.task-section-more { margin-top: 3px; font-size: 14px; color: var(--label-3); }
 .task-approval-title { font-size: 13px; font-weight: 700; color: var(--amber); }
 .task-approval-detail { display: block; margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: rgb(0 0 0 / 30%); font: 12px/1.45 "Cascadia Code", Consolas, monospace; color: var(--text); white-space: pre-wrap; word-break: break-word; max-height: 96px; overflow: auto; }
 .task-approval-reason, .task-approval-hint { margin-top: 6px; font-size: 12px; color: var(--label-2); }
@@ -307,8 +307,8 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .qa-tile.is-on .qa-tile-glyph { background: var(--accent); color: #fff; }
 .qa-tile.is-muted .qa-tile-glyph { background: rgb(255 69 58 / 22%); color: var(--red); }
 .qa-tile-copy { display: flex; flex-direction: column; min-width: 0; }
-.qa-tile-title { font-size: 14px; font-weight: 700; }
-.qa-tile-status { font-size: 12px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa-tile-title { font-size: 17px; font-weight: 700; }
+.qa-tile-status { font-size: 14px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qa-tile:disabled { opacity: .55; }
 .qa-volume { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-radius: 18px; background: rgb(255 255 255 / 8%); flex-shrink: 0; }
 .qa-volume-icon { display: grid; place-items: center; color: var(--label-2); }
@@ -317,9 +317,9 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .qa-volume input::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #fff var(--fill), rgb(255 255 255 / 18%) var(--fill)); }
 .qa-volume input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgb(0 0 0 / 45%); }
 .qa-volume input:disabled { opacity: .4; }
-.qa-volume-value { min-width: 40px; text-align: right; font-size: 13px; font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.qa-volume-value { min-width: 40px; text-align: right; font-size: 16px; font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; }
 .qa-segments { display: flex; gap: 2px; padding: 3px; border-radius: 13px; background: rgb(0 0 0 / 30%); flex-shrink: 0; }
-.qa-segment { flex: 1; min-height: 48px; border: 0; border-radius: 10px; background: transparent; color: var(--label-2); font-size: 13px; font-weight: 600; }
+.qa-segment { flex: 1; min-height: 48px; border: 0; border-radius: 10px; background: transparent; color: var(--label-2); font-size: 16px; font-weight: 600; }
 .qa-segment[aria-selected=true] { background: rgb(255 255 255 / 14%); color: var(--text); }
 .qa-devices { display: flex; flex-direction: column; gap: 2px; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 18%) transparent; }
 .qa-device { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 10px; border: 0; border-radius: 14px; background: transparent; color: var(--text); text-align: left; transition: background 160ms var(--ease); }
@@ -329,14 +329,14 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .qa-device-glyph svg { width: 20px; height: 20px; }
 .qa-device.is-selected .qa-device-glyph { background: var(--accent); color: #fff; }
 .qa-device-copy { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.qa-device-name { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qa-device-kind { font-size: 12px; color: var(--label-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa-device-name { font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa-device-kind { font-size: 14px; color: var(--label-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qa-device-check { display: grid; place-items: center; width: 24px; color: var(--accent-text); opacity: 0; transition: opacity 160ms; }
 .qa-device-check svg { width: 20px; height: 20px; stroke-width: 2.4; }
 .qa-device.is-selected .qa-device-check { opacity: 1; }
 .qa-device.is-pending .qa-device-check { opacity: .5; animation: qa-pulse 900ms ease-in-out infinite alternate; }
 @keyframes qa-pulse { to { opacity: 1; } }
-.qa-note { font-size: 12px; color: var(--label-2); }
+.qa-note { font-size: 14px; color: var(--label-2); }
 @container deck-card (max-height: 360px) {
   .qa-segments, .qa-devices { display: none; }
   .qa-tile { min-height: 56px; }
@@ -473,25 +473,25 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .stat-ring.is-hot .stat-ring-fill { stroke: #ff9f0a; }
 .stat-ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.1; }
 .stat-ring-center strong { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.stat-ring-extra { font-size: 12px; font-weight: 600; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
-.stat-ring-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
-.stat-ring-detail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--label-3, #888); }
+.stat-ring-extra { font-size: 14px; font-weight: 600; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.stat-ring-label { font-size: 16px; font-weight: 700; letter-spacing: .04em; }
+.stat-ring-detail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--label-3, #888); }
 .pc-apps { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
 .pc-app { display: grid; grid-template-columns: 28px minmax(0, 1fr) 46px; align-items: center; gap: 10px; }
 .pc-app-icon { display: grid; place-items: center; width: 28px; height: 28px; }
 .pc-app-icon img { width: 24px; height: 24px; object-fit: contain; }
 .pc-app-icon svg { width: 18px; height: 18px; color: var(--label-3, #888); }
-.pc-app-top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.pc-app-top { display: flex; justify-content: space-between; gap: 8px; font-size: 16px; }
 .pc-app-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .pc-app-memory { flex-shrink: 0; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
 .pc-app-bar { height: 4px; margin-top: 4px; border-radius: 2px; background: rgb(255 255 255 / 8%); overflow: hidden; }
 .pc-app-bar span { display: block; height: 100%; border-radius: inherit; background: #9be15d; }
-.pc-app-cpu { text-align: right; font-size: 12px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
+.pc-app-cpu { text-align: right; font-size: 14px; color: var(--label-2, #aaa); font-variant-numeric: tabular-nums; }
 .pc-stats-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-top: auto; }
-.pc-speed-result { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pc-speed-result { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .pc-speed-button { min-height: 36px; }
-.pc-stats-note { flex-basis: 100%; display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--label-3, #888); }
-.pc-sensor-button { min-height: 30px; padding: 4px 12px; font-size: 12px; }
+.pc-stats-note { flex-basis: 100%; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--label-3, #888); }
+.pc-sensor-button { min-height: 30px; padding: 4px 12px; font-size: 14px; }
 /* Game view: the four readings fill the whole card, as large tiles (2×2,
    or one row on a wide card); each ring scales to its tile. */
 .pc-stats.is-game { justify-content: stretch; }
@@ -510,7 +510,7 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .qa-power { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 64px; padding: 8px 4px; border: 0; border-radius: 18px; background: rgb(255 255 255 / 6%); color: var(--text); transition: background 180ms var(--ease), transform 120ms var(--ease); }
 .qa-power:not(:disabled):active { transform: scale(.95); }
 .qa-power-glyph svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.qa-power-label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.qa-power-label { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .qa-power.is-armed { background: rgb(255 69 58 / 22%); color: var(--red, #ff453a); }
 .qa-tiles { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 /* Settings: grouped sections. */
@@ -536,13 +536,13 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 body > .toast { bottom: 96px; }
 /* ---- Up next (clock column) --------------------------------------------------- */
 .up-next { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; min-height: 0; overflow: hidden; }
-.up-next-title { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--label-3, #8e8e93); }
+.up-next-title { margin: 0 0 2px; font-size: 16px; font-weight: 600; letter-spacing: .02em; color: var(--label-3, #8e8e93); }
 .up-next-item { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; animation: rise-in 360ms var(--ease) both; }
 .up-next-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: rgb(255 255 255 / 7%); color: var(--label-2, #aaa); }
 .up-next-icon svg { width: 16px; height: 16px; }
 .up-next-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.up-next-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; color: var(--text); }
-.up-next-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--label-2, #aaa); }
+.up-next-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 600; color: var(--text); }
+.up-next-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; color: var(--label-2, #aaa); }
 .up-next-bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: rgb(255 255 255 / 10%); overflow: hidden; }
 .up-next-bar i { display: block; height: 100%; border-radius: inherit; background: #9be15d; transition: width 900ms var(--ease); }
 .up-next-item.is-attention .up-next-icon { background: rgb(255 159 10 / 18%); color: #ff9f0a; }
@@ -633,15 +633,15 @@ html, body { height: 100%; overflow: clip; }
 .quick-actions .qa-tile.is-on { background: rgb(10 132 255 / 22%); }
 .quick-actions .qa-tile.is-on .qa-tile-more { border-left-color: rgb(10 132 255 / 30%); color: #fff; }
 .qa-tile-copy { min-width: 0; }
-.qa-tile-title { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.quick-actions .qa-tile-status { display: block; font-size: 13px; color: var(--label-2, #aaa); }
+.qa-tile-title { display: block; font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.quick-actions .qa-tile-status { display: block; font-size: 16px; color: var(--label-2, #aaa); }
 .qa-volume { display: flex; align-items: center; gap: 10px; }
 .qa-volume-more { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; padding: 0; border: 0; border-radius: 12px; background: rgb(255 255 255 / 6%); color: var(--label-2, #aaa); }
 .qa-volume-more svg { width: 18px; height: 18px; }
 .qa-detail-head { display: flex; align-items: center; gap: 10px; }
 .qa-back { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: 0; border-radius: 14px; background: rgb(255 255 255 / 8%); color: var(--text); }
 .qa-back svg { width: 22px; height: 22px; }
-.qa-detail-title { flex: 1; margin: 0; font-size: 18px; font-weight: 700; }
+.qa-detail-title { flex: 1; margin: 0; font-size: 22px; font-weight: 700; }
 .qa-detail-toggle[hidden] { display: none; }
 .qa-list { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .qa-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 58px; padding: 6px 12px; border: 0; border-radius: 14px; background: rgb(255 255 255 / 5%); color: var(--text); text-align: left; }
@@ -653,19 +653,19 @@ html, body { height: 100%; overflow: clip; }
 .qa-row.is-selected .qa-row-glyph { background: var(--accent, #0a84ff); color: #fff; }
 .qa-row-glyph svg, .qa-row-check svg { width: 18px; height: 18px; }
 .qa-row-copy { display: flex; flex-direction: column; min-width: 0; }
-.qa-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
-.qa-row-subtitle { font-size: 13px; color: var(--label-2, #aaa); }
+.qa-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 600; }
+.qa-row-subtitle { font-size: 16px; color: var(--label-2, #aaa); }
 .qa-row-check { color: var(--accent, #0a84ff); }
-.qa-row-action { font-size: 14px; font-weight: 600; }
+.qa-row-action { font-size: 17px; font-weight: 600; }
 .qa-row-action.is-armed { color: #ff453a; }
 .qa-more-settings { min-height: 46px; flex-shrink: 0; border: 0; border-radius: 14px; background: rgb(255 255 255 / 6%); color: var(--accent, #0a84ff); font-size: 15px; font-weight: 600; }
-.quick-actions .qa-note { margin: 0; font-size: 13px; color: var(--label-2, #aaa); }
+.quick-actions .qa-note { margin: 0; font-size: 16px; color: var(--label-2, #aaa); }
 .quick-actions .qa-note[hidden] { display: none; }
 .qa-main .qa-power-row { margin-top: auto; }
 @container deck-card (max-width: 380px) {
   .quick-actions .qa-tile-glyph { width: 30px; height: 30px; }
   .qa-tile-main { gap: 6px; padding: 8px; }
-  .qa-tile-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13px; line-height: 1.15; }
+  .qa-tile-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 16px; line-height: 1.15; }
   .qa-tile-more { width: 30px; }
 }
 @container deck-card (min-height: 600px) { .quick-actions .qa-tile { min-height: 72px; } }
@@ -680,7 +680,7 @@ html, body { height: 100%; overflow: clip; }
 .widgets[data-layout=widgets] > .container-card[hidden] { display: none; }
 /* Small widgets keep the essentials of today's cards until each gets its own design. */
 .widgets[data-layout=widgets] > .container-card[data-size=small] { padding: 14px 16px; }
-.widget-notice { margin: 6px 0 0; text-align: center; font-size: 14px; color: #ffd60a; }
+.widget-notice { margin: 6px 0 0; text-align: center; font-size: 17px; color: #ffd60a; }
 .widget-notice[hidden] { display: none; } 
 
 /* ==== Widget designs per size (Widgets layout) ======================================= */
@@ -775,7 +775,7 @@ html, body { height: 100%; overflow: clip; }
 .widgets[data-layout=widgets] > .stats[data-size=small] .stat-rings { flex: 1; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 6px 10px; }
 .widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring { justify-content: center; min-height: 0; }
 .widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring-dial { width: auto; height: 100%; max-height: 92px; max-width: 92px; }
-.widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring-center strong { font-size: 18px; }
+.widgets[data-layout=widgets] > .stats[data-size=small] .stat-ring-center strong { font-size: 22px; }
 .widgets[data-layout=widgets] > .stats[data-size=small] :is(.stat-ring-detail, .stat-ring-extra, .pc-stats-footer, .pc-apps) { display: none; }
 /* Medium: the four rings and the speed test; no app list. */
 .widgets[data-layout=widgets] > .stats[data-size=medium] .pc-apps { display: none; }
@@ -833,10 +833,45 @@ html, body { height: 100%; overflow: clip; }
 /* The agents list shows only whole cards; the rest are counted under it. */
 .task-list { overflow: clip; }
 .task-list > .task[hidden], .task [hidden] { display: none; }
-.task-list-more { flex-shrink: 0; margin: 8px 0 0 4px; font-size: 14px; font-weight: 600; color: var(--label-2); }
+.task-list-more { flex-shrink: 0; margin: 8px 0 0 4px; font-size: 17px; font-weight: 600; color: var(--label-2); }
 /* Tall printers card: smaller spools so four fit beside the picture. */
 .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spools { --spool-size: 26px; }
 .widgets[data-layout=widgets] > .printers[data-size=tall] .spool-group-slots { gap: 5px; }
 .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool { min-width: 28px; }
 .deck .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool { font-size: 12px; }
 .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool i[data-nozzle]::after { min-width: 15px; height: 15px; line-height: 15px; font-size: 9px; right: -6px; bottom: -4px; }
+/* Larger text, narrow cards: Tall PC stats lists three apps (whole rows only);
+   Tall Quick controls keep their tiles' and power buttons' labels on one line. */
+.widgets[data-layout=widgets] > .stats[data-size=tall] .pc-app:nth-child(n+4) { display: none; }
+.deck .widgets[data-layout=widgets] > .actions[data-size=tall] .qa-tile-title { font-size: 16px; }
+.deck .widgets[data-layout=widgets] > .actions[data-size=tall] .qa-tile-status { font-size: 14px; }
+.deck .widgets[data-layout=widgets] > .actions[data-size=tall] .qa-power-label { font-size: 13px; }
+.widgets[data-layout=widgets] > .actions[data-size=tall] .qa-power-row { gap: 6px; }
+
+/* ---- Usage rings tucked into the card's bottom-right corner ---- */
+.task-usage { margin: 0 -8px -8px 0; padding-top: 2px; gap: 0; }
+.usage-ring { width: 48px; height: 48px; }
+/* "+ 2 more chats" shares the rings' line instead of taking its own. */
+.card-body:has(> .task-list-more + .task-usage) > .task-list-more { margin-bottom: -40px; padding-bottom: 14px; }
+
+/* ---- Printers card: each printer on its own rounded tile, like the agent chats ---- */
+.widgets[data-layout=widgets] > .printers .printer-list { gap: 10px; }
+.widgets[data-layout=widgets] > .printers .printer.is-rich { --tile: #2a2a2c; flex: 1 0 auto; min-height: 96px; border: 0; border-radius: 22px; background: var(--tile); }
+.widgets[data-layout=widgets] > .printers .printer + .printer { border-top: 0; }
+.widgets[data-layout=widgets] > .printers .printer.is-rich:not(.is-live) { padding: 14px 18px 14px 0; }
+.widgets[data-layout=widgets] > .printers .printer-open { border-radius: 22px; }
+.widgets[data-layout=widgets] > .printers .printer-disclosure { display: none; }
+/* The picture sits on a soft spotlight. */
+.widgets[data-layout=widgets] > .printers .printer.is-rich:not(.is-live) > .printer-figure { background: radial-gradient(closest-side, rgb(255 255 255 / 9%), transparent 72%); border-radius: 50%; }
+/* The status as a tinted pill. */
+.widgets[data-layout=widgets] > .printers .printer-topline .badge { padding: 5px 12px 5px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 15%, transparent); }
+.widgets[data-layout=widgets] > .printers .printer-topline { align-items: center; }
+/* A status colour along the tile's left edge while it needs you or works. */
+.widgets[data-layout=widgets] > .printers .printer.is-rich::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 4px; border-radius: 0 3px 3px 0; background: transparent; }
+.widgets[data-layout=widgets] > .printers .printer[data-status=printing]::before { background: #9be15d; }
+.widgets[data-layout=widgets] > .printers .printer[data-status=paused]::before { background: #ffd60a; }
+.widgets[data-layout=widgets] > .printers .printer[data-status=error]::before { background: #ff453a; }
+.widgets[data-layout=widgets] > .printers .printer[data-status=finished]::before { background: #30d158; }
+/* The filament frame on the tile: a slightly darker inset instead of a line. */
+.widgets[data-layout=widgets] > .printers .printer-spools { border-color: rgb(255 255 255 / 10%); background: rgb(0 0 0 / 18%); }
+.widgets[data-layout=widgets] > .printers .print-progress-track { background: rgb(0 0 0 / 35%); }

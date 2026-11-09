@@ -15,7 +15,7 @@
 .dc-root .dc-tick-hour { stroke: #fff; stroke-width: 1.6; }
 .dc-root .dc-bar { stroke: #fff; stroke-width: 3.2; stroke-linecap: round; }
 .dc-root .dc-numeral { fill: #fff; font-size: 9.5px; font-weight: 600; }
-.dc-root .dc-quarters .dc-numeral { font-size: 17px; font-weight: 700; }
+.dc-root .dc-quarters .dc-numeral { font-size: 20px; font-weight: 700; }
 .world-clock-widget .dc-numeral { font-size: 8.4px; }
 .dc-root .dc-code, .dc-root .dc-diff { fill: rgb(255 255 255 / 92%); font-size: 6.4px; font-weight: 700; letter-spacing: .02em; }
 .dc-root .dc-diff { fill: rgb(255 255 255 / 55%); }

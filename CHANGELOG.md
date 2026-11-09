@@ -1,12 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.19.0 — 2026-11-09
 
 - **Printers read from a distance.** The printer's name, model and status sit above its picture; idle printers show one status (Ready) instead of two; the loaded filament has a thin frame; all printer text is larger.
 - **Usage like the Claude app.** The rings are small and plain (no figures or names); a tap opens a popover above the ring with the current session and weekly limits, their reset times and when they were last updated.
 - The Agents card shows only whole chat cards (none cut off at the bottom) and counts the rest.
+- **One status per printer, whatever it is doing.** The status sits beside the name; the lines below no longer repeat it (no "Printing" under the progress bar unless the stage says more, such as Heating bed; a finished print shows when it finished and how long it took).
+- **Printers card redesign.** Each printer sits on its own rounded tile (like the agent chats), its status in a tinted pill, a status colour along the tile's edge while it prints, pauses, finishes or needs you, and the picture on a soft spotlight.
+- The usage rings sit tucked into the Agents card's corner, next to "+ N more chats", so the chats get more room.
+- **Larger text in every widget**: small labels and figures across clocks, weather, music, PC stats, gauges, agents, controls, calendar, batteries, reminders, Screen Time and the timer are about a fifth larger.
 
-## 0.18.0
+## 0.18.0 — 2026-11-09
 
 - **Filament by AMS.** The Printers card and the Printer widget show each AMS on its own row with its four slots (empty ones too), then the external spool, with a spool look for the colours. The loaded spool is marked; on the H2D the mark says which nozzle (L or R). A slot whose colour was never set shows a striped spool. The printer panel's Filament tab shows the external spool as well.
 - Widgets no longer carry a header line (the printer count, "1 working", the uptime): their content has that room. Printer pictures (and the model being printed) sit further from the card's edge and from the text beside them.
@@ -15,7 +19,7 @@
 - **Spotify asks for fewer calls.** The Recently Played feed is read a few calls at a time and, when a part of it fails, kept for a few minutes instead of being asked for again by every widget, which is what had Spotify limit the app. The player polls a little less often, and during a limit it keeps its last state and says when updates resume.
 - **Spotify Canvas** lookups that failed mid-song are retried instead of waiting for the next song.
 
-## 0.17.0
+## 0.17.0 — 2026-11-09
 
 - **Calendar.** Up Next and Month widgets, like iOS, from your calendar's private iCal link (Google, Outlook.com or iCloud; Customize → Connections → Calendar). The link is stored encrypted and read every 15 minutes while a calendar widget is shown. Tap an event for its details. Weeks start on Monday.
 - **Batteries.** The charge of your Bluetooth headset, controller and other devices that report it to Windows, as rings or a list.
@@ -24,7 +28,7 @@
 - **Tap a widget to open it, like iOS.** Weather widgets open the forecast, a Gauge opens PC stats, Small and Medium Spotify open the full player, Calendar opens the agenda, and Small and Medium Batteries, Reminders and Screen Time open their Large view. The view zooms out of the widget.
 - Leftovers of the earlier layouts are gone (the layout picker, card tabs and their code).
 
-## 0.16.0
+## 0.16.0 — 2026-11-09
 
 - **A Home Screen like iOS.** Widgets are the only layout. Pages of widgets sit side by side: swipe and they follow your finger, or tap the dots at the bottom right.
 - **Add widgets from a gallery.** Search, or pick a source (Clock, Weather, Music, 3D printers, PC, Agents, Controls, Timer, Apps), then swipe through live previews of each widget in each of its sizes and tap Add widget. It goes where there is room, or onto a new page.
@@ -37,13 +41,13 @@
 - **Smart Stack.** Several widgets in one place: swipe up or down to flip through them (dots show where you are). Drag a widget onto another in Edit Home Screen to stack them, or add the ready-made Smart Stack from the gallery. Smart Rotate turns the stack to a widget that needs you, such as a printer error or an agent waiting for approval. Edit Stack reorders, removes and picks the shown widget.
 - Up to 40 widgets over six pages. Earlier layouts move to Widgets automatically, spread over pages so every widget fits.
 
-## 0.15.0
+## 0.15.0 — 2026-11-09
 
 - **Widgets, like iOS.** A new Widgets layout: an 8 × 2 grid where every card is Small (1 × 1), Medium (2 × 1), Large (2 × 2) or Tall (1 × 2), chosen with one tap in Edit layout. Each card has a design for each size instead of stretching one layout: Clock, Time & weather, Weather, Printers, Music, PC stats, Agent chats and Quick controls. Widgets that do not fit the page are listed so you can shrink or move them.
 - **Four single-purpose widgets** for the gaps: **Gauge** (one CPU, GPU, memory, video-memory or temperature ring, with a history line and the busiest apps at larger sizes), **Switch** (one quick control such as Wi-Fi, Bluetooth, sound, microphone, dark mode or Night light, with its networks or devices at larger sizes), **Timer** (a countdown with presets that rings and makes the card glow when done, and survives a restart) and **Printer** (one printer at a glance: a progress ring, the full row, or the job details). Choose the reading, control or printer in the card's editor.
 - The dashboard window is kept full screen on its display: if Windows or another app moves or resizes it, it is put back within 15 seconds (never while a game is in front).
 
-## 0.14.0
+## 0.14.0 — 2026-11-08
 
 - **Pages.** Group cards into pages: tabs at the bottom right (with + to add one), or swipe across the cards. Your current cards become the Home page.
 - **Auto arrange.** A new layout that sizes every card for its content and, when space runs short, stacks cards that work at half height (printers then sit side by side).
@@ -55,19 +59,19 @@
 - **Spotify.** DJ on Home and an Add Discover Weekly shortcut. The library and Home are kept between restarts, so updates no longer trigger Spotify's rate limit; empty replies from Spotify no longer show an error.
 - **Weather.** Fog rolls across the sky like Apple Weather's, and low visibility brings mist or haze.
 
-## 0.13.0
+## 0.13.0 — 2026-11-08
 
 - **Notifications.** A Windows notification when a print finishes (with a picture of the model, the printer and how long it took) or fails, and when Claude Code or Codex waits for your approval. Clicking one opens the dashboard.
 - While a game or other full-screen app is in front, notifications wait and appear once it closes; several become one summary.
 - Turn print or approval notifications off in Customize → Display.
 
-## 0.12.1
+## 0.12.1 — 2026-11-08
 
 - Starting Edge Deck (for example after an update) no longer takes focus from a full-screen game: the dashboard is tucked out of the taskbar without being activated.
 
-## 0.12.0
+## 0.12.0 — 2026-11-08
 
-The first public release.
+The first public release. It includes all the work since the first version (2026-11-07).
 
 - **Updates from the tray.** Edge Deck checks GitHub for new releases every six hours. When one is out, the tray icon offers **Update to x.y.z** (and Customize → Display shows it too); one click downloads it, checks it against its published SHA-256 and reinstalls in place, keeping your settings.
 - **Installer.** Double-click **Install Edge Deck.cmd**: per-user, no administrator rights, Start menu entries, an entry in Installed apps and an uninstaller.
