@@ -6,7 +6,7 @@ const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather 
 // Widgets drawn by their own modules (widget-*.js), registered on window.EdgeWidgets.
 const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine', 'rain-wind', 'daily-forecast', 'sun-path', 'dial', 'city', 'world-clock']);
 const defaultConfig = {
-  clock24: true, theme: 'dark', layout: {mode:'overview'},
+  clock24: true, theme: 'dark', layout: {mode:'widgets'},
   weather: { location: null, units: 'metric' }, music: { savedPlaylists: [] },
   widgets: Object.keys(widgetCatalog).filter(type => !MODULE_TYPES.has(type)).map(type => ({ id: type, type, title: widgetCatalog[type][0], enabled: true, ...(type==='launchers'?{}:{size:'medium',items:[{id:type+'-content',type}],activeItemId:type+'-content'}) })),
   printers: [{ id: 'h2d', name: 'H2D', model: 'H2D', host: '', serial: '', configured: false }, { id: 'p1s', name: 'P1S', model: 'P1S', host: '', serial: '', configured: false }],
@@ -386,7 +386,7 @@ function renderCards(){
         const remove=button('',()=>removeWidget(card.id),{className:'widget-remove',icon:'minus',label:`Remove ${cardTitle(card)}`});
         panel.append(shield,remove);
       }
-      $('.card-tabs',panel)?.remove();$(':scope > .stack-dots',panel)?.remove();
+      $(':scope > .stack-dots',panel)?.remove();
       panel.toggleAttribute('data-stack',items.length>1);
       if(items.length>1){
         // A stack, like iOS: swipe up or down; dots show where you are.
@@ -396,7 +396,6 @@ function renderCards(){
     }
     for(const dot of panel.querySelectorAll(':scope > .stack-dots > i'))dot.classList.toggle('is-active',dot.dataset.itemId===active?.id);
     if(items.length>1)panel.setAttribute('aria-label',`${cardTitle(card)}, ${widgetCatalog[active?.type]?.[0]||'widget'}, ${items.indexOf(active)+1} of ${items.length}. Swipe up or down for the others.`);
-    for(const tab of panel.querySelectorAll(':scope > .card-tabs > .card-tab')){const selected=tab.id===`tab-${card.id}-${active?.id}`;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
     const bodyIds=new Set(items.map(i=>i.id));if(!items.length)bodyIds.add('empty');
     for(const body of panel.querySelectorAll(':scope > .card-body'))if(!bodyIds.has(body.dataset.itemId))body.remove();
     for(const body of panel.querySelectorAll(':scope > .card-body'))if(!body.matches('.is-peeking, .is-leaving'))body.hidden=body.dataset.itemId!==(active?.id||'empty');
@@ -769,7 +768,7 @@ function canStack(id, targetId) {
 // mood?(ctx) -> { mood, attention }, live?: true (keeps its DOM between renders) }.
 function widgetContext(card, item, panel) {
   return {
-    card, item: item || {}, panel, size: card.size || 'medium', mode: state.config.layout?.mode || 'overview',
+    card, item: item || {}, panel, size: card.size || 'medium', mode: 'widgets',
     state: () => state, config: () => state.config, bridge, updateState, toast,
     el, button, icon, badge, header, emptyContent, glide, statRing, printerRing, printerRow, printerLabels, printerFigure, printProgress, filamentSpools, showPrinterConsole, showSettings, PRINTER_FINISHED_MS,
     gigabytes, uptimeText, durationText, agoText,
@@ -796,6 +795,8 @@ function updateClock() {
   for (const card of document.querySelectorAll('.today-card')) window.EdgeWeatherUI?.tickToday(card, state.config.clock24 !== false);
   const now = new Date();
   for (const panel of document.querySelectorAll('.widget.clock .card-body:not([hidden])')) {
+    // A stack mid-flip briefly shows its other widget in a clock card: only clocks tick.
+    if (!panel.querySelector(':scope > .clock-time')) continue;
     $('.clock-day', panel).textContent = new Intl.DateTimeFormat('en-GB', { weekday: 'long' }).format(now);
     $('.clock-date', panel).textContent = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
     const parts = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: !state.config.clock24 }).formatToParts(now);

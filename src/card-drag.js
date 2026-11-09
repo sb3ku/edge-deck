@@ -39,7 +39,7 @@
       }
       if(!target)return;
       const box=target.getBoundingClientRect(),sourceBox=active.card.getBoundingClientRect();
-      const horizontal=(container.dataset.layout==='overview'&&innerWidth>=1000)||Math.abs(sourceBox.top-box.top)<16;
+      const horizontal=Math.abs(sourceBox.top-box.top)<16;
       const after=horizontal?x>box.left+box.width/2:y>box.top+box.height/2;
       // Over the middle of a widget that can take it: a stack, like iOS.
       const into=!!(canStack&&hit===target&&x>box.left+box.width*.22&&x<box.right-box.width*.22&&y>box.top+box.height*.22&&y<box.bottom-box.height*.22&&canStack(active.card.dataset.id,target.dataset.id));

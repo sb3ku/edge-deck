@@ -29,7 +29,6 @@ svg { display: block; width: 23px; height: 23px; flex-shrink: 0; fill: none; str
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 48px; flex-shrink: 0; }
 .brand,.top-actions { display: flex; align-items: center; gap: 12px; }
 .brand-mark { display: block; width: 28px; height: 28px; flex-shrink: 0; }
-.workspace-name { margin-left: 8px; padding-left: 20px; border-left: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 .top-actions { gap: 10px; }
 .connection-label { color: var(--muted); font-size: 13px; margin-right: 8px; }
 .button,.quiet-button,.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 48px; min-height: 48px; padding: 11px 18px; border-radius: 13px; background: var(--control); font-size: 15px; font-weight: 600; transition: background 160ms var(--ease),transform 160ms var(--ease); }
@@ -192,14 +191,14 @@ dialog > .toast { position: absolute; bottom: 18px; max-width: calc(100% - 36px)
   dialog { inset: 12px 12px 12px auto; height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); padding: 22px; }.settings-header h2 { font-size: 23px; }.settings-tabs { margin-top: 15px; }.settings-content { padding-top: 18px; }
 }
 @media(max-width:1250px) and (min-width:1000px) {
-  .workspace-name,.connection-label { display: none; }.widgets { gap: 12px; }.widget { padding: 18px; }.widget.clock { flex: .7; }.widget-title { font-size: 16px; gap: 7px; }.widget-title svg { width: 18px; height: 18px; }.widget-header { gap: 6px; }.widget-header>.badge { font-size: 10px; }
+  .connection-label { display: none; }.widgets { gap: 12px; }.widget { padding: 18px; }.widget.clock { flex: .7; }.widget-title { font-size: 16px; gap: 7px; }.widget-title svg { width: 18px; height: 18px; }.widget-header { gap: 6px; }.widget-header>.badge { font-size: 10px; }
   .printer-figure { display: none; }.printer-name { font-size: 16px; }.media-information { gap: 12px; }.media-art { width: 64px; height: 64px; }.media-title { font-size: 19px; }.media-controls { gap: 5px; }.media-controls .playlist-button { margin-left: 0; }.clock-time { font-size: 56px; }
 }
 @media(max-width:999px) {
   .deck { height: auto; min-height: 100dvh; overflow: visible; padding: 18px; gap: 18px; }.widgets { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }.widget,.widget.clock { min-height: 330px; padding: 24px; }
   .widget.clock { border-color: rgb(255 255 255 / 6%); background: var(--panel); }.widget-title { font-size: 18px; }.clock-time { font-size: 84px; margin-top: 20px; }.clock-day { font-size: 23px; }.clock-date { font-size: 20px; }
   .printer { min-height: 132px; gap: 13px; }.printer-figure { width: 65px; height: 83px; }.printer-name { font-size: 17px; }.media-art { width: 86px; height: 86px; }.media-information { gap: 16px; }.media-title { font-size: 23px; }.media-controls { gap: 16px; padding: 18px 0; }.media-controls .playlist-button { margin-left: 0; }
-  .connection-label,.workspace-name { display: none; }
+  .connection-label { display: none; }
 }
 @media(max-width:560px) {
   .deck { padding: 12px; gap: 14px; }.topbar { gap: 8px; }.brand { gap: 8px; }h1 { font-size: 20px; }.brand-mark { width: 23px; height: 23px; }.top-actions { gap: 6px; }#customize { padding: 10px 12px; font-size: 13px; }#settings-icon { display: none; }

@@ -37,7 +37,6 @@ body::before {
 .brand { gap: 10px; }
 .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -.4px; }
 .brand-mark { width: 28px; height: 28px; }
-.workspace-name { padding-left: 14px; margin-left: 4px; font-size: 15px; color: var(--label-2); border-left-color: var(--separator); }
 .connection-label { font-size: 13px; color: var(--label-3); }
 #customize, #fullscreen, #edit-layout {
   min-height: 48px; min-width: 48px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 999px;
@@ -56,7 +55,6 @@ body::before {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 10px 30px rgb(0 0 0 / 35%);
 }
 .widget.clock, .container-card.clock { background: transparent; border-color: transparent; box-shadow: none; }
-.widgets[data-layout=bento] > .container-card.clock, .widgets[data-layout=focus] > .container-card.clock { background: linear-gradient(180deg, #212123 0%, #1c1c1e 60%); border-color: rgb(255 255 255 / 6%); }
 .widgets { gap: 14px; }
 .card-toolbar { min-height: 48px; margin-bottom: 4px; gap: 2px; }
 .card-title { font-size: 15px; font-weight: 600; letter-spacing: -.2px; color: var(--label-2); }
@@ -64,9 +62,6 @@ body::before {
 .card-toolbar .quiet-button svg { width: 18px; height: 18px; color: var(--label-3); }
 .card-edit-button { opacity: 1; }
 .card-edit-button:hover svg { color: var(--text); }
-.card-tabs { background: rgb(0 0 0 / 30%); border-radius: 13px; padding: 3px; }
-.card-tab { border-radius: 10px; font-weight: 600; color: var(--label-2); }
-.card-tab[aria-selected=true] { background: rgb(255 255 255 / 14%); color: var(--text); }
 .card-body > .widget-header { margin-bottom: 10px; }
 .badge { font-size: 12px; font-weight: 600; color: var(--label-2); }
 .badge.good { color: var(--green); } .badge.working { color: var(--accent-text); } .badge.warning { color: var(--amber); } .badge.error { color: var(--red); }
@@ -76,34 +71,26 @@ body::before {
 .widgets > .container-card:not(.weather):not(.today) { padding-top: 28px; }
 /* The reveal strip matches the top padding, so it never covers content. */
 .container-card > .card-reveal { position: absolute; top: 0; left: 0; right: 0; height: 28px; z-index: 6; }
-.container-card.weather > .card-tabs, .container-card.today > .card-tabs { margin-top: 30px; }
 .container-card > .card-toolbar {
   position: absolute; top: 0; left: 0; right: 0; z-index: 7; margin: 0; padding: 6px 8px 12px 20px;
   border-radius: var(--card-radius) var(--card-radius) 0 0;
   background: linear-gradient(180deg, rgb(34 34 36 / 97%) 0%, rgb(31 31 33 / 92%) 58%, rgb(28 28 30 / 0%) 100%);
   opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity 200ms var(--ease), transform 240ms var(--ease);
 }
-.container-card[data-chrome=visible] > .card-toolbar, .container-card > .card-toolbar:focus-within, .widgets.is-editing > .container-card > .card-toolbar { opacity: 1; transform: none; }
+.container-card[data-chrome=visible] > .card-toolbar, .container-card > .card-toolbar:focus-within { opacity: 1; transform: none; }
 /* Only the bar's buttons take taps, and only while shown; content below stays usable. */
-.container-card[data-chrome=visible] > .card-toolbar > button, .container-card > .card-toolbar:focus-within > button, .widgets.is-editing > .container-card > .card-toolbar > button { pointer-events: auto; }
+.container-card[data-chrome=visible] > .card-toolbar > button, .container-card > .card-toolbar:focus-within > button { pointer-events: auto; }
 .container-card.weather > .card-toolbar, .container-card.today > .card-toolbar { padding: 6px 8px 12px 20px; background: linear-gradient(180deg, rgb(0 0 0 / 34%), rgb(0 0 0 / 0%)); }
 .container-card.clock > .card-toolbar { background: none; }
 .container-card.weather > .card-toolbar .card-title, .container-card.today > .card-toolbar .card-title { color: rgb(255 255 255 / 88%); }
 .container-card.weather > .card-toolbar svg, .container-card.today > .card-toolbar svg { color: rgb(255 255 255 / 82%) !important; }
-.widgets.is-editing > .container-card > .card-reveal { display: none; }
-.widgets.is-editing > .container-card:not(.weather):not(.today) { padding-top: 64px; }
 @media (prefers-reduced-motion: reduce) { .container-card > .card-toolbar { transform: none; } }
 
-/* Edit mode */
-.widgets.is-editing .container-card { outline: 2px dashed rgb(10 132 255 / 55%); outline-offset: -2px; }
-.widgets.is-editing .container-card.clock { background: rgb(28 28 30 / 60%); }
 .card-drag-preview { border-radius: 22px; background: rgb(44 44 46 / 88%); backdrop-filter: blur(24px); border-color: var(--accent); }
 
 /* ---- Clock: large and light, like StandBy ---- */
 .clock-day { font-size: 22px; font-weight: 600; letter-spacing: -.3px; color: var(--accent-text); }
 .clock-time { font-weight: 200; letter-spacing: -.055em; }
-/* Size the time to its card, so it fits however many cards share the row. */
-.widgets[data-layout=overview] > .container-card.clock .clock-time { font-size: clamp(44px, 31cqw, 132px); }
 .container-card.clock .card-body { overflow-x: hidden; }
 .clock-date { color: var(--label-2); }
 .clock-bottom { color: var(--label-3); }
@@ -324,7 +311,6 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
 .qa-device.is-pending .qa-device-check { opacity: .5; animation: qa-pulse 900ms ease-in-out infinite alternate; }
 @keyframes qa-pulse { to { opacity: 1; } }
 .qa-note { font-size: 12px; color: var(--label-2); }
-.widgets[data-layout=overview] > .container-card.today { flex: 1.12 1 0; min-width: 360px; }
 @container deck-card (max-height: 360px) {
   .qa-segments, .qa-devices { display: none; }
   .qa-tile { min-height: 56px; }
@@ -557,19 +543,8 @@ html.low-power .container-card[data-needs-you] { animation: none; }
 #deck-menu-list svg { width: 20px; height: 20px; flex-shrink: 0; }
 .deck-done[hidden] { display: none !important; }
 
-/* ---- Pages ---------------------------------------------------------------------- */
-.page-tabs { display: flex; gap: 4px; padding: 5px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 20px; background: rgb(44 44 46 / 72%); }
-.page-tabs[hidden] { display: none; }
-.page-tab { min-height: 44px; min-width: 88px; padding: 0 18px; border: 0; border-radius: 15px; background: transparent; color: var(--label-2, #aaa); font-size: 15px; font-weight: 600; transition: background 200ms var(--ease), color 200ms var(--ease); }
-.page-tab.is-active { background: rgb(255 255 255 / 14%); color: var(--text); }
-.page-tab:active { transform: scale(.96); }
-#widgets.is-switching[data-enter="left"] > .container-card { animation: page-in-left 340ms var(--ease) both; }
-#widgets.is-switching[data-enter="right"] > .container-card { animation: page-in-right 340ms var(--ease) both; }
-#widgets.is-switching[data-enter="fade"] > .container-card { animation: page-fade 260ms var(--ease) both; }
-@keyframes page-in-left { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
-@keyframes page-in-right { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
 @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { #widgets.is-switching > .container-card { animation: none; } }
+
 /* Customize > Layout: pages */
 .settings-pages[hidden] { display: none; }
 .settings-pages { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 12px; padding: 16px; border-radius: 18px; background: rgb(255 255 255 / 4%); max-height: 46vh; overflow-y: auto; scrollbar-width: thin; flex-shrink: 0; }
@@ -584,9 +559,6 @@ html.low-power .container-card[data-needs-you] { animation: none; }
 .settings-card-pages[open] summary { margin-bottom: 4px; }
 .settings-card-page { display: grid; grid-template-columns: minmax(0, 1fr) 180px; align-items: center; gap: 10px; font-size: 15px; }
 .settings-card-page select { min-height: 40px; }
-.page-tab.page-add { display: grid; place-items: center; min-width: 44px; padding: 0; color: var(--label-2, #aaa); }
-.page-tab.page-add svg { width: 20px; height: 20px; }
-.page-tabs.is-single .page-tab.is-active { background: transparent; color: var(--label-2, #aaa); }
 
 /* ---- No scroll bars anywhere (Edge Deck rule) -------------------------------------
    Lists can still be swiped or scrolled; they never show a bar. */
@@ -657,43 +629,18 @@ html, body { height: 100%; overflow: clip; }
 }
 @container deck-card (min-height: 600px) { .quick-actions .qa-tile { min-height: 72px; } }
 
-/* ---- Auto arrange --------------------------------------------------------------- */
-.widgets[data-layout=auto] { display: grid; grid-template-columns: var(--auto-columns, 1fr); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.widgets[data-layout=auto] > .container-card { min-width: 0; min-height: 0; }
-/* Short (stacked) cards keep only what fits. */
-.container-card[data-stacked=true].clock .up-next, .container-card[data-stacked=true].clock .clock-bottom { display: none; }
-.container-card[data-stacked=true].stats .pc-apps, .container-card[data-stacked=true].stats .pc-stats-footer { display: none; }
-.container-card[data-stacked=true].stats .stat-ring-detail { display: none; }
-.container-card[data-stacked=true].tasks .task-steps, .container-card[data-stacked=true].tasks .task-usage { display: none; }
 /* Wide, short printer cards: printers side by side. */
 .container-card.printers[data-shape=wide] .printer-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.container-card.printers[data-shape=wide] .printer + .printer { border-top: 0; }
-.layout-preview.auto { display: grid; grid-template-columns: 1fr 1.3fr 1fr 1.3fr; grid-template-rows: 1fr 1fr; gap: 3px; }
-.layout-preview.auto i:nth-child(1) { grid-row: span 2; } .layout-preview.auto i:nth-child(3) { grid-row: span 2; }
-/* Stacked printers side by side: smaller pictures, room for names and progress. */
-.container-card[data-stacked=true].printers .printer.is-rich { gap: 10px; padding: 6px 10px 6px 0; }
-.container-card[data-stacked=true].printers .printer-figure { width: 64px; max-width: 64px; margin: 0 2px 0 4px; padding: 4px; }
-.container-card[data-stacked=true].printers .printer-name { font-size: 18px; }
-.container-card[data-stacked=true].printers .printer-topline .badge { font-size: 13px; }
-.container-card[data-stacked=true].printers .printer-model, .container-card[data-stacked=true].printers .printer-disclosure { display: none; }
-.container-card[data-stacked=true].printers .printer-camera-toggle { width: 30px; height: 30px; }
+.container-card.printers[data-shape=wide] .printer + .printer { border-top: 0; } 
 
 /* ---- Widgets: iOS-style grid ----------------------------------------------------- */
 .widgets[data-layout=widgets] { display: grid; grid-template-columns: repeat(var(--widget-columns, 8), minmax(0, 1fr)); grid-template-rows: repeat(var(--widget-rows, 2), minmax(0, 1fr)); gap: 14px; }
 .widgets[data-layout=widgets] > .container-card { min-width: 0; min-height: 0; }
 .widgets[data-layout=widgets] > .container-card[hidden] { display: none; }
-.widgets.is-editing[data-layout=widgets] > .container-card[data-overflow=true] { opacity: .45; outline-style: dashed; }
 /* Small widgets keep the essentials of today's cards until each gets its own design. */
 .widgets[data-layout=widgets] > .container-card[data-size=small] { padding: 14px 16px; }
-.widget-sizes { display: inline-flex; gap: 3px; margin-left: auto; padding: 3px; border-radius: 12px; background: rgb(0 0 0 / 35%); }
-.widget-size { min-width: 36px; min-height: 32px; padding: 0 8px; border: 0; border-radius: 9px; background: transparent; color: var(--label-2, #aaa); font-size: 14px; font-weight: 700; }
-.widget-size.is-active { background: var(--accent, #0a84ff); color: #fff; }
 .widget-notice { margin: 6px 0 0; text-align: center; font-size: 14px; color: #ffd60a; }
-.widget-notice[hidden] { display: none; }
-.layout-preview.widgets { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; gap: 3px; }
-.layout-preview.widgets i:nth-child(1) { grid-column: span 2; grid-row: span 2; } .layout-preview.widgets i:nth-child(3) { grid-column: span 2; }
-.widgets.is-editing[data-layout=widgets] > .container-card:is([data-size=small], [data-size=tall]) .card-title { display: none; }
-.widgets.is-editing[data-layout=widgets] > .container-card:is([data-size=small], [data-size=tall]) .widget-size { min-width: 30px; padding: 0 4px; }
+.widget-notice[hidden] { display: none; } 
 
 /* ==== Widget designs per size (Widgets layout) ======================================= */
 .weather-week { display: none; }

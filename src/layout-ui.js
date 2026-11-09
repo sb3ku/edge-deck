@@ -26,7 +26,7 @@
     const choices = option.choices(cfg); const value = item[option.field] ?? choices[0]?.[0];
     return choices.find(([id]) => id === value)?.[1] || '';
   }
-  const sizes = [['small', 'Small'], ['medium', 'Medium'], ['wide', 'Wide'], ['tall', 'Tall'], ['large', 'Large']];
+  const sizes = [['small', 'Small'], ['medium', 'Medium'], ['tall', 'Tall'], ['large', 'Large']];
   const icons = {
     clock: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M12 7v5l4 2'],
     weather: ['M7 14a5 5 0 1 1 7-6', 'M7 21h11a4 4 0 1 0-1-8 5 5 0 0 0-9 1 4 4 0 0 0-1 7Z'],
@@ -203,32 +203,6 @@
     } else appArea.append(el('p', 'layout-help', 'Save an app or website in Apps settings, then add it here.'));
     if (typeof view.context.onChooseApp === 'function') appArea.append(button(view, 'Manage saved apps', () => view.context.onChooseApp()));
     section.append(appArea); root.append(section);
-  }
-  function renderModePicker(view, root) {
-    root.append(el('p', 'layout-intro', 'Choose an arrangement, then make each card your own. A card can hold up to six views.'));
-    const chooser = el('div', 'layout-mode-picker'); chooser.setAttribute('aria-label', 'Dashboard layout');
-    for (const [mode, name, description] of [['widgets', 'Widgets', 'Small, medium and large, like iOS'], ['auto', 'Auto', 'Fits every card to its content'], ['overview', 'Overview', 'A balanced row of cards'], ['bento', 'Bento', 'Mix compact and larger cards'], ['focus', 'Focus', 'Give your main card more room']]) {
-      const choice = button(view, `${name} layout`, () => save(view, cfg => {
-        const current = cards(cfg);
-        const types = current.map(card => items(card)[0]?.type);
-        const untouched = current.length >= 5 && current.every(card => (card.size || 'medium') === 'medium' && items(card).length === 1) && types.every(type => catalog.some(entry => entry.type === type)) && new Set(types).size === types.length;
-        if (mode === 'bento' && (cfg.layout?.mode || 'overview') === 'overview' && untouched) {
-          // Five cards: two compact + three wide. With Quick actions, four
-          // compact cards share the top row and two wide cards the bottom.
-          const compact = types.includes('actions') ? ['today', 'clock', 'weather', 'tasks', 'actions'] : ['today', 'clock', 'weather'];
-          for (const card of current) card.size = compact.includes(items(card)[0].type) ? 'medium' : 'wide';
-        }
-        // Widgets: each card starts at the size that suits what it shows.
-        if (mode === 'widgets' && (cfg.layout?.mode || 'overview') !== 'widgets' && window.EdgeLayout?.WIDGET_DEFAULTS) {
-          for (const card of current) card.size = window.EdgeLayout.WIDGET_DEFAULTS[items(card)[0]?.type] || 'medium';
-        }
-        cfg.layout = { ...cfg.layout, mode };
-      }, `${name} layout saved.`), null, false, 'layout-mode');
-      choice.setAttribute('aria-pressed', String((config(view).layout?.mode || 'overview') === mode));
-      const preview = el('span', `layout-preview ${mode}`); preview.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 5; i++) preview.append(el('i'));
-      choice.replaceChildren(preview, el('strong', '', name), el('span', '', description)); chooser.append(choice);
-    }
-    root.append(chooser, el('p', 'layout-help', 'Widgets: choose Small, Medium or Large for each card in Edit layout. Auto sizes every card for its content and stacks small ones when space runs out. Adjust card sizes yourself in Overview or Bento; Focus enlarges the first card.'));
   }
   function settings(view, root) {
     const cfg = config(view); const listCards = cards(cfg); feedback(view, root);
