@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Printers read from a distance.** The printer's name, model and status sit above its picture; idle printers show one status (Ready) instead of two; the loaded filament has a thin frame; all printer text is larger.
+- **Usage like the Claude app.** The rings are small and plain (no figures or names); a tap opens a popover above the ring with the current session and weekly limits, their reset times and when they were last updated.
+- The Agents card shows only whole chat cards (none cut off at the bottom) and counts the rest.
+
 ## 0.18.0
 
 - **Filament by AMS.** The Printers card and the Printer widget show each AMS on its own row with its four slots (empty ones too), then the external spool, with a spool look for the colours. The loaded spool is marked; on the H2D the mark says which nozzle (L or R). A slot whose colour was never set shows a striped spool. The printer panel's Filament tab shows the external spool as well.

@@ -179,37 +179,38 @@ body::before {
 /* Plan usage at the foot of the agents card */
 /* Plan usage: a ring per agent at the card's bottom right, like the ring in the
    Claude app (the 5-hour session); a tap opens every limit window. */
-.task-usage { display: flex; justify-content: flex-end; align-items: flex-end; gap: 10px; flex-shrink: 0; margin-top: auto; padding-top: 8px; }
+.task-usage { display: flex; justify-content: flex-end; align-items: flex-end; gap: 2px; flex-shrink: 0; margin-top: auto; padding-top: 8px; }
 .task-usage:empty { display: none; }
-.usage-ring { --agent: var(--codex); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 8px 5px; border: 0; border-radius: 14px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.usage-ring { --agent: var(--codex); display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
 .usage-ring[data-agent=claude] { --agent: var(--claude); }
-.usage-ring:hover { background: rgb(255 255 255 / 5%); }
-.usage-ring:active { transform: scale(.96); }
-.usage-ring-dial { position: relative; display: grid; place-items: center; width: 46px; height: 46px; }
+.usage-ring:hover { background: rgb(255 255 255 / 6%); }
+.usage-ring:active { transform: scale(.92); }
+.usage-ring-dial { position: relative; width: 26px; height: 26px; }
 .usage-ring-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
-.usage-ring-dial .mini-ring-track, .usage-ring-dial .mini-ring-fill { stroke-width: 9; }
+.usage-ring-dial .mini-ring-track, .usage-ring-dial .mini-ring-fill { stroke-width: 14; }
+.usage-ring-dial .mini-ring-track { stroke: rgb(255 255 255 / 16%); }
 .usage-ring-dial .mini-ring-fill { stroke: var(--agent); }
 .usage-ring.is-warning .mini-ring-fill { stroke: #ffd60a; } .usage-ring.is-full .mini-ring-fill { stroke: #ff453a; }
-.usage-ring-value { position: relative; font-size: 12px; font-weight: 700; letter-spacing: -.2px; font-variant-numeric: tabular-nums; }
-.usage-ring-value.is-empty { color: var(--label-3); font-weight: 600; }
-.usage-ring-name { font-size: 11px; font-weight: 600; color: var(--label-2); }
-dialog.usage-sheet { --agent: var(--codex); position: fixed; inset: 0; margin: auto; width: min(520px, 92vw); height: fit-content; max-height: calc(100dvh - 40px); overflow: clip; padding: 20px 22px 18px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 24px; background: rgb(28 28 30 / 97%); color: var(--text); box-shadow: 0 30px 90px rgb(0 0 0 / 60%); }
+/* The details: a popover above the ring, like the Claude app's usage popover. */
+dialog.usage-sheet { --agent: var(--codex); position: fixed; inset: 0; margin: auto; width: min(420px, 92vw); height: fit-content; max-height: calc(100dvh - 24px); overflow: clip; padding: 16px 18px 14px; border: 1px solid rgb(255 255 255 / 12%); border-radius: 18px; background: rgb(38 38 40 / 98%); color: var(--text); box-shadow: 0 18px 50px rgb(0 0 0 / 55%); }
+dialog.usage-sheet.is-anchored { inset: auto; margin: 0; }
 dialog.usage-sheet[data-agent=claude] { --agent: var(--claude); }
-dialog.usage-sheet::backdrop { background: rgb(0 0 0 / 50%); backdrop-filter: blur(14px); }
-.usage-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.usage-sheet-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
-.usage-sheet-title i { width: 12px; height: 12px; border-radius: 50%; background: var(--agent); }
-.usage-sheet-plan { margin: 0 0 6px; font-size: 13px; color: var(--label-2); }
-.usage-window { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid rgb(255 255 255 / 8%); }
-.usage-window:first-of-type { border-top: 0; }
-.usage-window-top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 600; }
-.usage-window-top span:last-child { font-variant-numeric: tabular-nums; }
-.usage-window-bar { height: 6px; border-radius: 3px; overflow: hidden; background: rgb(255 255 255 / 10%); }
+dialog.usage-sheet::backdrop { background: rgb(0 0 0 / 22%); backdrop-filter: none; }
+.usage-sheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
+.usage-sheet-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+.usage-sheet-title i { width: 10px; height: 10px; border-radius: 50%; background: var(--agent); }
+.usage-sheet-plan { font-size: 14px; color: var(--label-2); white-space: nowrap; }
+.usage-sheet-section { margin: 12px 0 0; font-size: 14px; font-weight: 700; color: var(--label-2); }
+.usage-window { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; align-items: center; gap: 12px; padding: 8px 0; }
+.usage-window-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.usage-window-name { font-size: 16px; font-weight: 600; }
+.usage-window-reset { font-size: 14px; color: var(--label-2); }
+.usage-window-bar { height: 8px; border-radius: 4px; overflow: hidden; background: rgb(255 255 255 / 12%); }
 .usage-window-bar i { display: block; height: 100%; border-radius: inherit; background: var(--agent); }
 .usage-window.is-warning .usage-window-bar i { background: #ffd60a; } .usage-window.is-full .usage-window-bar i { background: #ff453a; }
-.usage-window-reset { font-size: 13px; color: var(--label-2); }
-.usage-sheet-note { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--label-3); }
-.usage-sheet-note code { font: 600 12px/1 ui-monospace, Consolas, monospace; color: var(--label-2); }
+.usage-window-value { min-width: 72px; text-align: right; font-size: 14px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.usage-sheet-note { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--label-3); }
+.usage-sheet-updated { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / 8%); font-size: 13px; color: var(--label-3); }
 @media (forced-colors: active) { .usage-window-bar i, .usage-ring-dial .mini-ring-fill { forced-color-adjust: none; } .usage-window-bar i { background: Highlight; } }
 /* Steps and background tasks, drawn like the Claude app's */
 .task-steps { margin-top: 10px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 9%); border-radius: 14px; background: rgb(0 0 0 / 14%); }
@@ -790,3 +791,52 @@ html, body { height: 100%; overflow: clip; }
 .widgets[data-layout=widgets] > .actions[data-size=medium] .qa-main { gap: 8px; }
 .widgets[data-layout=widgets] > .actions[data-size=medium] .qa-tile { min-height: 56px; }
 .widgets[data-layout=widgets] > .actions[data-size=medium] .qa-power { min-height: 44px; flex-direction: row; gap: 8px; }
+
+/* ---- Printer rows: the name line on top, picture and details under it; larger type ---- */
+.printer.is-rich:not(.is-live) { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "head head" "figure details"; align-items: center; column-gap: 0; row-gap: 4px; padding: 14px 30px 14px 0; }
+.printer.is-rich:not(.is-live) > .printer-head { grid-area: head; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-left: 26px; }
+.printer.is-rich:not(.is-live) > .printer-figure { grid-area: figure; }
+.printer.is-rich:not(.is-live) > .printer-details { grid-area: details; }
+.printer.is-rich .printer-head .printer-topline { margin: 0; }
+.printer.is-rich .printer-head .printer-model { margin: 0; }
+.deck .printer.is-rich .printer-name { font-size: 24px; letter-spacing: -.4px; }
+.deck .printer.is-rich .printer-topline .badge { font-size: 18px; gap: 8px; }
+.deck .printer.is-rich .printer-topline .badge::before { width: 9px; height: 9px; }
+.deck .printer.is-rich .printer-model { font-size: 16px; }
+.deck .printer.is-rich .printer-job { font-size: 18px; }
+.deck .printer.is-rich .printer-note { font-size: 16px; }
+.deck .printer.is-rich .print-progress-percent { font-size: 26px; }
+.deck .printer.is-rich .print-progress-left { font-size: 17px; }
+.deck .printer.is-rich .print-progress-facts { font-size: 16px; }
+.deck .printer.is-rich .print-progress-status { font-size: 18px; }
+.deck .printer.is-rich .printer-done-title { font-size: 24px; }
+.deck .printer.is-rich .printer-done-percent { font-size: 17px; }
+.deck .printer.is-rich .printer-done-meta { font-size: 16px; }
+/* The loaded filament in a thin frame, its labels readable from a distance. */
+.printer-spools { padding: 10px 14px 12px; border: 1px solid rgb(255 255 255 / 14%); border-radius: 16px; align-self: flex-start; }
+.deck .printer-spool { font-size: 14px; }
+.deck .spool-group-name { font-size: 13px; }
+/* Medium and Tall printers cards: compact, but no smaller type than before. */
+.widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) { padding: 8px 10px 8px 0; row-gap: 2px; }
+.widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) > .printer-head { padding-left: 8px; }
+.widgets[data-layout=widgets] > .printers[data-size=medium] .printer-figure, .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-figure { margin: 0 12px 0 8px; }
+.deck .widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer-name { font-size: 21px; }
+.deck .widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer-topline .badge { font-size: 16px; }
+.deck .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spools { padding: 8px 10px; }
+.deck .printer-mini-name { font-size: 19px; }
+.deck .printer-mini-status { font-size: 16px; }
+/* The picture fills its column (the column, not the picture, sets the size). */
+.printer.is-rich:not(.is-live) { grid-template-columns: clamp(120px, 30%, 196px) minmax(0, 1fr); }
+.printer.is-rich:not(.is-live) > .printer-figure { width: auto; max-width: none; justify-self: stretch; }
+.widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) { grid-template-columns: 84px minmax(0, 1fr); }
+.widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) > .printer-figure { width: auto; max-width: none; }
+/* The agents list shows only whole cards; the rest are counted under it. */
+.task-list { overflow: clip; }
+.task-list > .task[hidden], .task [hidden] { display: none; }
+.task-list-more { flex-shrink: 0; margin: 8px 0 0 4px; font-size: 14px; font-weight: 600; color: var(--label-2); }
+/* Tall printers card: smaller spools so four fit beside the picture. */
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spools { --spool-size: 26px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .spool-group-slots { gap: 5px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool { min-width: 28px; }
+.deck .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool { font-size: 12px; }
+.widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spool i[data-nozzle]::after { min-width: 15px; height: 15px; line-height: 15px; font-size: 9px; right: -6px; bottom: -4px; }

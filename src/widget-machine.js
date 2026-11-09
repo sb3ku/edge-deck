@@ -121,7 +121,8 @@
     if (fill) ctx.glide(`machine:${ctx.card.id}:${ctx.item.id || ''}`, fill, 'strokeDasharray', `${value * 2.639} 263.9`);
     ring.append(svg, ctx.el('strong', `machine-ring-value is-${data.status || 'unknown'}`, centreText(data)));
     const copy = ctx.el('div', 'machine-copy'); copy.setAttribute('aria-hidden', 'true');
-    copy.append(ctx.el('span', 'machine-name', name), ctx.el('span', 'machine-status', statusLine(data, ctx.clock24(), now)));
+    // Ready: the ring already says so, so the line under the name gives the model.
+    copy.append(ctx.el('span', 'machine-name', name), ctx.el('span', 'machine-status', data.status === 'idle' ? `Bambu Lab ${config.model || ''}`.trim() : statusLine(data, ctx.clock24(), now)));
     open.append(ring, copy);
     return open;
   }
@@ -149,7 +150,7 @@
       if (withFigure) box.append(ctx.printerFigure(config.model, { ...data, id: config.id }));
       box.append(factList(ctx, facts(data, ctx.clock24(), now)));
     } else if (status === 'idle') {
-      box.append(headline(ctx, 'Ready to print', 'ready'));
+      // The status is already shown above (row badge or ring); only the filament here.
       box.append(ctx.filamentSpools(data) || ctx.el('p', 'machine-note', 'No filament reported.'));
     } else if (status === 'finished') {
       box.classList.add('is-done');

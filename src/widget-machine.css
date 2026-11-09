@@ -105,3 +105,18 @@
 /* ---- Calm when asked ---- */
 html.low-power .machine-dot { animation: none; }
 @media (prefers-reduced-motion: reduce) { .machine-dot { animation: none; } .machine-hero { transition: none; } }
+
+/* ---- Larger type, readable from a distance ---- */
+.deck .machine-name { font-size: 21px; }
+.deck .machine-status { font-size: 17px; }
+.deck .machine-fact dt { font-size: 16px; }
+.deck .machine-fact dd { font-size: 19px; }
+.deck .machine-headline { font-size: 22px; }
+.deck .machine-sub { font-size: 18px; }
+.deck .machine-job { font-size: 17px; }
+.deck .machine-note { font-size: 17px; }
+.deck .machine-widget .machine-detail .spool-group-name { font-size: 14px; }
+.deck .machine-widget .machine-detail .printer-spool { font-size: 16px; }
+.deck .widgets[data-layout=widgets] > .machine[data-size=large] .machine-detail .printer-spool { font-size: 17px; }
+.machine-widget .machine-detail .printer-spools { padding: 12px 16px 14px; }
+.widgets[data-layout=widgets] > .machine[data-size=tall] .machine-detail .printer-spools { align-self: center; }

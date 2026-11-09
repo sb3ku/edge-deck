@@ -1005,6 +1005,19 @@ function renderTasks(panel) {
   if (tasks.error) { const note = el('p', 'widget-footnote', tasks.error); note.title = tasks.message || ''; panel.append(note); }
   if (tasks.usage?.codex || tasks.usage?.claude) { const usage = el('div', 'task-usage'); usage.setAttribute('role', 'group'); usage.setAttribute('aria-label', 'Usage'); panel.append(usage); }
   updateTaskTimers(); updateTaskUsage();
+  const list = panel.querySelector('.task-list'); if (list) requestAnimationFrame(() => fitTaskList(list));
+}
+// Only whole chat cards show (none cut off at the bottom): when the first one is
+// too tall its step list goes, then cards that do not fit are left out and counted.
+function fitTaskList(list) {
+  if (!list.isConnected || !list.clientHeight) return;
+  const rows = [...list.children].filter(node => node.classList.contains('task'));
+  const fits = row => row.offsetTop - list.offsetTop + row.offsetHeight <= list.clientHeight + 1;
+  if (rows[0] && !fits(rows[0])) for (const extra of rows[0].querySelectorAll('.task-steps, .task-bg, .task-progress-message')) extra.hidden = true;
+  let hidden = 0;
+  for (const row of rows.slice(1)) if (hidden || !fits(row)) { row.hidden = true; hidden++; }
+  list.parentElement?.querySelector(':scope > .task-list-more')?.remove();
+  if (hidden) list.after(el('p', 'task-list-more', `+ ${hidden} more ${hidden === 1 ? 'chat' : 'chats'}`));
 }
 // Plan usage at the foot of the card: a ring per agent with the 5-hour session's
 // used share, like the ring in the Claude app; a tap opens every limit window.
@@ -1024,7 +1037,7 @@ function usageWindows(agent) {
 }
 function usageTone(percent) { return percent >= 100 ? 'is-full' : percent >= 80 ? 'is-warning' : ''; }
 let usageSheet = null;
-function openUsageSheet(agent) {
+function openUsageSheet(agent, source) {
   if (!usageSheet) {
     usageSheet = el('dialog', 'usage-sheet'); usageSheet.id = 'usage-sheet'; usageSheet.setAttribute('aria-labelledby', 'usage-sheet-title');
     usageSheet.addEventListener('click', event => { if (event.target === usageSheet) usageSheet.close(); });
@@ -1034,33 +1047,60 @@ function openUsageSheet(agent) {
   usageSheet.dataset.agent = agent;
   drawUsageSheet(true);
   if (!usageSheet.open) { usageSheet.showModal(); renderApprovals(); }
+  // A popover above the ring that opened it, like the Claude app's (centred without one).
+  const at = source?.getBoundingClientRect?.();
+  if (at?.width) {
+    usageSheet.classList.add('is-anchored');
+    const width = usageSheet.offsetWidth, height = usageSheet.offsetHeight;
+    usageSheet.style.left = Math.max(12, Math.min(innerWidth - width - 12, at.right - width)) + 'px';
+    usageSheet.style.top = Math.max(12, at.top - height - 10) + 'px';
+  } else { usageSheet.style.left = usageSheet.style.top = ''; usageSheet.classList.remove('is-anchored'); }
 }
-// Keeps the open sheet current as readings arrive and minutes pass.
+// "Resets in 3 hr 12 min" / "Resets Mon 10:00", as the Claude app words it.
+function resetPhrase(iso) {
+  const at = Date.parse(iso); if (!Number.isFinite(at)) return '';
+  const minutes = Math.round((at - Date.now()) / 60000);
+  if (minutes <= 0) return 'Resets now';
+  if (minutes < 60) return `Resets in ${minutes} min`;
+  if (minutes < 1440) return `Resets in ${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
+  return `Resets ${new Date(at).toLocaleDateString([], { weekday: 'short' })} ${new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !state.config?.clock24 })}`;
+}
+function updatedPhrase(iso) {
+  const at = Date.parse(iso); if (!Number.isFinite(at)) return '';
+  const minutes = Math.max(0, Math.round((Date.now() - at) / 60000));
+  return `Last updated: ${minutes < 1 ? 'less than a minute ago' : minutes === 1 ? '1 minute ago' : minutes < 60 ? `${minutes} minutes ago` : `${Math.floor(minutes / 60)} hr ago`}`;
+}
+// Keeps the open popover current as readings arrive and minutes pass.
 function drawUsageSheet(force = false) {
   if (!usageSheet || (!usageSheet.open && !force)) return;
   const agent = usageSheet.dataset.agent; if (!USAGE_AGENTS[agent]) return;
   const usage = state.tasks?.usage?.[agent] || {}, windows = usageWindows(agent), name = USAGE_AGENTS[agent];
   const key = JSON.stringify([agent, windows, usage.plan, usage.updatedAt, usage.error, usage.today, Math.floor(Date.now() / 60000)]);
   if (!force && usageSheet.dataset.key === key) return; usageSheet.dataset.key = key;
-  const head = el('div', 'usage-sheet-head'); const title = el('h2', 'usage-sheet-title'); title.id = 'usage-sheet-title'; title.append(el('i'), document.createTextNode(`${name} usage`));
-  head.append(title, button('', () => usageSheet.close(), { className: 'quiet-button', icon: 'close', label: 'Close' }));
-  const parts = [head];
   const plan = usage.plan ? (agent === 'codex' ? `ChatGPT ${usage.plan[0].toUpperCase()}${usage.plan.slice(1)}` : `Claude ${usage.plan}`) : '';
-  const asOf = usage.updatedAt ? `as of ${new Date(usage.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !state.config?.clock24 })}` : '';
-  if (plan || asOf) parts.push(el('p', 'usage-sheet-plan', [plan, asOf].filter(Boolean).join(' · ')));
-  for (const window of windows) {
+  const head = el('div', 'usage-sheet-head'); const title = el('h2', 'usage-sheet-title'); title.id = 'usage-sheet-title'; title.append(el('i'), document.createTextNode(`${name} plan usage limits`));
+  head.append(title); if (plan) head.append(el('span', 'usage-sheet-plan', plan));
+  const parts = [head];
+  const names = { session: 'Current session', weekly: 'All models', 'weekly-sonnet': 'Sonnet only', 'weekly-opus': 'Opus only' };
+  const row = window => {
     const percent = Math.max(0, Math.min(100, window.usedPercent));
-    const row = el('div', `usage-window ${usageTone(percent)}`.trim());
-    const top = el('div', 'usage-window-top'); top.append(el('span', '', window.id === 'session' ? 'Current session' : window.id === 'weekly' ? 'Current week' : window.label), el('span', '', `${Math.round(percent)}% used`));
+    const line = el('div', `usage-window ${usageTone(percent)}`.trim());
+    const copy = el('div', 'usage-window-copy'); copy.append(el('span', 'usage-window-name', names[window.id] || window.label));
+    if (window.resetsAt) copy.append(el('span', 'usage-window-reset', resetPhrase(window.resetsAt)));
     const bar = el('div', 'usage-window-bar'); bar.setAttribute('role', 'meter'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-valuenow', String(Math.round(percent))); bar.setAttribute('aria-label', `${name} ${window.label} limit`);
     const fill = el('i'); fill.style.width = `${percent}%`; bar.append(fill);
-    row.append(top, bar, el('span', 'usage-window-reset', [window.label, window.resetsAt ? resetText(window.resetsAt) : ''].filter(Boolean).join(' · ')));
-    parts.push(row);
-  }
+    line.append(copy, bar, el('span', 'usage-window-value', `${Math.round(percent)}% used`));
+    return line;
+  };
+  // Codex windows carry no id: its 5-hour window is the session, its weekly one "All models".
+  const tagged = windows.map(window => window.id ? window : { ...window, id: window.label === '5-hour' ? 'session' : window.label === 'Weekly' ? 'weekly' : '' });
+  const session = tagged.filter(window => window.id === 'session'), weekly = tagged.filter(window => window.id !== 'session');
+  for (const window of session) parts.push(row(window));
+  if (weekly.length) { parts.push(el('h3', 'usage-sheet-section', 'Weekly limits')); for (const window of weekly) parts.push(row(window)); }
   if (!windows.length) parts.push(el('p', 'usage-sheet-note', usage.error || (agent === 'codex' ? 'Codex reports its limits while it works. Start a Codex chat to see them.' : 'No usage has been reported yet.')));
   else if (usage.error) parts.push(el('p', 'usage-sheet-note', usage.error));
   if (agent === 'claude' && usage.today) parts.push(el('p', 'usage-sheet-note', `Today on this PC: ${compactCount(usage.today.requests)} ${usage.today.requests === 1 ? 'reply' : 'replies'} · ${compactCount(usage.today.output)} tokens written.`));
-  if (agent === 'codex') parts.push(el('p', 'usage-sheet-note', 'From Codex’s own activity on this PC; the figures update while a Codex chat works.'));
+  if (usage.updatedAt) parts.push(el('p', 'usage-sheet-updated', updatedPhrase(usage.updatedAt)));
   usageSheet.replaceChildren(...parts);
 }
 function resetText(iso) {
@@ -1083,11 +1123,13 @@ function updateTaskUsage() {
   const key = JSON.stringify(rings);
   for (const box of boxes) { if (box.dataset.key === key) continue; box.dataset.key = key; box.replaceChildren(...rings.map(ring => {
     const known = Number.isFinite(ring.percent);
-    const item = button('', () => openUsageSheet(ring.agent), { className: `usage-ring${known ? ` ${usageTone(ring.percent)}` : ''}`.trim(),
+    const item = button('', () => openUsageSheet(ring.agent, item), { className: `usage-ring${known ? ` ${usageTone(ring.percent)}` : ''}`.trim(),
       label: known ? `${ring.name} ${ring.label} limit: ${Math.round(ring.percent)} percent used${ring.reset ? `, ${ring.reset}` : ''}. Show details` : `${ring.name} usage: not available. ${ring.detail}`.trim() });
     item.dataset.agent = ring.agent;
-    const dial = el('div', 'usage-ring-dial'); dial.append(printerRing(known ? ring.percent : 0, 'usage'), el('span', `usage-ring-value${known ? '' : ' is-empty'}`, known ? `${Math.round(ring.percent)}%` : '—'));
-    item.append(dial, el('span', 'usage-ring-name', ring.name));
+    // A small plain ring, like the Claude app's; the figures are in the popover.
+    const dial = el('div', 'usage-ring-dial'); dial.append(printerRing(known ? ring.percent : 0, 'usage'));
+    item.title = known ? `${ring.name}: ${Math.round(ring.percent)}% of the ${ring.label} limit` : `${ring.name} usage`;
+    item.append(dial);
     return item;
   })); }
 }
@@ -1459,7 +1501,7 @@ function filamentSpools(data) {
     }
   }
   if (external) group('External', 'External spool').append(spool(external, extruders.find(item => item.hasFilament !== false && item.amsId === 254) || null, 'External spool'));
-  return box;
+  return box.childElementCount ? box : null;
 }
 const PRINTER_FINISHED_MS = 5 * 60000;
 // Printers, Small widget: a progress ring per printer, its name and when it
@@ -1515,10 +1557,13 @@ function printerRow(config) {
     toggle.setAttribute('aria-pressed', String(cameraOn)); row.append(toggle);
   }
   if (cameraOn) { row.append(liveCameraRow(row, config.id, displayName, data)); return row; }
-  const detail = el('div', 'printer-details'); const top = el('div', 'printer-topline');
-  top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); detail.append(top);
+  // The name, model and the one status line sit above the picture and details.
+  const head = el('div', 'printer-head'); const top = el('div', 'printer-topline');
+  top.append(el('h3', 'printer-name', displayName), badge(...(printerLabels[data.status] || ['Unknown', '']))); head.append(top);
   const modelName = `Bambu Lab ${config.model || ''}`.trim();
-  if (String(displayName).trim().toLowerCase() !== modelName.toLowerCase()) detail.append(el('p', 'printer-model', modelName));
+  if (String(displayName).trim().toLowerCase() !== modelName.toLowerCase()) head.append(el('p', 'printer-model', modelName));
+  row.insertBefore(head, row.querySelector('.printer-figure'));
+  const detail = el('div', 'printer-details');
   if (data.status === 'not_configured') {
     detail.append(el('p', 'printer-note', 'Connect over your local network.'), button('Connect printer', () => showSettings('printers'), { className: 'button subtle' }));
   } else if (active) {
@@ -1535,9 +1580,8 @@ function printerRow(config) {
     const meta = el('div', 'printer-done-meta'); meta.append(el('span', '', [data.finishedAt ? `Finished ${agoText(data.finishedAt)}` : 'Print finished', took ? `took ${took}` : ''].filter(Boolean).join(' · ')), el('span', '', 'Clear the plate'));
     done.append(head, bar, meta); detail.append(done);
   } else if (data.status === 'idle') {
-    // Ready: a calm status line and the loaded filament.
-    const ready = el('p', 'printer-ready'); ready.append(el('i', 'printer-ready-dot'), document.createTextNode('Ready to print')); detail.append(ready);
-    const spools = filamentSpools(data); if (spools) detail.append(spools);
+    // Ready (the status above says so): the loaded filament.
+    const spools = filamentSpools(data); detail.append(spools || el('p', 'printer-note', 'No filament reported.'));
   } else {
     if (data.message) detail.append(el('p', 'printer-note', data.message));
   }
