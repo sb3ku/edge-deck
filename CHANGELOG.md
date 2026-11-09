@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.18.0
 
 - **Filament by AMS.** The Printers card and the Printer widget show each AMS on its own row with its four slots (empty ones too), then the external spool, with a spool look for the colours. The loaded spool is marked; on the H2D the mark says which nozzle (L or R). A slot whose colour was never set shows a striped spool. The printer panel's Filament tab shows the external spool as well.
 - Widgets no longer carry a header line (the printer count, "1 working", the uptime): their content has that room. Printer pictures (and the model being printed) sit further from the card's edge and from the text beside them.
