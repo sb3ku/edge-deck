@@ -1,0 +1,174 @@
+/* Details, Daily forecast and Sunrise and sunset widgets (src/widget-weather-kinds.js).
+   Plain dark cards like the iOS night widgets: a soft blue sky by day, a subtle
+   blue night, neutral grey without data. Shared pieces use .wxk-*; each widget
+   has its own prefix. The base rules are the Small layout; Medium follows the
+   card's data-size. Nothing scrolls and nothing animates. */
+.widgets[data-layout=widgets] > :is(.rain-wind, .daily-forecast, .sun-path) { background: linear-gradient(180deg, #2c2c2e, #1c1c1e); color: #fff; }
+.widgets[data-layout=widgets] > :is(.rain-wind, .daily-forecast, .sun-path):has(.wxk-root.is-night) { background: linear-gradient(180deg, #2b3144, #181b28); }
+.widgets[data-layout=widgets] > :is(.rain-wind, .daily-forecast, .sun-path):has(.wxk-root.is-day) { background: linear-gradient(180deg, #4d7db3, #2f5a8e); }
+
+.wxk-root { --wxk-dim: rgb(255 255 255 / 68%); --wxk-line: rgb(255 255 255 / 16%); flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: clip; font-variant-numeric: tabular-nums; }
+.wxk-root.is-day { --wxk-dim: rgb(255 255 255 / 80%); --wxk-line: rgb(255 255 255 / 24%); }
+.wxk-root p, .wxk-root dl, .wxk-root dd { margin: 0; }
+.wxk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }
+.wxk-id { min-width: 0; }
+.wxk-city { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 600; line-height: 1.2; min-width: 0; }
+.wxk-city-name { overflow: clip; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wxk-arrow { width: 13px; height: 13px; flex: none; fill: currentColor; }
+.wxk-temp { font-size: 54px; font-weight: 300; line-height: 1.05; letter-spacing: -.03em; }
+.wxk-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-size: 17px; font-weight: 600; line-height: 1.25; }
+.wxk-icon { width: 28px; height: 28px; flex: none; }
+.wxk-side > .wxk-icon { margin-bottom: 2px; }
+.wxk-condition { color: var(--wxk-dim); font-weight: 500; font-size: 17px; }
+.wxk-range { font-size: 17px; }
+.wxk-empty { display: flex; flex: 1 1 auto; width: 100%; min-height: 48px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 18px; background: transparent; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+.wxk-empty .empty-content { gap: 4px; }
+
+/* ---- Details ---- */
+.rain-wind-widget { gap: 0; }
+.rain-wind-main { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.rain-wind-facts { display: flex; flex-direction: column; gap: 10px; }
+.rain-wind-label { font-size: 17px; font-weight: 700; line-height: 1.2; }
+.rain-wind-value { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; line-height: 1.3; color: var(--wxk-dim); }
+.rain-wind-more { display: none; margin: 0; }
+.widgets[data-layout=widgets] > .rain-wind[data-size=small] .rain-wind-widget .wxk-temp { font-size: 52px; }
+.widgets[data-layout=widgets] > .rain-wind[data-size=medium] .rain-wind-widget { flex-direction: row; gap: 28px; }
+.widgets[data-layout=widgets] > .rain-wind[data-size=medium] .rain-wind-main { flex: 0 0 46%; }
+.widgets[data-layout=widgets] > .rain-wind[data-size=medium] .rain-wind-more { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-evenly; padding-left: 28px; border-left: 1px solid var(--wxk-line); }
+.rain-wind-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--wxk-line); }
+.rain-wind-row:last-child { border-bottom: 0; }
+.rain-wind-row-label { font-size: 18px; font-weight: 600; }
+.rain-wind-row-value { font-size: 20px; font-weight: 500; color: var(--wxk-dim); text-align: right; white-space: nowrap; }
+
+/* ---- Daily forecast ---- */
+.daily-forecast-days { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 0; }
+.daily-forecast-day { display: grid; grid-template-columns: 44px 26px 36px minmax(0, 1fr) 40px; align-items: center; column-gap: 8px; min-height: 36px; border-top: 1px solid var(--wxk-line); font-size: 17px; }
+.daily-forecast-day .wxk-icon { width: 24px; height: 24px; }
+.daily-forecast-name { font-weight: 600; }
+.daily-forecast-low { color: var(--wxk-dim); text-align: right; font-weight: 500; }
+.daily-forecast-high { text-align: right; font-weight: 600; }
+.daily-forecast-track { position: relative; height: 5px; border-radius: 3px; background: rgb(255 255 255 / 20%); overflow: clip; }
+.daily-forecast-lit { position: absolute; top: 0; bottom: 0; left: var(--start); width: var(--size); border-radius: 3px; background: linear-gradient(90deg, #7fd1ff, #ffd25a); }
+.daily-forecast-missing { align-self: center; color: var(--wxk-dim); font-size: 15px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=small] .daily-forecast-widget .wxk-temp { font-size: 46px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=small] .daily-forecast-widget { gap: 4px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-widget .wxk-head { padding-bottom: 8px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-widget .wxk-side { margin-top: -2px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-widget .wxk-side > .wxk-icon { display: none; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-days { flex-direction: row; justify-content: stretch; align-items: stretch; gap: 0; border-top: 1px solid var(--wxk-line); padding-top: 8px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-day { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 5px; padding-block: 2px; border-top: 0; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-day .wxk-icon { width: 30px; height: 30px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-high { order: 3; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-track { order: 4; flex: 1 1 auto; width: 5px; height: auto; min-height: 24px; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-low { order: 5; }
+.widgets[data-layout=widgets] > .daily-forecast[data-size=medium] .daily-forecast-lit { left: 0; right: 0; width: auto; top: auto; bottom: var(--start); height: var(--size); background: linear-gradient(0deg, #7fd1ff, #ffd25a); }
+
+/* ---- Sunrise and sunset ---- */
+.sun-path-widget { gap: 0; }
+.sun-path-label { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 700; letter-spacing: .02em; line-height: 1.2; color: var(--wxk-dim); }
+.sun-path-glyph { width: 22px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sun-path-time { font-size: 44px; font-weight: 500; line-height: 1.1; letter-spacing: -.02em; }
+.sun-path-curve { display: block; width: 100%; height: auto; flex: 1 1 auto; min-height: 0; overflow: visible; }
+.sun-path-horizon { stroke: rgb(255 255 255 / 55%); stroke-width: 1.5; }
+.sun-path-below { fill: none; stroke: rgb(255 255 255 / 28%); stroke-width: 3; stroke-linecap: round; }
+.sun-path-above { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sun-path-area { fill: rgb(255 255 255 / 10%); stroke: none; }
+.sun-path-glow { fill: rgb(255 220 130 / 40%); }
+.sun-path-dot { fill: #fff; stroke: rgb(255 255 255 / 70%); stroke-width: 1.5; }
+.sun-path-sun { filter: drop-shadow(0 0 7px rgb(255 214 120 / 90%)); }
+.sun-path-sun.is-below { filter: drop-shadow(0 0 5px rgb(180 200 255 / 60%)); }
+.sun-path-sun.is-below .sun-path-glow { fill: rgb(180 200 255 / 25%); }
+.sun-path-other { font-size: 17px; font-weight: 500; line-height: 1.2; color: var(--wxk-dim); }
+.widgets[data-layout=widgets] > .sun-path[data-size=small] .sun-path-widget { justify-content: space-between; }
+.widgets[data-layout=widgets] > .sun-path[data-size=small] .sun-path-curve { flex: 0 0 auto; margin-block: 4px; }
+.sun-path-top, .sun-path-ends { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.sun-path-daylight { text-align: right; }
+.sun-path-length { font-size: 20px; font-weight: 600; line-height: 1.25; }
+.sun-path-change { font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--wxk-dim); }
+.sun-path-end { display: flex; flex-direction: column; gap: 1px; }
+.sun-path-end.is-sunset { text-align: right; }
+.sun-path-end-label { font-size: 15px; font-weight: 600; color: var(--wxk-dim); }
+.sun-path-end-time { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.widgets[data-layout=widgets] > .sun-path[data-size=medium] .sun-path-widget { justify-content: space-between; }
+.widgets[data-layout=widgets] > .sun-path[data-size=medium] .sun-path-curve { flex: 0 0 auto; }
+.widgets[data-layout=widgets] > .sun-path[data-size=medium] .sun-path-time { font-size: 44px; }
+
+/* The glow is static already; keep it so in low power (nothing here animates). */
+html.low-power .sun-path-sun { filter: none; }
+@media (prefers-reduced-motion: reduce) { .wxk-root *, .wxk-empty { transition: none !important; animation: none !important; } }
+
+/* ---- Forecast (iOS Forecast widget, 'weather' card): Small, Medium, Large ----
+   The gradient fills the whole card (host padding zeroed); the root pads like iOS.
+   The whole widget is one button; nothing scrolls and nothing animates. */
+.widgets[data-layout=widgets] > .container-card.weather { padding: 0; overflow: clip; color: #fff; background: linear-gradient(180deg, #3a82f7, #5ba6ff); }
+.widgets[data-layout=widgets] > .container-card.weather .card-body { overflow: clip; padding: 0; }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=clear-night]) { background: linear-gradient(180deg, #0d1a3a, #23305a); }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=cloudy-day]) { background: linear-gradient(180deg, #6a7f95, #8a9db0); }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=cloudy-night]) { background: linear-gradient(180deg, #1f2733, #2e3846); }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=rain]) { background: linear-gradient(180deg, #3b4a5e, #56677d); }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=snow]) { background: linear-gradient(180deg, #6f86a3, #9fb3c8); }
+.widgets[data-layout=widgets] > .container-card.weather:has([data-sky=fog]) { background: linear-gradient(180deg, #7b8794, #a3adb8); }
+.widgets[data-layout=widgets] > .container-card.weather:has(.wxk-empty) { background: linear-gradient(180deg, #2c2c2e, #1c1c1e); }
+
+.wxf-root { flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: clip; font-variant-numeric: tabular-nums; --wxk-dim: rgb(255 255 255 / 75%); --wxk-line: rgb(255 255 255 / 22%); appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; color: #fff; font: inherit; text-align: left; cursor: pointer; padding: 18px 20px; gap: 0; transition: transform 120ms ease; -webkit-tap-highlight-color: transparent; }
+.wxf-root:active { transform: scale(.98); }
+.wxf-root:focus-visible { outline: 2px solid rgb(255 255 255 / 85%); outline-offset: -4px; }
+.wxf-root p { margin: 0; }
+.wxf-root .wxk-icon { width: 30px; height: 30px; }
+.wxf-root .weather-icon { filter: drop-shadow(0 1px 2px rgb(0 0 0 / 14%)); }
+.wxf-city { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 20px; font-weight: 600; line-height: 1.2; }
+.wxf-city .wxk-arrow { width: 13px; height: 13px; }
+.wxf-temp { font-size: 64px; font-weight: 300; line-height: 1.02; letter-spacing: -.02em; }
+.wxf-condition, .wxf-range { font-size: 17px; font-weight: 600; line-height: 1.25; }
+.wxf-condition { color: #fff; }
+.wxf-missing { align-self: center; color: var(--wxk-dim); font-size: 15px; }
+
+/* Small */
+.wxf-root[data-size=small] { justify-content: space-between; }
+.wxf-root[data-size=small] .wxf-temp { margin-top: -2px; }
+.wxf-foot { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin-top: auto; }
+.wxf-foot .wxk-icon { width: 28px; height: 28px; margin-bottom: 2px; }
+.wxf-root[data-size=small] .wxf-city { font-size: 19px; }
+.wxf-root[data-size=small] .wxf-temp { flex: 1 1 auto; }
+
+/* Medium and Large: header, hairline, hourly strip */
+.wxf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; min-width: 0; }
+.wxf-id { min-width: 0; }
+.wxf-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.wxf-side .wxk-icon { margin-bottom: 2px; }
+.wxf-hours { display: flex; align-items: stretch; justify-content: space-between; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--wxk-line); }
+.wxf-hour { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 16px; line-height: 1.2; }
+.wxf-hour-label { color: var(--wxk-dim); font-weight: 600; font-size: 16px; }
+.wxf-hour-temp { font-weight: 600; font-size: 19px; }
+.wxf-hour .wxk-icon, .wxf-hour .wxf-sun { height: 30px; }
+.wxf-sun { width: 34px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wxf-root[data-size=medium] { padding-top: 16px; }
+
+/* Large: five day rows */
+.wxf-days { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-top: 12px; border-top: 1px solid var(--wxk-line); }
+.wxf-day { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 52px 56px 44px minmax(0, 1fr) 44px; align-items: center; column-gap: 10px; font-size: 20px; font-weight: 600; }
+.wxf-day + .wxf-day { border-top: 1px solid var(--wxk-line); }
+.wxf-day-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.wxf-day-icon .wxk-icon { width: 30px; height: 30px; }
+.wxf-chance { margin-top: 1px; color: #8fd3ff; font-size: 13px; font-weight: 600; line-height: 1; }
+.wxf-low { color: var(--wxk-dim); text-align: right; }
+.wxf-high { text-align: right; }
+.wxf-track { position: relative; height: 5px; border-radius: 3px; background: rgb(0 0 0 / 22%); }
+.wxf-lit { position: absolute; top: 0; bottom: 0; left: calc(var(--start) * 100%); width: calc(var(--size) * 100%); border-radius: 3px; background-image: linear-gradient(90deg, #5ac8fa, #4cd964, #ffcc00, #ff9500); background-size: calc(100% / var(--size)) 100%; background-position: var(--pos) 0; background-repeat: no-repeat; }
+.wxf-dot { position: absolute; top: 50%; left: calc(var(--at) * 100%); width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgb(0 0 0 / 25%); }
+.wxf-root[data-size=medium] .wxf-hours { flex: 1 1 auto; min-height: 0; margin-top: 12px; padding-top: 0; }
+.wxf-root[data-size=medium] .wxf-hour { justify-content: space-evenly; gap: 0; }
+.wxf-root[data-size=medium] .wxf-head { padding-bottom: 12px; border-bottom: 1px solid var(--wxk-line); }
+.wxf-root[data-size=medium] .wxf-hours { border-top: 0; }
+.wxf-root[data-size=small] .wxf-temp { font-size: 72px; }
+.wxf-root[data-sky=clear-day] .wxf-chance { color: #d9f0ff; }
+.widgets[data-layout=widgets] > .container-card.weather .wxk-empty { padding: 18px 20px; } .widgets[data-layout=widgets] > .container-card.weather .wxk-empty .empty-content { align-items: center; text-align: center; }
+
+/* Edge Deck's living sky behind every weather widget (instead of the flat iOS gradients above). */
+.widgets[data-layout=widgets] > :is(.weather, .rain-wind, .daily-forecast, .sun-path):has(> .card-body.has-sky:not([hidden])) { isolation: isolate; background: #1c2029; }
+.card-body.has-sky > .wx-backdrop { position: absolute; inset: 0; z-index: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.card-body.has-sky > .wx-backdrop > .sky { z-index: 0; border-radius: inherit; }
+.card-body.has-sky > :is(.wxk-root, .wxf-root) { position: relative; z-index: 1; text-shadow: 0 1px 3px rgb(0 0 0 / 28%); }
+/* Keep the top-right condition readable over the sun. */
+.card-body.has-sky > .wx-backdrop .sky[data-sun] .sky-sun { opacity: .45; transform: translate(42%, -46%); }
+.card-body.has-sky > :is(.wxk-root, .wxf-root) :is(.wxf-side, .wxk-side) { text-shadow: 0 1px 6px rgb(0 0 0 / 38%); }

@@ -1,0 +1,52 @@
+/* Analog, City and World clock widgets (iOS Clock look). Everything is scoped under
+   .dial-widget, .city-widget and .world-clock-widget; the faces are 100-unit SVGs. */
+.container-card.dial, .container-card.city, .container-card.world-clock { background: linear-gradient(180deg, #1c1c1e 0%, #000 100%); border-color: rgb(255 255 255 / 8%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 10px 30px rgb(0 0 0 / 35%); }
+.widgets[data-layout=widgets] > .container-card.dial[data-size],
+.widgets[data-layout=widgets] > .container-card.city[data-size] { padding: 0; }
+.widgets[data-layout=widgets] > .container-card.world-clock[data-size] { padding: 0; }
+.container-card.dial .card-body, .container-card.city .card-body, .container-card.world-clock .card-body { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: clip; }
+
+.dc-root { --dc-ink: #fff; --dc-dim: rgb(255 255 255 / 30%); --dc-orange: #ff9f0a; flex: 1; min-width: 0; min-height: 0; display: grid; place-items: center; overflow: clip; border-radius: inherit; user-select: none; -webkit-user-select: none; container-type: size; font-family: "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; }
+.dc-root .dc-face { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); overflow: visible; }
+.dial-widget[data-size=large] .dc-face { width: min(85cqw, 85cqh); height: min(85cqw, 85cqh); }
+
+.dc-root .dc-tick { stroke: rgb(255 255 255 / 62%); stroke-width: .55; stroke-linecap: butt; }
+.dc-root .dc-tick-major { stroke: #fff; stroke-width: .9; }
+.dc-root .dc-tick-hour { stroke: #fff; stroke-width: 1.6; }
+.dc-root .dc-bar { stroke: #fff; stroke-width: 3.2; stroke-linecap: round; }
+.dc-root .dc-numeral { fill: #fff; font-size: 9.5px; font-weight: 600; }
+.dc-root .dc-quarters .dc-numeral { font-size: 17px; font-weight: 700; }
+.world-clock-widget .dc-numeral { font-size: 8.4px; }
+.dc-root .dc-code, .dc-root .dc-diff { fill: rgb(255 255 255 / 92%); font-size: 6.4px; font-weight: 700; letter-spacing: .02em; }
+.dc-root .dc-diff { fill: rgb(255 255 255 / 55%); }
+.world-clock-widget .dc-code { font-size: 7.2px; }
+
+.dc-root .dc-hand-edge { stroke: rgb(0 0 0 / 85%); stroke-linecap: round; }
+.dc-root .dc-hand-fill { stroke: #fff; stroke-linecap: round; }
+.dc-root .dc-hour .dc-hand-edge { stroke-width: 5.6; } .dc-root .dc-hour .dc-hand-fill { stroke-width: 3.6; }
+.dc-root .dc-minute .dc-hand-edge { stroke-width: 4.8; } .dc-root .dc-minute .dc-hand-fill { stroke-width: 2.8; }
+.dc-root .dc-second .dc-hand-edge { stroke-width: 0; } .dc-root .dc-second .dc-hand-fill { stroke: var(--dc-orange); stroke-width: .8; }
+.world-clock-widget .dc-hour .dc-hand-edge { stroke-width: 6.2; } .world-clock-widget .dc-hour .dc-hand-fill { stroke-width: 4.2; }
+.world-clock-widget .dc-minute .dc-hand-edge { stroke-width: 5.2; } .world-clock-widget .dc-minute .dc-hand-fill { stroke-width: 3.2; }
+.dc-root .dc-cap { fill: #fff; stroke: rgb(0 0 0 / 85%); stroke-width: 1; }
+.dc-root .dc-cap-dot { fill: var(--dc-orange); }
+.dc-root[data-seconds=off] .dc-second { display: none; }
+.dc-root[data-seconds=off] .dc-cap-dot { fill: #000; }
+
+.dc-root .dc-ring-tick { stroke: var(--dc-dim); stroke-width: .9; stroke-linecap: round; }
+.dc-root .dc-ring-major { stroke-width: 1.2; }
+.dc-root .dc-ring-tick.is-lit { stroke: #fff; }
+.dc-root .dc-time { fill: #fff; font-family: "Bahnschrift", "Roboto Condensed", "Arial Narrow", "Segoe UI", sans-serif; font-variation-settings: "wdth" 75, "wght" 700; font-stretch: 75%; font-weight: 700; font-size: 35px; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.01em; }
+.dc-root .dc-time-city { font-size: 30px; }
+
+/* World clock: Small is a 2 x 2 grid, Medium a row of four with names under the dials. */
+.world-clock-widget[data-layout=grid] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; place-items: stretch; padding: 4cqh 4cqw; gap: 0; }
+.world-clock-widget[data-layout=grid] .wc-cell { display: grid; place-items: center; min-width: 0; min-height: 0; }
+.world-clock-widget[data-layout=grid] .dc-face { width: min(46cqw, 46cqh); height: min(46cqw, 46cqh); }
+.world-clock-widget[data-layout=row] { grid-template-columns: repeat(4, 1fr); place-items: center stretch; padding: 0 3.5cqw; gap: 0 1cqw; }
+.world-clock-widget .wc-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-width: 0; line-height: 1.22; }
+.world-clock-widget[data-layout=row] .dc-face { width: min(21cqw, 46cqh); height: min(21cqw, 46cqh); margin-bottom: 4cqh; }
+.world-clock-widget .wc-name { max-width: 100%; overflow: clip; text-overflow: clip; white-space: nowrap; color: #fff; font-size: min(3.7cqw, 7cqh); font-weight: 600; }
+.world-clock-widget .wc-day, .world-clock-widget .wc-hours { color: rgb(255 255 255 / 55%); font-size: min(3.4cqw, 6.4cqh); font-weight: 600; white-space: nowrap; }
+.dc-root .dc-face text { stroke: none; stroke-width: 0; }
+.dc-root .dc-face line { fill: none; }

@@ -46,7 +46,7 @@ async function verifyCardFrames(page){
 
     const current=(await page.evaluate(()=>window.edge.getState())).config;
     current.widgets.reverse();await page.evaluate(value=>window.edge.saveConfig(value),current);
-    await page.waitForFunction(()=>document.querySelector('#widgets').firstElementChild.dataset.id==='frame-clock');
+    await page.waitForFunction(()=>document.querySelector('#widgets .page-grid > .container-card')?.dataset.id==='frame-clock');
     assert.equal(await page.evaluate(()=>typeof document.querySelector('#widgets').moveBefore),'function');
     assert.equal(await frame.evaluate(()=>window.edgeDeckTestMarker),'preserved','State-preserving reordering retains the website browsing context');
     assert.equal(loads,expectedLoads);

@@ -21,24 +21,30 @@
   <link rel="stylesheet" href="widget-switch.css">
   <link rel="stylesheet" href="widget-timer.css">
   <link rel="stylesheet" href="widget-machine.css">
+  <link rel="stylesheet" href="widget-weather-kinds.css">
+  <link rel="stylesheet" href="widget-clocks.css">
+  <link rel="stylesheet" href="home-screen.css">
 </head>
 <body>
   <div class="deck">
     <h1 class="sr-only">Edge Deck</h1>
-    <main id="widgets" class="widgets" aria-label="Dashboard widgets"></main>
+    <main id="widgets" class="home-pages" aria-label="Widgets"></main>
+    <p id="page-live" class="sr-only" aria-live="polite"></p>
     <div class="deck-bottom">
       <div class="deck-controls">
         <button id="deck-menu" class="deck-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="deck-menu-list" aria-label="Edge Deck menu"><img class="brand-mark" src="assets/app/edge-deck.svg" alt="" aria-hidden="true" width="26" height="26"></button>
         <div id="deck-menu-list" class="deck-menu" role="menu" hidden>
           <button id="customize" class="deck-menu-item" role="menuitem"><span id="settings-icon" aria-hidden="true"></span>Customize</button>
-          <button id="edit-layout" class="deck-menu-item" role="menuitem" aria-pressed="false">Edit layout</button>
+          <button id="add-widget" class="deck-menu-item" role="menuitem">Add widget</button>
+          <button id="edit-layout" class="deck-menu-item" role="menuitem" aria-pressed="false">Edit Home Screen</button>
           <button id="fullscreen" class="deck-menu-item" role="menuitem" title="Toggle full screen" aria-label="Toggle full screen"></button>
         </div>
+        <button id="widget-add" class="deck-add" aria-label="Add widget" title="Add widget" hidden></button>
         <button id="layout-done" class="button primary deck-done" hidden>Done</button>
         <span id="connection-label" class="connection-label">Starting…</span>
       </div>
       <footer id="launchers" class="launchers" aria-label="App shortcuts"></footer>
-      <nav id="page-tabs" class="deck-bottom-end page-tabs" aria-label="Pages"></nav>
+      <nav id="page-tabs" class="deck-bottom-end page-dots" aria-label="Pages"></nav>
     </div>
   </div>
   <dialog id="settings" aria-labelledby="settings-title">
@@ -72,6 +78,9 @@
   <script src="layout-engine.js" defer></script>
   <script src="layout-ui.js" defer></script>
   <script src="card-drag.js" defer></script>
+  <script src="widget-weather-kinds.js" defer></script>
+  <script src="widget-clocks.js" defer></script>
+  <script src="widget-gallery.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>

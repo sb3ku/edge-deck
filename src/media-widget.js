@@ -375,7 +375,7 @@
       search, add, refresh, setup, connection, connectionCopy, connect, form, name, link, save, cancel, list, empty, emptyTitle, emptyCopy, libraryHelp,
       home, shelves, homeNotice, homeNoticeCopy, reconnect, homeHelp, results, resultsList, resultsHelp, listLabel,
       detail, detailArt, detailTitle, detailMeta, detailPlay, detailList, detailHelp, toolbar, sheet, deviceList, sheetHelp, feedback };
-    view.rows = new Map(); view.container.replaceChildren(root);
+    view.rows = new Map(); buildCompact(view); view.container.replaceChildren(root, view.rp.root);
   }
 
   // The page under the player: the current one, or the last one while the player is open.
@@ -470,7 +470,7 @@
     if (mounted(view)) updateLibrary(view);
     try { view.home = await view.context.bridge.spotifyBrowse('home', force); }
     catch (error) { view.homeError = safeMessage(error); }
-    finally { view.homeLoading = false; if (mounted(view)) updateLibrary(view); }
+    finally { view.homeLoading = false; if (mounted(view)) { updateLibrary(view); updateCompact(view); } }
   }
   // Library playlists filter as you type; Spotify is searched once typing pauses.
   function scheduleSearch(view, immediate = false) {
@@ -749,11 +749,123 @@
     n.libraryHelp.hidden = !n.libraryHelp.textContent;
   }
 
+  // ---- Recently Played (Small, Medium, Large) -----------------------------
+  // Like Spotify's iOS "Recently Played" widget: the song with a play button,
+  // and on Medium and Large a progress line over tiles for DJ, Liked Songs and
+  // what you played lately. Tall keeps the full player above; it is one card, so
+  // both views live in the card body and only one is shown.
+  const TILE_SLOTS = { small: 0, medium: 4, large: 8 };
+  // DJ and Liked Songs lead; recents, then saved playlists and albums fill the rest.
+  function recentTiles(home, saved, size) {
+    const slots = TILE_SLOTS[size] || 0; if (!slots) return [];
+    const liked = home?.liked && typeof home.liked.uri === 'string' ? home.liked : null;
+    const seen = new Set([DJ_URI, liked?.uri]);
+    const rest = [home?.recent, saved, home?.albums].flatMap(list => Array.isArray(list) ? list : [])
+      .filter(item => item && typeof item.uri === 'string' && !seen.has(item.uri) && seen.add(item.uri));
+    return [{ kind: 'dj' }, ...(liked ? [{ kind: 'liked', item: liked }] : []), ...rest.map(item => ({ kind: 'item', item }))].slice(0, slots);
+  }
+  // Compact sizes only apply on the widget grid.
+  function sizeOf(view) {
+    const card = view.container.closest?.('.container-card'); const size = card?.dataset.size;
+    // Small and Medium are Recently played; Large and Tall are the full player with Canvas.
+    return ['small', 'medium'].includes(size) && card.closest('.widgets')?.dataset.layout === 'widgets' ? size : 'tall';
+  }
+  function svgNode(tag, attributes) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [key, value] of Object.entries(attributes || {})) node.setAttribute(key, value); return node;
+  }
+  function spotifyLogo() {
+    const svg = svgNode('svg', { viewBox: '0 0 24 24', class: 'emw-rp-logo', 'aria-hidden': 'true' });
+    svg.append(svgNode('circle', { cx: 12, cy: 12, r: 12, fill: '#1ed760' }));
+    for (const d of ['M5.9 9.2c4.1-1.2 8.7-.9 12.3 1.2', 'M6.8 12.7c3.3-.9 6.8-.6 9.9 1.2', 'M7.7 16c2.6-.7 5.2-.4 7.6 1']) svg.append(svgNode('path', { d, fill: 'none', stroke: '#121212', 'stroke-width': 1.9, 'stroke-linecap': 'round' }));
+    return svg;
+  }
+  function buildCompact(view) {
+    const root = el('section', 'emw-rp'); root.setAttribute('aria-label', 'Recently played'); root.hidden = true;
+    const top = el('div', 'emw-rp-top'); const art = cover('emw-rp-art');
+    const coverButton = el('button', 'emw-rp-cover'); coverButton.type = 'button'; coverButton.append(art.root); coverButton.addEventListener('click', () => togglePlay(view));
+    const copy = el('div', 'emw-rp-copy'); const title = el('h3', 'emw-rp-title'); const artist = el('p', 'emw-rp-artist'); copy.append(title, artist);
+    const side = el('div', 'emw-rp-side'); const play = el('button', 'emw-rp-play'); play.type = 'button'; play.addEventListener('click', () => togglePlay(view));
+    side.append(spotifyLogo(), play); top.append(coverButton, copy, side);
+    const bar = el('div', 'emw-rp-progress'); bar.setAttribute('aria-hidden', 'true'); const fill = el('i'); bar.append(fill);
+    const tiles = el('div', 'emw-rp-tiles'); tiles.setAttribute('role', 'list'); tiles.setAttribute('aria-label', 'Recently played');
+    root.append(top, bar, tiles);
+    view.rp = { root, art, coverButton, title, artist, play, fill, tiles };
+  }
+  function compactTile(view, spec) {
+    const node = el('button', `emw-rp-tile is-${spec.kind}`); node.type = 'button'; node.setAttribute('role', 'listitem');
+    const art = el('span', 'emw-rp-tile-art'); node.append(art);
+    if (spec.kind === 'dj') {
+      const ring = svgNode('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' });
+      ring.append(svgNode('circle', { cx: 12, cy: 12, r: 7.5, fill: 'none', stroke: '#fff', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-dasharray': '38 9', transform: 'rotate(-60 12 12)' }));
+      art.append(ring); node.append(el('span', 'emw-rp-tile-beta', 'BETA'), el('span', 'emw-rp-tile-label', 'DJ'));
+      node.setAttribute('aria-label', 'Play DJ, your personal AI DJ on Spotify'); node.title = 'DJ';
+      node.addEventListener('click', () => playPlaylist(view, { uri: DJ_URI, name: 'DJ', type: 'playlist' }));
+    } else if (spec.kind === 'liked') {
+      art.append(icon('heart')); node.append(el('span', 'emw-rp-tile-label', 'Liked Songs'));
+      node.setAttribute('aria-label', 'Play Liked Songs'); node.title = 'Liked Songs';
+      node.addEventListener('click', () => playPlaylist(view, spec.item));
+    } else {
+      const picture = cover('emw-rp-tile-cover'); updateCover(picture, spec.item.artwork, ''); art.append(picture.root);
+      node.append(el('span', 'emw-rp-tile-label', spec.item.name));
+      node.setAttribute('aria-label', `Play ${spec.item.name}, ${describe(spec.item)}`); node.title = spec.item.name;
+      node.addEventListener('click', () => playPlaylist(view, spec.item));
+    }
+    return node;
+  }
+  function updateCompact(view) {
+    const rp = view.rp; if (!rp || !view.nodes) return;
+    const size = sizeOf(view); const compact = size !== 'tall';
+    view.root.hidden = compact; rp.root.hidden = !compact;
+    if (!compact) return;
+    const state = snapshot(view); const media = state.media || {}; const spotify = state.spotify || {};
+    const player = effective(view); const api = spotifyPlayer(view);
+    const has = player.mode === 'spotify' || !!media.connected;
+    const title = player.mode === 'spotify' ? api.track.name : media.title || 'Untitled track';
+    const artist = player.mode === 'spotify' ? api.track.artists || 'Unknown artist' : media.artist || 'Artist not reported';
+    const image = player.mode === 'spotify' ? api.track.artwork : media.connected ? media.artwork : '';
+    rp.root.dataset.size = size; rp.root.dataset.mode = player.mode; rp.root.classList.toggle('is-idle', !has);
+    const shownTitle = has ? title : 'Nothing playing';
+    if (rp.title.textContent !== shownTitle) rp.title.textContent = shownTitle;
+    rp.title.title = shownTitle;
+    rp.artist.textContent = has ? artist : spotify.connected && size !== 'small' ? 'Choose something below' : 'Open Spotify or a media app';
+    updateCover(rp.art, has ? image : '', has ? `Cover for ${title}` : '');
+    const label = has ? `${player.isPlaying ? 'Pause' : 'Play'} ${title}` : 'Play';
+    const unavailable = player.mode !== 'spotify' && !(typeof view.context.bridge?.media === 'function' && media.connected);
+    for (const node of [rp.play, rp.coverButton]) { node.setAttribute('aria-label', label); node.title = label; node.disabled = unavailable; }
+    setIcon(rp.play, player.isPlaying ? 'pause' : 'play');
+    rp.root.classList.toggle('is-playing', !!player.isPlaying);
+    if (size === 'small') return;
+    // Tiles: DJ, Liked Songs and recents with Spotify; one Connect tile without it.
+    let specs = null;
+    if (spotify.connected) {
+      const saved = library(view).map(item => ({ ...item, type: 'playlist', subtitle: item.subtitle || 'Playlist' }));
+      specs = recentTiles(view.home, saved, size);
+      // While Home loads, grey placeholders hold the places (DJ is always there).
+      if (!view.home && !view.homeError) while (specs.length < TILE_SLOTS[size]) specs.push({ kind: 'empty' });
+    }
+    const signature = specs ? size + JSON.stringify(specs.map(spec => [spec.kind, spec.item?.uri, spec.item?.name, !!spec.item?.artwork])) : 'connect';
+    if (rp.tiles.dataset.signature !== signature) {
+      rp.tiles.dataset.signature = signature;
+      if (specs) rp.tiles.replaceChildren(...specs.map(spec => {
+        if (spec.kind !== 'empty') return compactTile(view, spec);
+        const blank = el('span', 'emw-rp-tile is-empty'); blank.setAttribute('aria-hidden', 'true'); return blank;
+      }));
+      else {
+        const connect = el('button', 'emw-rp-connect'); connect.type = 'button'; connect.setAttribute('aria-label', 'Connect Spotify');
+        connect.append(spotifyLogo(), el('span', 'emw-rp-connect-title', 'Connect Spotify'), el('span', 'emw-rp-connect-sub', 'Play your recent music here'));
+        connect.addEventListener('click', () => view.context.onSetup?.()); rp.tiles.replaceChildren(connect);
+      }
+    }
+    for (const node of rp.tiles.querySelectorAll('button')) node.setAttribute('aria-disabled', String(!!view.busy && !node.classList.contains('emw-rp-connect')));
+  }
+
   // ---- Now Playing --------------------------------------------------------
   function paintProgress(view, fraction) {
     const n = view.nodes; const { at, duration } = position(view);
     const shown = fraction === undefined ? (duration ? at / duration : 0) : fraction;
     n.miniFill.style.width = `${Math.max(0, Math.min(1, shown)) * 100}%`;
+    if (view.rp) view.rp.fill.style.width = n.miniFill.style.width;
     if (!view.seeking || fraction !== undefined) n.seek.value = String(Math.round(shown * 1000));
     n.seek.style.setProperty('--progress', `${shown * 100}%`);
     n.elapsed.textContent = time(shown * duration); n.remaining.textContent = `-${time(Math.max(0, duration - shown * duration))}`;
@@ -781,7 +893,8 @@
     }
     const player = effective(view); const api = spotifyPlayer(view);
     view.root.setAttribute('aria-busy', String(!!view.busy || view.pending.size > 0));
-    view.root.dataset.mode = player.mode;
+    view.root.dataset.mode = player.mode; updateCompact(view);
+    const compact = view.root.hidden;
     const browsing = view.tab !== 'now';
     // Both stay rendered; the sheet slides. Only the side in front takes input.
     n.now.inert = browsing; n.browse.inert = !browsing;
@@ -820,7 +933,7 @@
     }
     view.root.classList.toggle('has-canvas', !!canvasUrl);
     const still = document.documentElement.classList.contains('low-power') || matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (canvasUrl && player.isPlaying && !still && !browsing) { if (n.canvasVideo.paused) n.canvasVideo.play().catch(() => {}); }
+    if (canvasUrl && player.isPlaying && !still && !browsing && !compact) { if (n.canvasVideo.paused) n.canvasVideo.play().catch(() => {}); }
     else if (!n.canvasVideo.paused) n.canvasVideo.pause();
     n.hero.classList.toggle('is-changing', !!player.changing);
     // Device line: Spotify Connect device, or the Windows media source.
@@ -928,5 +1041,5 @@
     live.add(view);
     update(view); return true;
   }
-  window.EdgeMediaWidget = Object.freeze({ render, setLowPower });
+  window.EdgeMediaWidget = Object.freeze({ render, setLowPower, recentTiles });
 })();

@@ -89,7 +89,7 @@ test('widgets fill an 8×2 grid like iOS, filling gaps, and report what does not
   const widgets = ['today', 'tasks', 'printers', 'media', 'stats', 'actions'].map(type => ({ id: type, type, size: WIDGET_DEFAULTS[type] }));
   const plan = packWidgets(widgets, { columns: 8, rows: 2 });
   assert.deepEqual(plan.overflow, []); assert.equal(plan.free, 1, 'The default sizes fit the deck with one cell to spare');
-  const media = plan.cards.find(card => card.id === 'media'); assert.deepEqual([media.columnSpan, media.rowSpan], [2, 2]);
+  const media = plan.cards.find(card => card.id === 'media'); assert.deepEqual([media.columnSpan, media.rowSpan], [2, 2], 'Music starts Large: the full player');
   const gap = packWidgets([{ id: 'a', size: 'large' }, { id: 'b', size: 'medium' }, { id: 'c', size: 'small' }], { columns: 4, rows: 2 });
   // Large, medium, then small: column by column, the small one takes the free cell below the medium one.
   assert.deepEqual(gap.cards.find(card => card.id === 'c'), { id: 'c', column: 3, row: 2, columnSpan: 1, rowSpan: 1 }, 'A small widget fills the gap under a medium one');
@@ -100,4 +100,14 @@ test('widgets fill an 8×2 grid like iOS, filling gaps, and report what does not
 test('single-purpose widgets start small and have auto profiles', () => {
   const { WIDGET_DEFAULTS, AUTO_PROFILES } = require('../src/layout-engine.js');
   for (const type of ['gauge', 'switch', 'timer', 'machine']) { assert.equal(WIDGET_DEFAULTS[type], 'small', type); assert.ok(AUTO_PROFILES[type]?.min > 0, type); }
+});
+
+test('each widget offers only its own sizes, and a size snaps to the nearest one it has', () => {
+  const { WIDGET_KINDS, allowedSizes, fitSize } = require('../src/layout-engine.js');
+  assert.deepEqual(allowedSizes('tasks'), ['medium', 'large', 'tall']);
+  assert.equal(fitSize('tasks', 'small'), 'medium');
+  assert.equal(fitSize('city', 'large'), 'small');
+  assert.equal(fitSize('clock', 'tall'), 'large');
+  assert.equal(fitSize(['clock', 'weather'], 'tall'), 'large', 'A card with several views offers the sizes they share');
+  for (const kind of WIDGET_KINDS) assert.ok(kind.sizes.length > 0 && kind.sizes.every(size => ['small', 'medium', 'large', 'tall'].includes(size)), kind.type);
 });

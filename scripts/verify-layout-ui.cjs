@@ -25,7 +25,7 @@ async function verifyLayoutUI(page, directory) {
   const settings = page.locator('#settings-content');
   const editor = page.locator('#layout-editor');
   const fixture = structuredClone(baseline);
-  fixture.layout = { ...fixture.layout, mode: 'overview' };
+  fixture.layout = { mode: 'widgets' };
   fixture.widgets = ['clock', 'weather', 'tasks'].map((type, index) => ({
     id: `layout-test-${index}`, type, title: ['Time', 'Forecast', 'Chats'][index], enabled: true, size: 'medium',
     items: [{ id: `layout-view-${index}`, type }], activeItemId: `layout-view-${index}`,
@@ -34,30 +34,31 @@ async function verifyLayoutUI(page, directory) {
   if (dock) fixture.widgets.push(structuredClone(dock));
   let cdp;
   try {
-    await page.setViewportSize({ width: 1600, height: 700 });
+    await page.setViewportSize({ width: 2560, height: 720 });
     await page.evaluate(config => window.edge.saveConfig(config), fixture);
     await page.reload();
     await page.locator('.container-card[data-id="layout-test-0"]').waitFor();
-    for (const [mode, name] of [['bento', 'Bento'], ['focus', 'Focus'], ['overview', 'Overview']]) {
-      await openLayout();
-      await settings.getByRole('button', { name: `${name} layout`, exact: true }).click();
-      await page.waitForFunction(async mode => (await window.edge.getState()).config.layout.mode === mode, mode);
-      await settled('#settings');
-      assert.equal(await settings.getByRole('button', { name: `${name} layout`, exact: true }).getAttribute('aria-pressed'), 'true');
-      assert.deepEqual((await read()).widgets.filter(card => card.type !== 'launchers').map(card => card.size), ['medium', 'medium', 'medium'], 'Custom card layouts keep their chosen sizes');
-      await closeSettings();
-      if (mode !== 'overview') await page.screenshot({ path: path.join(directory, `layout-${mode}.png`) });
-    }
-    checks.push('Layout mode picker saves Overview, Bento, and Focus while preserving custom card sizes');
-
+    // Widgets is the only layout: no layout picker; Add widget opens the widget gallery.
     await openLayout();
-    await settings.getByRole('button', { name: 'Add card', exact: true }).click();
-    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Create Time & weather', 'Gallery moves focus to its first choice');
-    await page.screenshot({ path: path.join(directory, 'layout-gallery.png') });
-    await settings.getByRole('button', { name: 'Close gallery', exact: true }).click();
-    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Add card');
-    await settings.getByRole('button', { name: 'Add card', exact: true }).click();
-    await settings.getByRole('button', { name: 'Create Clock', exact: true }).click();
+    assert.equal(await settings.getByRole('button', { name: 'Bento layout', exact: true }).count(), 0, 'The old layouts are gone');
+    await settings.getByRole('button', { name: 'Add widget', exact: true }).click();
+    const sheet = page.locator('#widget-sheet'); await sheet.waitFor({ state: 'visible' });
+    await sheet.getByRole('button', { name: 'Clock', exact: true }).click();
+    assert.equal(await sheet.locator('.ws-copy h3').textContent(), 'Clock digital', 'The Clock source starts with the iOS Clock digital widget');
+    await sheet.getByRole('button', { name: 'Add widget', exact: true }).click(); await sheet.waitFor({ state: 'hidden' });
+    await page.waitForFunction(count => window.edge.getState().then(state => state.config.widgets.length > count), fixture.widgets.length);
+    const galleryCard = (await read()).widgets.find(card => card.type !== 'launchers' && !fixture.widgets.some(original => original.id === card.id));
+    assert.deepEqual([galleryCard.type, galleryCard.size, galleryCard.items[0].face], ['dial', 'small', 'digital']);
+    // The card editor works on any widget; continue with a Date and time card (several sizes and views).
+    await page.evaluate(id => window.edge.getState().then(state => window.edge.saveConfig({ ...state.config, widgets: state.config.widgets.map(card => card.id === id ? { ...card, type: 'clock', items: [{ id: id + '-view', type: 'clock' }], activeItemId: id + '-view' } : card) })), galleryCard.id);
+    await page.waitForFunction(id => window.edge.getState().then(state => state.config.widgets.find(card => card.id === id)?.type === 'clock'), galleryCard.id);
+    await page.locator(`.page-grid > .container-card.clock[data-id="${galleryCard.id}"]`).waitFor();
+    checks.push('Customize → Layout has no layout picker; Add widget opens the widget gallery and adds the widget');
+    await closeSettings();
+    await openLayout();
+    await page.evaluate(() => { const ids = [...document.querySelectorAll('#settings-content .layout-card-row')].map(row => row.dataset.cardId); window.__lastCard = ids[ids.length - 1]; });
+    const lastId = await page.evaluate(() => window.__lastCard);
+    await settings.locator(`.layout-card-row[data-card-id="${lastId}"]`).getByRole('button', { name: /^Edit /, exact: false }).first().click();
     await editor.waitFor({ state: 'visible' });
     await settled('#layout-editor');
     const added = (await read()).widgets.find(card => card.type !== 'launchers' && !fixture.widgets.some(original => original.id === card.id));
@@ -66,8 +67,9 @@ async function verifyLayoutUI(page, directory) {
     await editor.getByRole('button', { name: 'Save name', exact: true }).click();
     await waitCard(added.id, 'title', 'Focus panel'); await settled('#layout-editor');
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Save name', 'Saving keeps keyboard focus');
-    await editor.getByRole('combobox', { name: 'Size of Focus panel', exact: true }).selectOption('wide');
-    await waitCard(added.id, 'size', 'wide'); await settled('#layout-editor');
+    assert.deepEqual(await editor.getByRole('combobox', { name: 'Size of Focus panel', exact: true }).locator('option').allTextContents(), ['Small', 'Medium', 'Large'], 'Only the sizes a clock has');
+    await editor.getByRole('combobox', { name: 'Size of Focus panel', exact: true }).selectOption('large');
+    await waitCard(added.id, 'size', 'large'); await settled('#layout-editor');
     await editor.getByRole('button', { name: 'Add view', exact: true }).click();
     await editor.getByRole('button', { name: 'Add Weather', exact: true }).click();
     await page.waitForFunction(async id => (await window.edge.getState()).config.widgets.find(card => card.id === id)?.items.length === 2, added.id);
@@ -107,19 +109,19 @@ async function verifyLayoutUI(page, directory) {
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Outlook', 'Arrow navigation preserves roving focus');
     await page.reload(); await card.waitFor();
     const persisted = (await read()).widgets.find(card => card.id === added.id);
-    assert.equal(persisted.title, 'Focus panel'); assert.equal(persisted.size, 'wide');
+    assert.equal(persisted.title, 'Focus panel'); assert.equal(persisted.size, 'large');
     assert.equal(persisted.items[0].label, 'Outlook'); assert.equal(persisted.activeItemId, weather.id);
     checks.push('Card creation, name, size, view order, default view, deletion/Undo, and accessible tabs persist through reload');
 
     await page.locator('#deck-menu').click();await page.locator('#edit-layout').click();
     const before = await order();
-    const source = page.locator(`.container-card[data-id="${before[0]}"] .card-drag-handle`);
+    const source = page.locator(`.container-card[data-id="${before[0]}"] .widget-shield`);
     const point = async locator => { const box = await locator.boundingBox(); assert.ok(box); return { x: box.x + box.width / 2, y: box.y + box.height / 2 }; };
     const start = await point(source);
     const targetBox = await page.locator(`.container-card[data-id="${before[1]}"]`).boundingBox();
     assert.ok(targetBox);
-    const destination = { x: targetBox.x + targetBox.width * 0.8, y: targetBox.y + targetBox.height * 0.5 };
-    await source.click(); assert.deepEqual(await order(), before, 'A quick tap does not reorder');
+    const destination = { x: targetBox.x + targetBox.width * 0.8, y: targetBox.y + targetBox.height * 0.8 };
+    // Widgets pack column by column, so a target can sit below the source: aim at its far corner either way.
     const begin = async () => { await page.mouse.move(start.x, start.y); await page.mouse.down(); await page.waitForTimeout(520); await page.locator('#widgets[data-dragging="true"]').waitFor(); };
     await begin(); await page.mouse.up(); assert.deepEqual(await order(), before, 'Holding in place does not reorder');
     await begin(); await page.mouse.move(destination.x, destination.y); await page.mouse.move(start.x, start.y); await page.mouse.up();
@@ -132,14 +134,14 @@ async function verifyLayoutUI(page, directory) {
     await page.waitForFunction(async first => (await window.edge.getState()).config.widgets.filter(card => card.type !== 'launchers')[0].id !== first, before[0]);
     const after = await order(); assert.deepEqual(after, [before[1], before[0], ...before.slice(2)]);
     assert.equal(await page.locator('dialog[open]').count(), 0, 'A completed drop does not open a card action');
-    await page.waitForFunction(() => [...document.querySelectorAll('.container-card')].every(card => card.getAnimations().every(animation => animation.playState !== 'running')));
+    await page.waitForFunction(() => [...document.querySelectorAll('.container-card')].every(card => card.getAnimations().every(animation => animation.playState !== 'running' || /^widget-(wiggle|jiggle)/.test(animation.animationName || ''))));
     checks.push('Mouse hold reorders cards; quick taps, holding in place, returning to source, and Escape keep order and full-screen state');
 
     cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
-    const touchSource = await point(page.locator(`.container-card[data-id="${after[0]}"] .card-drag-handle`));
+    const touchSource = await point(page.locator(`.container-card[data-id="${after[0]}"] .widget-shield`));
     const touchBox = await page.locator(`.container-card[data-id="${after[1]}"]`).boundingBox();
-    const touchTarget = { x: touchBox.x + touchBox.width * 0.8, y: touchBox.y + touchBox.height * 0.5 };
+    const touchTarget = { x: touchBox.x + touchBox.width * 0.8, y: touchBox.y + touchBox.height * 0.8 };
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...touchSource, id: 1 }] });
     await page.waitForTimeout(520); await page.locator('#widgets[data-dragging="true"]').waitFor();
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...touchTarget, id: 1 }] });
@@ -147,7 +149,7 @@ async function verifyLayoutUI(page, directory) {
     await page.waitForFunction(async first => (await window.edge.getState()).config.widgets.filter(card => card.type !== 'launchers')[0].id !== first, after[0]);
     assert.deepEqual(await order(), before);
     assert.equal(await page.locator('dialog[open]').count(), 0, 'Touch drop suppresses the card action');
-    await page.waitForFunction(() => [...document.querySelectorAll('.container-card')].every(card => card.getAnimations().every(animation => animation.playState !== 'running')));
+    await page.waitForFunction(() => [...document.querySelectorAll('.container-card')].every(card => card.getAnimations().every(animation => animation.playState !== 'running' || /^widget-(wiggle|jiggle)/.test(animation.animationName || ''))));
     checks.push('A real browser touch sequence holds and reorders cards without opening their controls');
 
     // The normal printer-card opener is intentionally allowed to start a hold.
@@ -165,7 +167,7 @@ async function verifyLayoutUI(page, directory) {
     const printerPoint = await point(page.locator('#drag-printer-open-fixture'));
     const printerTargetBox = await page.locator(`.container-card[data-id="${before[1]}"]`).boundingBox();
     assert.ok(printerTargetBox);
-    const printerTarget = {x:printerTargetBox.x + printerTargetBox.width * 0.8,y:printerTargetBox.y + printerTargetBox.height * 0.5};
+    const printerTarget = {x:printerTargetBox.x + printerTargetBox.width * 0.8,y:printerTargetBox.y + printerTargetBox.height * 0.8};
     const beginPrinterTouch = async () => {
       await cdp.send('Input.dispatchTouchEvent', {type:'touchStart',touchPoints:[{...printerPoint,id:1}]});
       await page.waitForTimeout(520);
@@ -190,7 +192,7 @@ async function verifyLayoutUI(page, directory) {
     await page.reload();
     await page.locator(`.container-card[data-id="${reordered[0]}"]`).waitFor();
     assert.deepEqual(await order(),reordered,'The dragged order persists through reload');
-    assert.equal(await page.locator('#widgets > .container-card').first().getAttribute('data-id'),reordered[0]);
+    assert.equal(await page.locator('#widgets .page-grid > .container-card').first().getAttribute('data-id'),reordered[0]);
     checks.push('Holding a printer opener can move its card without a click; touch cancellation preserves order, and a completed drag survives reload');
   } finally {
     if (cdp) { await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false }).catch(() => {}); await cdp.detach(); }

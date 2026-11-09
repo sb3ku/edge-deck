@@ -17,7 +17,7 @@ test('legacy widgets gain weather after clock without losing their order or visi
   assert.equal(migrated.widgets[0].enabled,false);assert.equal(migrated.widgets[1].enabled,false);assert.equal(migrated.widgets[2].enabled,true);
   assert.equal(cleanConfig(migrated,migrated).widgets.filter(w=>w.type==='weather').length,1);
   migrated.widgets[2].enabled=false;assert.equal(cleanConfig(migrated,migrated).widgets[2].enabled,false);
-  assert.equal(migrated.layout.mode,'overview');
+  assert.equal(migrated.layout.mode,'widgets','Widgets is the only layout');
   assert.deepEqual(migrated.widgets[0].items,[{id:'music-content',type:'media'}]);
   assert.equal(migrated.widgets[0].activeItemId,'music-content');
   assert.equal(migrated.widgets[0].size,'medium');
@@ -29,7 +29,7 @@ test('cards support tabs, repeated built-ins, empty content and a validated layo
   const before=defaults();
   const items=[{id:'time',type:'clock'},{id:'weather',type:'weather',label:'Outside'}];
   const next=cleanConfig({layout:{mode:'bento'},widgets:[card('first',items,{activeItemId:'weather',size:'large',title:'  My card  '}),card('another'),card('blank',[])]},before);
-  assert.equal(next.layout.mode,'bento');
+  assert.equal(next.layout.mode,'widgets','Earlier layouts become Widgets');
   assert.equal(next.widgets[0].type,'weather','Canonical type follows the selected tab');
   assert.equal(next.widgets[0].title,'My card');
   assert.equal(next.widgets[0].size,'large');
@@ -74,11 +74,11 @@ test('card IDs, tab IDs, titles, content counts and dock counts are bounded',()=
   for(const widget of [card('bad id'),card('x'.repeat(81)),card('title',[],{title:'x'.repeat(61)}),card('dupe',[{id:'one',type:'clock'},{id:'one',type:'weather'}]),card('many',Array.from({length:7},(_,i)=>({id:'i'+i,type:'clock'}))),card('unknown',[{id:'one',type:'not-real'}])]) {
     assert.throws(()=>cleanConfig({widgets:[widget]},before));
   }
-  const sixteen=Array.from({length:16},(_,i)=>card('card-'+i));
+  const sixteen=Array.from({length:40},(_,i)=>card('card-'+i));
   const dock={id:'dock',type:'launchers',title:'Apps',enabled:true};
-  assert.equal(cleanConfig({widgets:[...sixteen,dock]},before).widgets.length,17);
-  assert.throws(()=>cleanConfig({widgets:[...sixteen,card('extra')]},before),/16 cards/);
-  assert.throws(()=>cleanConfig({widgets:[dock,{...dock,id:'second-dock'}]},before),/16 cards/);
+  assert.equal(cleanConfig({widgets:[...sixteen,dock]},before).widgets.length,41);
+  assert.throws(()=>cleanConfig({widgets:[...sixteen,card('extra')]},before),/40 widgets/);
+  assert.throws(()=>cleanConfig({widgets:[dock,{...dock,id:'second-dock'}]},before),/40 widgets/);
   assert.throws(()=>cleanConfig({launchers:[before.launchers[0],before.launchers[0]]},before),/unique/);
 });
 
@@ -98,7 +98,8 @@ test('a legacy sixteen-card dashboard migrates once without dropping its sevente
     const deleted=store.publicConfig().widgets.filter(w=>w.type!=='weather');
     store.save({widgets:deleted});
     assert.equal(createConfigStore(dir,{}).publicConfig().widgets.length,16);
-    assert.throws(()=>store.save({widgets:[...deleted,card('new-seventeenth')]}),/16 cards/);
+    store.save({widgets:[...deleted,card('new-seventeenth')]});
+    assert.equal(createConfigStore(dir,{}).publicConfig().widgets.length,17,'Pages hold more than sixteen widgets');
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });
 
@@ -129,9 +130,9 @@ test('legacy card migration and layout saves preserve connection secrets, weathe
     assert.doesNotMatch(JSON.stringify(migrated.publicConfig()),/printer-test-secret|spotify-test-token|encryptedTokens|encryptedAccessCode/);
     fs.mkdirSync(file+'.tmp');
     assert.throws(()=>migrated.save({layout:{mode:'focus'},widgets:[]}));
-    assert.equal(migrated.publicConfig().layout.mode,'bento');
+    assert.equal(migrated.publicConfig().layout.mode,'widgets');
     assert.ok(migrated.publicConfig().widgets.length>0);
-    assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).layout.mode,'bento');
+    assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).layout.mode,'widgets');
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });
 
@@ -220,4 +221,38 @@ test('single-purpose widgets keep their reading, control, printer and length, wi
   assert.throws(()=>cleanConfig({widgets:[card('bad',[{id:'g',type:'gauge',metric:'disk'}])]},before),/gauge/);
   assert.throws(()=>cleanConfig({widgets:[card('bad',[{id:'t',type:'switch',control:'volume'}])]},before),/quick control/);
   assert.equal(cleanConfig({widgets:[card('old',[{id:'g',type:'gauge',metric:'disk'}])]},before,{loading:true}).widgets[0].items[0].metric,'cpu');
+});
+
+test('earlier layouts move to Widgets: sizes come from the widget and the cards spread over pages so each fits',()=>{
+  const before={...defaults(),layout:{mode:'overview'}};
+  const cards=['media','stats','printers','tasks','weather','clock','actions','media','stats'].map((type,i)=>({id:'c'+i,type,title:'',enabled:true,size:'wide',items:[{id:'c'+i+'-v',type}],activeItemId:'c'+i+'-v'}));
+  const migrated=cleanConfig({...before,widgets:cards},before,{loading:true});
+  assert.equal(migrated.layout.mode,'widgets');
+  assert.deepEqual(migrated.widgets.map(w=>w.size),['large','large','medium','medium','medium','small','tall','large','large']);
+  assert.ok(migrated.pages.length>=2,'The widgets need more than one page');
+  const {packWidgets}=require('../src/layout-engine.js');
+  for(const page of migrated.pages)assert.deepEqual(packWidgets(migrated.widgets.filter(w=>w.page===page.id),{columns:8,rows:2}).overflow,[],page.id);
+  const again=cleanConfig(migrated,migrated);
+  assert.deepEqual(again.widgets.map(w=>w.page),migrated.widgets.map(w=>w.page),'Saving again keeps the pages');
+});
+test('clock and city options fall back to defaults',()=>{
+  const before=defaults();
+  const saved=cleanConfig({widgets:[card('a',[{id:'d',type:'dial',face:'bars'},{id:'c',type:'city',city:'tokyo',face:'numbers'},{id:'w',type:'world-clock',cities:['paris','nowhere','seoul']}])]},before);
+  assert.deepEqual(saved.widgets[0].items,[{id:'d',type:'dial',face:'bars'},{id:'c',type:'city',face:'numbers',city:'tokyo'},{id:'w',type:'world-clock',cities:['paris','seoul']}]);
+  const plain=cleanConfig({widgets:[card('b',[{id:'d',type:'dial'},{id:'c',type:'city'},{id:'w',type:'world-clock'}])]},before);
+  assert.deepEqual(plain.widgets[0].items.map(i=>[i.face,i.city,i.cities]),[['digital',undefined,undefined],['digital','cupertino',undefined],[undefined,undefined,['new-york','london','tokyo','sydney']]]);
+});
+
+test('Time & weather becomes Clock digital and Forecast, and what no longer fits moves to the next page',()=>{
+  const before=defaults();
+  const today={id:'tw',type:'today',title:'',enabled:true,size:'medium',page:'home',items:[{id:'tw-v',type:'today'}],activeItemId:'tw-v'};
+  const split=cleanConfig({...before,widgets:[today,...before.widgets]},before,{loading:true});
+  const clock=split.widgets.find(w=>w.id==='tw'),forecast=split.widgets.find(w=>w.id==='tw-weather');
+  assert.deepEqual([clock.type,clock.size,clock.items[0].face],['dial','small','digital']);
+  assert.deepEqual([forecast.type,forecast.size,forecast.page],['weather','small','home']);
+  assert.ok(!split.widgets.some(w=>w.type==='today'));
+  const {packWidgets}=require('../src/layout-engine.js');
+  for(const page of split.pages)assert.deepEqual(packWidgets(split.widgets.filter(w=>w.page===page.id&&w.type!=='launchers'),{columns:8,rows:2}).overflow,[],page.id);
+  const stacked=cleanConfig({widgets:[card('mix',[{id:'a',type:'clock'},{id:'b',type:'today'}])]},before);
+  assert.deepEqual(stacked.widgets[0].items.map(i=>i.type),['clock','weather'],'A card with several views shows the forecast instead');
 });

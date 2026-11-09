@@ -74,7 +74,7 @@ async function verifyBrowser({profile,dashboardWindow}) {
   report.checks.push('Weather city search selects Kraków, renders 24 hours and 7 days, and saves Fahrenheit/Celsius through isolated forecast fixtures');
   for(const [width,height] of [[2560,720],[2048,576],[1600,450],[900,700]]) {
     await page.setViewportSize({width,height});await delay(120);
-    const layout=await page.evaluate(()=>({width:innerWidth,height:innerHeight,overflowX:document.documentElement.scrollWidth>innerWidth,overflowY:document.documentElement.scrollHeight>innerHeight,widgets:document.querySelectorAll('#widgets .widget').length,hasClock:!!document.querySelector('.clock-time')?.textContent}));
+    const layout=await page.evaluate(()=>({width:innerWidth,height:innerHeight,overflowX:document.documentElement.scrollWidth>innerWidth,overflowY:document.documentElement.scrollHeight>innerHeight,widgets:document.querySelectorAll('#widgets .widget').length,hasClock:!!document.querySelector('.clock-time, .dial-widget')?.textContent}));
     assert.equal(layout.overflowX,false,`horizontal overflow at ${width}`);
     if(width>=1000)assert.equal(layout.overflowY,false,`vertical page overflow at ${width}`);
     assert.equal(layout.widgets,expectedWidgetCount);assert.ok(layout.hasClock);report.sizes.push(layout);
@@ -209,6 +209,9 @@ async function verifyBrowser({profile,dashboardWindow}) {
   await page.evaluate(config=>window.edge.saveConfig(config),updated);
   await page.waitForFunction(()=>document.querySelector('#launchers').textContent.includes('Verification shortcut'));
   await page.evaluate(config=>window.edge.saveConfig(config),initial.config);
+  // The full player is the Large or Tall music widget (Small and Medium are Recently played).
+  await page.evaluate(config=>window.edge.saveConfig({...config,widgets:config.widgets.map(card=>card.type==='media'?{...card,size:'tall'}:card)}),initial.config);
+  await page.getByRole('button',{name:'Minimise player',exact:true}).waitFor();
   await page.getByRole('button',{name:'Minimise player',exact:true}).click();
   await page.getByRole('button',{name:'Your Library',exact:true}).click();
   assert.equal(await page.locator('.emw-playlists').isVisible(),true);

@@ -390,3 +390,93 @@ button.emw-track:not(:disabled):active { transform: scale(.985); }
 /* DJ: Spotify's AI DJ, started like a playlist. */
 .emw-dj-art { background: radial-gradient(circle at 30% 30%, #9bf0ff 0%, #2bd2ff 30%, #1e6bff 65%, #0b1f5c 100%); }
 .emw-dj-mark { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: #fff; text-shadow: 0 1px 4px rgb(0 0 0 / 35%); }
+
+/* ---- Recently Played: Small, Medium and Large, like Spotify's iOS widget ----
+   Tall shows the full player above. Only one of the two roots is visible. */
+.edge-media-widget[hidden] { display: none !important; }
+.widgets[data-layout=widgets] > .container-card.media:has(> .card-body > .emw-rp:not([hidden])) { padding: 0; }
+.widgets[data-layout=widgets] > .container-card.media > .card-body:has(> .emw-rp:not([hidden])) { overflow: clip; }
+.emw-rp {
+  container: emwrp / size; position: relative; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; width: 100%; height: 100%; min-height: 0;
+  padding: 16px; box-sizing: border-box; overflow: clip; color: #fff; background: linear-gradient(160deg, #121212 0%, #1c1c1c 100%);
+}
+.emw-rp[hidden], .emw-rp [hidden] { display: none !important; }
+.emw-rp :where(button) { font: inherit; color: inherit; cursor: pointer; }
+.emw-rp button:focus-visible { outline: 3px solid var(--ui-focus, #85bcff); outline-offset: -3px; }
+.emw-rp-top { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; grid-template-rows: 96px; grid-template-areas: "art copy side"; column-gap: 14px; flex: none; min-height: 0; }
+.emw-rp-cover { grid-area: art; position: relative; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: rgb(255 255 255 / 8%); min-width: 48px; min-height: 48px; }
+.emw-rp-art { position: absolute; inset: 0; display: grid; place-items: center; }
+.emw-rp-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.emw-rp-art .emw-art-placeholder { color: rgb(255 255 255 / 30%); }
+.emw-rp-art .emw-art-placeholder svg { width: 38%; height: 38%; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.emw-rp-copy { grid-area: copy; align-self: center; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.emw-rp-title { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.2; letter-spacing: -.2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emw-rp-artist { margin: 0; font-size: 14px; line-height: 1.25; color: rgb(255 255 255 / 62%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emw-rp.is-idle .emw-rp-title { color: rgb(255 255 255 / 80%); }
+.emw-rp-side { grid-area: side; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+.emw-rp-logo { width: 26px; height: 26px; flex: none; }
+.emw-rp-play { display: grid; place-items: center; width: 52px; height: 52px; flex: none; padding: 0; border: 0; border-radius: 50%; background: #fff; color: #000; transition: transform 120ms var(--ease), opacity 160ms; }
+.emw-rp-play svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+.emw-rp-play[aria-label^=Play] svg { transform: translateX(1px); }
+.emw-rp-play:not(:disabled):active, .emw-rp-tile:not(.is-empty):active { transform: scale(.94); }
+.emw-rp-play:disabled { opacity: .4; cursor: default; }
+.emw-rp-cover:disabled { cursor: default; }
+.emw-rp-progress { flex: none; height: 3px; border-radius: 2px; overflow: hidden; background: rgb(255 255 255 / 25%); }
+.emw-rp-progress i { display: block; width: 0; height: 100%; border-radius: inherit; background: #fff; }
+.emw-rp-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; align-content: center; gap: 10px; flex: 1 1 0; min-height: 0; }
+
+.emw-rp-tile { position: relative; display: block; width: 100%; aspect-ratio: 1; min-width: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: #2a2a2a; text-align: left; transition: transform 120ms var(--ease); }
+.emw-rp-tile-art { position: absolute; inset: 0; display: grid; place-items: center; }
+.emw-rp-tile-cover { position: absolute; inset: 0; display: grid; place-items: center; background: #2a2a2a; }
+.emw-rp-tile-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.emw-rp-tile-cover .emw-art-placeholder { color: rgb(255 255 255 / 30%); }
+.emw-rp-tile-cover .emw-art-placeholder svg { width: 34%; height: 34%; }
+.emw-rp-tile-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 7px 6px; font-size: 11px; font-weight: 700; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: linear-gradient(180deg, rgb(0 0 0 / 0%), rgb(0 0 0 / 72%)); pointer-events: none; }
+.emw-rp-tile.is-dj { background: #1f1f1f; }
+.emw-rp-tile.is-dj .emw-rp-tile-art svg { width: 54%; height: 54%; }
+.emw-rp-tile.is-dj .emw-rp-tile-label, .emw-rp-tile.is-liked .emw-rp-tile-label { background: none; padding-left: 8px; }
+.emw-rp-tile-beta { position: absolute; top: 7px; right: 7px; font-size: 8px; font-weight: 800; letter-spacing: .08em; color: rgb(255 255 255 / 60%); pointer-events: none; }
+.emw-rp-tile.is-liked { background: linear-gradient(135deg, #450af5 0%, #c4efd9 100%); }
+.emw-rp-tile.is-liked .emw-rp-tile-art svg { width: 44%; height: 44%; fill: #fff; stroke: none; }
+.emw-rp-tile.is-empty { background: rgb(255 255 255 / 7%); animation: emw-rp-pulse 1.6s ease-in-out infinite; }
+@keyframes emw-rp-pulse { 50% { opacity: .5; } }
+.emw-rp-connect { grid-column: 1 / -1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: rgb(255 255 255 / 7%); transition: transform 120ms var(--ease), background 160ms; }
+.emw-rp-connect:active { transform: scale(.98); }
+.emw-rp-connect .emw-rp-logo { width: 34px; height: 34px; margin-bottom: 4px; }
+.emw-rp-connect-title { font-size: 16px; font-weight: 700; }
+.emw-rp-connect-sub { font-size: 12px; color: rgb(255 255 255 / 60%); }
+.emw-rp[data-size=medium] .emw-rp-connect { flex-direction: row; gap: 12px; }
+.emw-rp[data-size=medium] .emw-rp-connect .emw-rp-logo { margin: 0; }
+.emw-rp[data-size=medium] .emw-rp-connect-sub { display: none; }
+/* Small: the cover leads, the song and the play button sit at the bottom. */
+.emw-rp[data-size=small] .emw-rp-top { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "art logo" "copy play"; column-gap: 10px; row-gap: 10px; }
+.emw-rp[data-size=small] .emw-rp-side { display: contents; }
+.emw-rp[data-size=small] .emw-rp-cover { align-self: start; justify-self: start; width: min(70cqw, 100%); height: auto; aspect-ratio: 1; max-height: 100%; }
+.emw-rp[data-size=small] .emw-rp-logo { grid-area: logo; justify-self: end; align-self: start; }
+.emw-rp[data-size=small] .emw-rp-play { grid-area: play; }
+.emw-rp[data-size=small] .emw-rp-copy { align-self: end; padding-bottom: 2px; }
+.emw-rp[data-size=small] .emw-rp-title { font-size: 18px; }
+.emw-rp[data-size=small] .emw-rp-artist { font-size: 13px; }
+.emw-rp[data-size=small] :is(.emw-rp-progress, .emw-rp-tiles) { display: none; }
+@media (prefers-reduced-motion: reduce) { .emw-rp-play, .emw-rp-tile, .emw-rp-connect { transition: none; } .emw-rp-tile.is-empty { animation: none; } }
+html.low-power .emw-rp-play, html.low-power .emw-rp-tile, html.low-power .emw-rp-connect { transition: none; }
+html.low-power .emw-rp-tile.is-empty { animation: none; }
+/* Large: a roomier top row and portrait tiles use the card's extra height. */
+.emw-rp[data-size=large] { padding: 20px; gap: 14px; }
+.emw-rp[data-size=large] .emw-rp-top { grid-template-columns: 120px minmax(0, 1fr) auto; grid-template-rows: 120px; column-gap: 18px; }
+.emw-rp[data-size=large] .emw-rp-title { font-size: 22px; }
+.emw-rp[data-size=large] .emw-rp-artist { font-size: 15px; }
+.emw-rp[data-size=large] .emw-rp-play { width: 56px; height: 56px; }
+.emw-rp[data-size=large] .emw-rp-logo { width: 30px; height: 30px; }
+.emw-rp[data-size=large] .emw-rp-progress { height: 4px; }
+.emw-rp[data-size=large] .emw-rp-tiles { gap: 14px; align-content: space-evenly; }
+.emw-rp[data-size=large] .emw-rp-tile { aspect-ratio: 4 / 5; }
+.emw-rp[data-size=large] .emw-rp-tile-label { font-size: 12px; }
+/* Without Spotify the tile area is one "Connect Spotify" card. */
+.emw-rp-tiles:has(> .emw-rp-connect) { display: flex; }
+.emw-rp-connect { flex: 1 1 auto; }
+.emw-rp-connect-title { font-size: 18px; }
+.emw-rp[data-size=large] .emw-rp-connect .emw-rp-logo { width: 48px; height: 48px; margin-bottom: 8px; }
+.emw-rp[data-size=medium] .emw-rp-connect { flex-direction: column; gap: 4px; }
+.emw-rp[data-size=medium] .emw-rp-connect .emw-rp-logo { width: 40px; height: 40px; margin-bottom: 4px; }
+.emw-rp[data-size=medium] .emw-rp-connect-sub { display: block; }

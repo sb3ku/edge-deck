@@ -114,10 +114,10 @@
   function sizePicker(view, card) {
     const field = el('label', 'layout-size-picker'); field.append(el('span', '', 'Size'));
     const select = el('select'); select.setAttribute('aria-label', `Size of ${cardName(card, config(view))}`);
-    for (const [value, name] of sizes) { const option = el('option', '', name); option.value = value; select.append(option); }
-    select.value = card.size || 'medium'; select.disabled = view.busy || ['focus', 'auto'].includes(config(view).layout?.mode);
-    if (config(view).layout?.mode === 'widgets') for (const option of select.options) option.hidden = !['small', 'medium', 'large', 'tall'].includes(option.value);
-    if(['focus','auto'].includes(config(view).layout?.mode))select.title='This layout sizes cards automatically. Choose Overview or Bento to change sizes.';
+    // Only the sizes designed for what the card shows.
+    const allowed = window.EdgeLayout?.allowedSizes ? window.EdgeLayout.allowedSizes(items(card).map(item => item.type)) : sizes.map(([value]) => value);
+    for (const [value, name] of sizes) if (allowed.includes(value)) { const option = el('option', '', name); option.value = value; select.append(option); }
+    select.value = allowed.includes(card.size) ? card.size : allowed[0]; select.disabled = view.busy;
     select.addEventListener('change', () => save(view, cfg => { findCard(cfg, card.id).size = select.value; }, 'Card size saved.'));
     field.append(select); return field;
   }
@@ -186,7 +186,7 @@
       choice.replaceChildren(icon(entry.symbol), el('strong', '', entry.title), el('span', '', entry.detail)); grid.append(choice);
     }
     section.append(grid);
-    if (full) section.append(el('p', 'layout-help', forCard ? 'This card has six views. Remove a view to add another.' : 'Your layout has 16 cards. Remove a card to add another.'));
+    if (full) section.append(el('p', 'layout-help', forCard ? 'This card has six views. Remove a view to add another.' : 'You have 40 widgets. Remove one to add another.'));
     const apps = Array.isArray(cfg.launchers) ? cfg.launchers : [];
     const appArea = el('div', 'layout-app-picker'); appArea.append(el('h4', '', 'Saved apps and websites'));
     if (apps.length) {
@@ -231,8 +231,9 @@
     root.append(chooser, el('p', 'layout-help', 'Widgets: choose Small, Medium or Large for each card in Edit layout. Auto sizes every card for its content and stacks small ones when space runs out. Adjust card sizes yourself in Overview or Bento; Focus enlarges the first card.'));
   }
   function settings(view, root) {
-    const cfg = config(view); const listCards = cards(cfg); renderModePicker(view, root); feedback(view, root);
-    const heading = el('div', 'layout-section-heading'); heading.append(el('h3', '', `Cards · ${listCards.length}/16`), button(view, 'Add card', () => { view.gallery = true; view.focusNext = 'gallery'; draw(view); }, 'plus', listCards.length >= 16)); root.append(heading);
+    const cfg = config(view); const listCards = cards(cfg); feedback(view, root);
+    root.append(el('p', 'layout-intro', 'Widgets come in the sizes designed for them. Hold a widget on the deck to edit it, or hold an empty spot to arrange the Home Screen.'));
+    const heading = el('div', 'layout-section-heading'); heading.append(el('h3', '', `Widgets · ${listCards.length}/40`), button(view, 'Add widget', () => { if (view.context.onAddWidget) view.context.onAddWidget(); else { view.gallery = true; view.focusNext = 'gallery'; draw(view); } }, 'plus', listCards.length >= 40)); root.append(heading);
     if (view.gallery) gallery(view, root, false);
     const list = el('div', 'layout-card-list');
     for (const [index, card] of listCards.entries()) {
@@ -272,7 +273,7 @@
     title.addEventListener('input', () => { view.titleDraft = title.value; view.titleDirty = true; }); field.append(title);
     const rename = button(view, 'Save name', () => form.requestSubmit()); form.append(field, rename);
     form.addEventListener('submit', event => { event.preventDefault(); save(view, next => { findCard(next, view.cardId).title = view.titleDraft.trim(); }, 'Card name saved.', () => { view.titleDirty = false; }); }); root.append(form);
-    const options = el('div', 'layout-editor-options'); options.append(sizePicker(view, card), el('p', 'layout-help', 'Tap a view on the dashboard to switch contents. Focus always enlarges the first card.')); root.append(options);
+    const options = el('div', 'layout-editor-options'); options.append(sizePicker(view, card), el('p', 'layout-help', 'Tap a view on the dashboard to switch contents. A card offers the sizes all its views share.')); root.append(options);
     const content = items(card); const heading = el('div', 'layout-section-heading'); heading.append(el('h3', '', `Views · ${content.length}/6`), button(view, 'Add view', () => { view.gallery = true; view.focusNext = 'gallery'; draw(view); }, 'plus', content.length >= 6)); root.append(heading);
     const list = el('div', 'layout-content-list');
     for (const [index, item] of content.entries()) {

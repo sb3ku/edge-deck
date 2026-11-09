@@ -2,9 +2,9 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const preview = !window.edge;
-const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Music', 'Now playing and Spotify playlists'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory, video memory or a temperature'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
+const widgetCatalog = { today: ['Time & weather', 'Clock, date and live weather in one card'], clock: ['Clock & date', 'Your local time and date'], weather: ['Weather', 'Current conditions and forecasts for your city'], tasks: ['Agent chats', 'Working Codex and Claude Code chats'], printers: ['3D printers', 'Bambu Lab H2D and P1S'], media: ['Spotify', 'Recently played; Tall is the full player'], actions: ['Quick actions', 'Audio output, microphone and mute'], stats: ['PC stats', 'CPU, GPU, memory, busiest apps and internet speed'], gauge: ['Gauge', 'One ring: CPU, GPU, memory, video memory or a temperature'], switch: ['Switch', 'One quick control: Wi-Fi, Bluetooth, sound, microphone or dark mode'], timer: ['Timer', 'A countdown with presets'], machine: ['Printer', 'One printer at a glance'], 'rain-wind': ['Weather details', 'The chance of rain and the wind'], 'daily-forecast': ['Daily forecast', 'The coming days'], 'sun-path': ['Sunrise and sunset', 'The sun today'], dial: ['Clock', 'The time on a clock face'], city: ['City clock', 'The time in another city'], 'world-clock': ['World clock', 'The time around the world'], launchers: ['App shortcuts', 'Your apps along the bottom'] };
 // Widgets drawn by their own modules (widget-*.js), registered on window.EdgeWidgets.
-const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine']);
+const MODULE_TYPES = new Set(['gauge', 'switch', 'timer', 'machine', 'rain-wind', 'daily-forecast', 'sun-path', 'dial', 'city', 'world-clock']);
 const defaultConfig = {
   clock24: true, theme: 'dark', layout: {mode:'overview'},
   weather: { location: null, units: 'metric' }, music: { savedPlaylists: [] },
@@ -55,6 +55,10 @@ const paths = {
   pause: '<path d="M8 5v14M16 5v14" stroke-width="4"/>',
   volume: '<path d="M11 4 6 8H2v8h4l5 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7Z"/>',
+  actions: '<path d="M4 6h10M18 6h2M16 4v4M4 12h4M12 12h8M10 10v4M4 18h12M18 16v4"/>',
   app: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   link: '<path d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 0)"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
@@ -108,65 +112,102 @@ function updateState(next) {
   if (state.config.warning && state.config.warning !== updateState.lastWarning) { toast(state.config.warning); updateState.lastWarning = state.config.warning; }
   render();
 }
-// ---- Pages -----------------------------------------------------------------
-// Cards are grouped into pages (screens). Tabs in the bottom bar switch them;
-// so does a swipe across the cards. The page you look at is remembered.
+// ---- Pages (home screens) -------------------------------------------------------
+// Widgets live on pages, like iOS home screens: swipe left or right (the pages
+// follow your finger and settle on the nearest one) or tap the dots. The page
+// you look at is remembered.
 let activePage = (() => { try { return sessionStorage.getItem('edge-deck-page') || ''; } catch { return ''; } })();
 function pagesList() { return Array.isArray(state.config.pages) && state.config.pages.length ? state.config.pages : [{ id: 'home', name: 'Home' }]; }
 function firstPageId() { return pagesList()[0].id; }
 function currentPage() { return pagesList().some(page => page.id === activePage) ? activePage : firstPageId(); }
-function showPage(id, direction = 0) {
-  if (!pagesList().some(page => page.id === id) || id === currentPage()) return;
-  activePage = id; try { sessionStorage.setItem('edge-deck-page', id); } catch {}
-  const widgets = $('#widgets');
-  widgets.dataset.enter = direction > 0 ? 'left' : direction < 0 ? 'right' : 'fade';
-  widgets.classList.remove('is-switching'); void widgets.offsetWidth; widgets.classList.add('is-switching');
-  render();
+function pageIndex(id = currentPage()) { return Math.max(0, pagesList().findIndex(page => page.id === id)); }
+const PAGE_GAP = 40;
+function stillMotion() { return document.documentElement.classList.contains('low-power') || matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function placePages(offset = 0, animate = true) {
+  const track = $('#widgets > .home-track'); if (!track) return;
+  const width = $('#widgets').clientWidth || innerWidth;
+  track.style.transition = !animate || stillMotion() ? 'none' : 'transform 480ms cubic-bezier(.2,.86,.24,1)';
+  track.style.transform = `translate3d(${-pageIndex() * (width + PAGE_GAP) + offset}px,0,0)`;
+  track.dataset.placed = `${pageIndex()}:${width}`;
+  // Only the page in front takes taps and focus.
+  for (const grid of track.children) { const front = grid.dataset.page === currentPage(); grid.dataset.current = String(front); grid.inert = !front; }
 }
+function showPage(id) {
+  if (!pagesList().some(page => page.id === id)) return;
+  const changed = id !== currentPage();
+  activePage = id; try { sessionStorage.setItem('edge-deck-page', id); } catch {}
+  placePages(0, true); renderPageTabs(); renderWidgetNotice();
+  if (changed) { const live = $('#page-live'); if (live) live.textContent = `${pagesList()[pageIndex()].name}, page ${pageIndex() + 1} of ${pagesList().length}`; }
+}
+// Page dots, like iOS; in Edit Home Screen a + adds a page.
 function renderPageTabs() {
   const nav = $('#page-tabs'); if (!nav) return;
   const pages = pagesList(), current = currentPage();
-  const key = JSON.stringify([pages, current]); if (nav.dataset.key === key) return; nav.dataset.key = key;
+  const key = JSON.stringify([pages, current, editingLayout]); if (nav.dataset.key === key) return; nav.dataset.key = key;
   nav.replaceChildren();
-  nav.hidden = false;
-  nav.classList.toggle('is-single', pages.length < 2);
-  for (const page of pages) {
-    const tab = el('button', `page-tab${page.id === current ? ' is-active' : ''}`, page.name); tab.type = 'button';
-    tab.setAttribute('aria-current', page.id === current ? 'page' : 'false');
-    tab.addEventListener('click', () => showPage(page.id, pages.findIndex(p => p.id === page.id) - pages.findIndex(p => p.id === currentPage())));
-    nav.append(tab);
+  nav.hidden = pages.length < 2 && !(editingLayout && !preview);
+  if (pages.length > 1) for (const [index, page] of pages.entries()) {
+    const dot = el('button', `page-dot${page.id === current ? ' is-active' : ''}`); dot.type = 'button';
+    dot.setAttribute('aria-label', `${page.name}, page ${index + 1} of ${pages.length}`); dot.setAttribute('aria-current', page.id === current ? 'page' : 'false'); dot.title = page.name;
+    dot.append(el('i')); dot.addEventListener('click', () => showPage(page.id));
+    nav.append(dot);
   }
-  // Add a page from here: it opens on the new page with its settings ready.
-  if (pages.length < 6 && !preview) {
-    const add = button('', addPageFromBar, { className: 'page-tab page-add', icon: 'plus', label: 'Add a page' });
-    nav.append(add);
-  }
+  if (editingLayout && pages.length < 6 && !preview) nav.append(button('', addPageFromBar, { className: 'page-dot page-add', icon: 'plus', label: 'Add a page' }));
 }
 async function addPageFromBar() {
   const cfg = newConfig(); cfg.pages = structuredClone(pagesList());
   const id = `page-${crypto.randomUUID().slice(0, 8)}`;
   cfg.pages.push({ id, name: `Page ${cfg.pages.length + 1}` });
   try { await saveConfig(cfg); } catch (error) { toast(error.message); return; }
-  showPage(id, 1);
-  pagesAssignOpen = true;
-  showSettings('layout');
-  toast('Page added. Name it and choose its cards.');
+  showPage(id); toast('Page added. Tap + to add widgets, or drag a widget to the edge of the screen.');
 }
-// Swipe left or right across the cards to change page.
-let swipe = null;
-document.addEventListener('pointerdown', event => {
-  if (editingLayout || pagesList().length < 2 || !event.target.closest?.('#widgets') || event.target.closest('input, select, textarea, [data-edge-media-root], .printer-live, .card-drag-handle')) { swipe = null; return; }
-  swipe = { x: event.clientX, y: event.clientY, at: Date.now() };
-}, true);
-document.addEventListener('pointerup', event => {
-  const start = swipe; swipe = null; if (!start) return;
-  const dx = event.clientX - start.x, dy = event.clientY - start.y;
-  if (Math.abs(dx) < 110 || Math.abs(dy) > 70 || Date.now() - start.at > 800) return;
-  const pages = pagesList(), index = pages.findIndex(page => page.id === currentPage());
-  const next = pages[index + (dx < 0 ? 1 : -1)];
-  if (next) { suppressSwipeClick = true; setTimeout(() => { suppressSwipeClick = false; }, 350); showPage(next.id, dx < 0 ? 1 : -1); }
-}, true);
-let suppressSwipeClick = false;
+// Swiping: a horizontal drag anywhere on the widgets moves the pages with the
+// finger; a flick or a drag past a fifth of the screen turns the page.
+let pageDrag = null, suppressSwipeClick = false;
+const NO_PAGE_SWIPE = 'input, select, textarea, iframe, .printer-live, .emw-browse, .qa-list, .switch-list, [data-no-page-swipe]';
+function startPagePointer(event) {
+  if (pageDrag || !event.isPrimary || event.button > 0 || pagesList().length < 2 || $('#widgets').dataset.dragging === 'true' || event.target.closest(NO_PAGE_SWIPE)) return;
+  pageDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, started: false, offset: 0, samples: [[event.clientX, performance.now()]] };
+}
+function movePagePointer(event) {
+  const drag = pageDrag; if (!drag || event.pointerId !== drag.id) return;
+  if ($('#widgets').dataset.dragging === 'true') { pageDrag = null; placePages(0, true); return; }
+  const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+  if (!drag.started) {
+    if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { pageDrag = null; return; }
+    if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    drag.started = true; drag.x = event.clientX; cancelPress(); $('#widgets').dataset.paging = 'true';
+    try { $('#widgets').setPointerCapture(event.pointerId); } catch {}
+  }
+  const moved = event.clientX - drag.x, index = pageIndex(), last = pagesList().length - 1;
+  const pastEnd = (index === 0 && moved > 0) || (index === last && moved < 0);
+  drag.offset = pastEnd ? moved * 0.3 : moved;
+  drag.samples.push([event.clientX, performance.now()]); if (drag.samples.length > 6) drag.samples.shift();
+  placePages(drag.offset, false);
+}
+function endPagePointer(event, cancelled) {
+  const drag = pageDrag; if (!drag || event.pointerId !== drag.id) return; pageDrag = null;
+  if (!drag.started) return;
+  delete $('#widgets').dataset.paging;
+  try { $('#widgets').releasePointerCapture(event.pointerId); } catch {}
+  suppressSwipeClick = true; setTimeout(() => { suppressSwipeClick = false; }, 350);
+  const [x0, t0] = drag.samples[0], velocity = (event.clientX - x0) / Math.max(1, performance.now() - t0);
+  const width = $('#widgets').clientWidth || innerWidth, pages = pagesList(), index = pageIndex();
+  const flick = Math.abs(velocity) > 0.45, far = Math.abs(drag.offset) > width * 0.2;
+  let next = index;
+  if (!cancelled && (flick || far)) next = index + ((flick ? velocity : drag.offset) < 0 ? 1 : -1);
+  next = Math.max(0, Math.min(pages.length - 1, next));
+  if (next !== index) showPage(pages[next].id); else placePages(0, true);
+}
+$('#widgets').addEventListener('pointerdown', startPagePointer, true);
+document.addEventListener('pointermove', movePagePointer, { passive: true });
+document.addEventListener('pointerup', event => endPagePointer(event, false), true);
+document.addEventListener('pointercancel', event => endPagePointer(event, true), true);
+document.addEventListener('keydown', event => {
+  if (event.target.closest?.('input, select, textarea, dialog') || document.querySelector('dialog[open]')) return;
+  if (event.key === 'PageDown' || event.key === 'PageUp') { const pages = pagesList(), next = pages[pageIndex() + (event.key === 'PageDown' ? 1 : -1)]; if (next) { event.preventDefault(); showPage(next.id); } }
+  if (event.key === 'Escape' && editingLayout && !$('#widget-menu')) setEditing(false);
+});
 document.addEventListener('click', event => { if (suppressSwipeClick) { suppressSwipeClick = false; event.preventDefault(); event.stopPropagation(); } }, true);
 // Customize > Layout: pages and which page each card is on.
 let pagesAssignOpen = false;
@@ -183,7 +224,7 @@ function renderPagesSettings() {
   if (slot.hidden) { slot.replaceChildren(); return; }
   slot.replaceChildren();
   const pages = pagesList();
-  const head = el('div', 'settings-pages-head'); head.append(el('h3', '', 'Pages'), el('small', '', 'Group cards into screens. Swipe or tap the tabs at the bottom to switch.'));
+  const head = el('div', 'settings-pages-head'); head.append(el('h3', '', 'Pages'), el('small', '', 'Group widgets into screens. Swipe across the widgets or tap the dots at the bottom right to switch.'));
   slot.append(head);
   const list = el('div', 'settings-pages-list');
   pages.forEach((page, index) => {
@@ -279,7 +320,7 @@ function render() {
   const fullScreenButton = $('#fullscreen'); fullScreenButton.setAttribute('aria-pressed', String(fullScreen));
   fullScreenButton.title = fullScreen ? 'Exit full screen' : 'Enter full screen'; fullScreenButton.setAttribute('aria-label', fullScreenButton.title);
   fullScreenButton.replaceChildren(icon(fullScreen ? 'exitFullscreen' : 'fullscreen'), document.createTextNode(fullScreenButton.title));
-  $('#layout-done').hidden = !editingLayout;
+  $('#layout-done').hidden = !editingLayout; $('#widget-add').hidden = !editingLayout;
   renderLaunchers(); renderPageTabs(); renderCards(); renderApprovals(); updateClock(); updateTaskUsage();
   if (typeof dialog !== 'undefined' && dialog.open && activeTab === 'music') {
     const signature = JSON.stringify(state.spotify || {});
@@ -299,16 +340,30 @@ function cardItems(card){return Array.isArray(card.items)?card.items:card.type==
 function cardTitle(card){return card.title || widgetCatalog[card.type]?.[0] || 'Card';}
 function renderCards(){
   const container=$('#widgets');
-  const mode=state.config.layout?.mode || 'overview';
-  container.dataset.layout=mode; container.classList.toggle('is-editing',editingLayout);
-  {const name=$('.workspace-name');if(name)name.textContent={widgets:'Widgets',auto:'Auto',overview:'Overview',bento:'Bento',focus:'Focus'}[mode]||'Overview';}
-  const page=currentPage();
-  const visible=state.config.widgets.filter(w=>isEnabled(w)&&w.type!=='launchers'&&(w.page||firstPageId())===page);
+  const mode='widgets';
+  container.dataset.layout=mode;
+  let track=$(':scope > .home-track',container); if(!track){track=el('div','home-track');container.replaceChildren(track);}
+  const pages=pagesList();
+  // One grid per page, in page order.
+  for(const grid of [...track.children])if(!pages.some(page=>page.id===grid.dataset.page))grid.remove();
+  pages.forEach((page,index)=>{
+    let grid=[...track.children].find(node=>node.dataset.page===page.id);
+    if(!grid){grid=el('section','widgets page-grid');grid.dataset.page=page.id;}
+    grid.dataset.layout=mode;grid.setAttribute('aria-label',`${page.name}, page ${index+1} of ${pages.length}`);grid.classList.toggle('is-jiggling',editingLayout);
+    if(track.children[index]!==grid)track.insertBefore(grid,track.children[index]||null);
+  });
+  const gridFor=id=>[...track.children].find(node=>node.dataset.page===id)||track.children[0];
+  const visible=state.config.widgets.filter(w=>isEnabled(w)&&w.type!=='launchers');
   const ids=new Set(visible.map(w=>w.id));
-  for(const child of [...container.children])if(!ids.has(child.dataset.id))child.remove();
+  for(const child of [...track.querySelectorAll(':scope > .page-grid > .container-card')])if(!ids.has(child.dataset.id))child.remove();
   for(const card of visible){
-    let panel=[...container.children].find(p=>p.dataset.id===card.id);
-    if(!panel){panel=el('section','widget container-card');panel.dataset.id=card.id;panel.dataset.cardId=card.id;container.append(panel);shapeObserver.observe(panel);}
+    const grid=gridFor(card.page||firstPageId());
+    let panel=track.querySelector(`:scope > .page-grid > [data-id="${CSS.escape(card.id)}"]`);
+    if(!panel){panel=el('section','widget container-card');panel.dataset.id=card.id;panel.dataset.cardId=card.id;grid.append(panel);shapeObserver.observe(panel);
+      // Edit Home Screen: each widget jiggles a little out of step, like iOS.
+      let hash=2166136261;for(const ch of card.id)hash=Math.imul(hash^ch.charCodeAt(0),16777619)>>>0;hash=Math.imul(hash^(hash>>>15),2246822507)>>>0;
+      panel.style.setProperty('--jiggle-delay',`-${hash%270}ms`);panel.style.setProperty('--jiggle-duration',`${250+(hash>>>16)%50}ms`);}
+    else if(panel.parentElement!==grid){if(typeof grid.moveBefore==='function')grid.moveBefore(panel,null);else grid.append(panel);}
     const items=cardItems(card), active=items.find(i=>i.id===card.activeItemId)||items[0],type=active?.type||'empty';
     panel.className=`widget container-card ${type}`;panel.dataset.widget=type;panel.dataset.size=card.size||'medium';panel.setAttribute('aria-label',cardTitle(card));
     panel.dataset.cardTitle=cardTitle(card);
@@ -322,14 +377,12 @@ function renderCards(){
       const handle=button('',()=>toast('Hold this handle, then drag to move the card.'),{className:'quiet-button card-drag-handle',icon:'grip',label:`Move ${cardTitle(card)}`});handle.title='Hold and drag to move';
       const title=el('h2','card-title',cardTitle(card));
       toolbar.append(handle,title,button('',()=>showCardEditor(card.id),{className:'quiet-button card-edit-button',icon:'settings',label:`Edit ${cardTitle(card)} card`}));
-      // Widgets: Small, Medium or Large, one tap.
-      if(editingLayout&&mode==='widgets'){
-        const sizes=el('div','widget-sizes');sizes.setAttribute('role','group');sizes.setAttribute('aria-label',`${cardTitle(card)} size`);
-        for(const [size,label,name] of [['small','S','Small'],['medium','M','Medium'],['large','L','Large'],['tall','T','Tall']]){
-          const choice=button(label,()=>setWidgetSize(card.id,size),{className:`widget-size${(card.size||'medium')===size?' is-active':''}`,label:`${name} size`});
-          choice.setAttribute('aria-pressed',String((card.size||'medium')===size));sizes.append(choice);
-        }
-        toolbar.append(sizes);
+      panel.querySelectorAll(':scope > .widget-remove, :scope > .widget-shield').forEach(node=>node.remove());
+      if(editingLayout){
+        // Edit Home Screen, like iOS: tap a widget to edit it, "–" to remove it, hold to move it.
+        const shield=button('',()=>openWidgetEditor(card.id),{className:'widget-shield',label:`Edit ${cardTitle(card)} widget`});shield.title='Tap to edit, hold to move';
+        const remove=button('',()=>removeWidget(card.id),{className:'widget-remove',icon:'minus',label:`Remove ${cardTitle(card)}`});
+        panel.append(shield,remove);
       }
       $('.card-tabs',panel)?.remove();
       if(items.length>1){
@@ -358,17 +411,30 @@ function renderCards(){
       const scroll=type==='tasks'?taskScroll(body):null;
       try{
         if(!['media','actions','today'].includes(type)&&!window.EdgeWidgets?.[type]?.live)body.replaceChildren();
-        if(type==='app'||type==='website')renderAppContent(body,active);
-        else if(type==='empty'){emptyContent(body,'plus','Your space, your way','Add a widget, an app or a website to this card.');body.append(button('Add content',()=>showCardEditor(card.id),{icon:'plus'}));}
-        else if(window.EdgeWidgets?.[type])window.EdgeWidgets[type].render(body,widgetContext(card,active,panel));
-        else ({clock:renderClock,today:renderToday,weather:renderWeather,tasks:renderTasks,printers:renderPrinters,media:renderMedia,actions:renderActions,stats:renderStats})[type]?.(body);
+        drawContent(body,card,active,panel,type);
         if(scroll)restoreTaskScroll(body,scroll);
       }catch(error){delete body.dataset.renderKey;console.error('A card could not be displayed; it will be redrawn on the next update.',error);} // a half-built card is retried
     }
   }
-  visible.forEach((card,index)=>{const panel=[...container.children].find(p=>p.dataset.id===card.id);if(container.children[index]!==panel){const before=container.children[index]||null;if(typeof container.moveBefore==='function')container.moveBefore(panel,before);else container.insertBefore(panel,before);}});
-  if(!visible.length&&!container.children.length){const empty=el('div','all-hidden');empty.append(el('h2','','Make room for what matters'),el('p','','Add cards and choose what goes inside.'),button('Add cards',()=>showSettings('layout'),{icon:'plus'}));container.append(empty);}
+  for(const grid of track.children){
+    visible.filter(card=>gridFor(card.page||firstPageId())===grid).forEach((card,index)=>{
+      const panel=grid.querySelector(`:scope > [data-id="${CSS.escape(card.id)}"]`);
+      if(panel&&grid.children[index]!==panel){const before=grid.children[index]||null;if(typeof grid.moveBefore==='function')grid.moveBefore(panel,before);else grid.insertBefore(panel,before);}
+    });
+    let hint=grid.querySelector(':scope > .page-empty');const empty=!grid.querySelector(':scope > .container-card');
+    if(empty&&(editingLayout||!visible.length)){
+      if(!hint){hint=el('div','page-empty');hint.append(el('h2','','This page is empty'),el('p','','Add widgets, or drag a widget to the edge of the screen to bring it here.'),button('Add widget',()=>openWidgetGallery(),{className:'button primary',icon:'plus'}));grid.append(hint);}
+    }else hint?.remove();
+  }
   applyCardLayout();
+  const width=container.clientWidth||innerWidth;
+  if(!pageDrag?.started&&track.dataset.placed!==`${pageIndex()}:${width}`)placePages(0,false);
+}
+function drawContent(body,card,active,panel,type=active?.type||'empty'){
+  if(type==='app'||type==='website')renderAppContent(body,active);
+  else if(type==='empty'){emptyContent(body,'plus','Your space, your way','Add a widget, an app or a website to this card.');body.append(button('Add content',()=>showCardEditor(card.id),{icon:'plus'}));}
+  else if(window.EdgeWidgets?.[type])window.EdgeWidgets[type].render(body,widgetContext(card,active,panel));
+  else ({clock:renderClock,today:renderToday,weather:renderWeather,tasks:renderTasks,printers:renderPrinters,media:renderMedia,actions:renderActions,stats:renderStats})[type]?.(body);
 }
 function renderAppContent(body,item){
   const app=state.config.launchers.find(a=>a.id===item.launcherId);
@@ -388,65 +454,144 @@ function updateShape(panel){
   panel.dataset.shape=ratio>1.35?'wide':ratio<0.8?'tall':'square';
 }
 const shapeObserver=new ResizeObserver(entries=>{for(const entry of entries)updateShape(entry.target);});
-// In Edit layout: how many widgets do not fit on this page.
-let widgetOverflow=0;
+// The grid's shape (8 × 2 cells on the deck), for previews and room checks.
+let gridShape={columns:8,rows:2,cellWidth:300,cellHeight:300,gap:14};
+// In Edit Home Screen: how many widgets do not fit on the page in front.
 function renderWidgetNotice(){
   let note=$('#widget-notice');
   if(!note){note=el('p','widget-notice');note.id='widget-notice';note.setAttribute('role','status');$('#widgets').after(note);}
-  note.hidden=!(editingLayout&&widgetOverflow>0);
-  note.textContent=widgetOverflow===1?'1 widget does not fit on this page. Make something smaller, or move it to another page in Customize → Layout.':`${widgetOverflow} widgets do not fit on this page. Make some smaller, or move them to another page in Customize → Layout.`;
-}
-async function setWidgetSize(id,size){
-  const cfg=newConfig(),card=cfg.widgets.find(w=>w.id===id);if(!card||card.size===size)return;
-  card.size=size;await saveConfig(cfg);
+  const count=Number($(`#widgets .page-grid[data-page="${CSS.escape(currentPage())}"]`)?.dataset.overflow||0);
+  note.hidden=!(editingLayout&&count>0);
+  note.textContent=count===1?'1 widget does not fit on this page. Make something smaller, or drag it to another page.':`${count} widgets do not fit on this page. Make some smaller, or drag them to another page.`;
 }
 function applyCardLayout(){
-  const container=$('#widgets'),mode=container.dataset.layout,panels=[...container.querySelectorAll(':scope > .container-card')];
-  panels.forEach(p=>{p.style.gridColumn='';p.style.gridRow='';p.style.flexGrow='';});
-  container.style.removeProperty('--card-rows');container.style.removeProperty('--card-row-height');
-  if(mode==='overview'){panels.forEach(p=>{if(p.dataset.size!=='medium')p.style.flexGrow=({small:.65,wide:1.6,tall:1.1,large:1.9})[p.dataset.size]||1;});return;}
-  if(mode==='widgets'){
-    // iOS-style grid: cells of about 300 px; two rows on the deck.
-    const width=container.clientWidth||innerWidth, height=container.clientHeight||600;
-    const columns=Math.max(2,Math.min(12,Math.floor((width+14)/314)));
-    const rows=height<520?1:2;
+  const track=$('#widgets > .home-track');if(!track)return;
+  for(const grid of track.children){
+    const panels=[...grid.querySelectorAll(':scope > .container-card')];
+    const width=grid.clientWidth||$('#widgets').clientWidth||innerWidth,height=grid.clientHeight||$('#widgets').clientHeight||600;
+    // Always 16 cells, like iOS: 8 × 2 on the deck, 4 × 4 in a narrow window; the cells scale.
+    const columns=width>=1200?8:4,rows=columns===8?2:4;
+    gridShape={columns,rows,gap:14,cellWidth:(width-14*(columns-1))/columns,cellHeight:(height-14*(rows-1))/rows};
     const plan=window.EdgeLayout.packWidgets(panels.map(p=>({id:p.dataset.id,type:p.dataset.widget,size:p.dataset.size})),{columns,rows});
-    container.style.setProperty('--widget-columns',columns);container.style.setProperty('--widget-rows',rows);
+    grid.style.setProperty('--widget-columns',columns);grid.style.setProperty('--widget-rows',rows);
     for(const panel of panels){const placement=plan.cards.find(c=>c.id===panel.dataset.id);
       if(placement){panel.style.gridColumn=`${placement.column} / span ${placement.columnSpan}`;panel.style.gridRow=`${placement.row} / span ${placement.rowSpan}`;panel.hidden=false;delete panel.dataset.overflow;}
-      else{panel.dataset.overflow='true';panel.hidden=!editingLayout;}}
-    widgetOverflow=plan.overflow.length;
-    renderWidgetNotice();
-    requestAnimationFrame(()=>panels.forEach(updateShape));
-    return;
+      else{panel.style.gridColumn='';panel.style.gridRow='';panel.dataset.overflow='true';panel.hidden=!editingLayout;}}
+    grid.dataset.overflow=String(plan.overflow.length);
   }
-  widgetOverflow=0;renderWidgetNotice();
-  if(mode==='auto'){
-    // Auto: one row of columns sized by content; stacked pairs share a column.
-    const plan=window.EdgeLayout.planAuto(panels.map(p=>({id:p.dataset.id,type:p.dataset.widget})),{width:container.clientWidth||innerWidth,gap:14});
-    container.style.setProperty('--auto-columns',plan.columns.map(column=>`minmax(0,${column.weight.toFixed(2)}fr)`).join(' ')||'1fr');
-    plan.columns.forEach((column,index)=>column.ids.forEach((id,row)=>{const panel=panels.find(p=>p.dataset.id===id);if(!panel)return;panel.style.gridColumn=String(index+1);panel.style.gridRow=column.ids.length===1?'1 / span 2':String(row+1);panel.dataset.stacked=String(column.ids.length>1);}));
-    requestAnimationFrame(()=>panels.forEach(updateShape));
-    return;
-  }
-  const columns=innerWidth<600?1:innerWidth<1000?4:12;
-  const cards=panels.map((panel,index)=>({id:panel.dataset.id,size:mode==='focus'?(index===0?'large':'medium'):panel.dataset.size}));
-  const plan=window.EdgeLayout.packCards(cards,{columns});
-  const rows=Math.max(plan.rows,mode==='focus'?2:1);
-  container.style.setProperty('--card-columns',columns);container.style.setProperty('--card-rows',rows);
-  const available=container.clientHeight;
-  const rowHeight=innerWidth<1000?300:Math.max(220,Math.floor((available-16*(Math.min(rows,2)-1))/Math.min(rows,2)));
-  container.style.setProperty('--card-row-height',rowHeight+'px');
-  for(const placement of plan.cards){const panel=panels.find(p=>p.dataset.id===placement.id);panel.style.gridColumn=`${placement.column} / span ${placement.columnSpan}`;panel.style.gridRow=`${placement.row} / span ${placement.rowSpan}`;}
+  renderWidgetNotice();
+  requestAnimationFrame(()=>track.querySelectorAll('.container-card').forEach(updateShape));
 }
-function layoutContext(){return{getState:()=>state,bridge,updateState,toast,onEditCard:showCardEditor,onChooseApp:()=>{$('#layout-editor').close();showSettings('apps');},onClose:()=>$('#layout-editor').close()};}
+// Whether a page's widgets fit its grid.
+function fitsOnPage(cfg,pageId){
+  const first=(Array.isArray(cfg.pages)&&cfg.pages[0]?.id)||firstPageId();
+  const cards=cfg.widgets.filter(w=>w.type!=='launchers'&&isEnabled(w)&&(w.page||first)===pageId);
+  return !window.EdgeLayout.packWidgets(cards.map(w=>({id:w.id,size:w.size})),{columns:gridShape.columns,rows:gridShape.rows}).overflow.length;
+}
+function pageName(id){return pagesList().find(page=>page.id===id)?.name||'another page';}
+// ---- The widget gallery and Edit widget (src/widget-gallery.js) -----------------------------
+// A live preview of a widget at one size, drawn by the same code as the cards.
+function widgetPreview(type,size,item={}){
+  const spans=window.EdgeLayout.WIDGET_SPANS[size]||window.EdgeLayout.WIDGET_SPANS.medium;
+  const {cellWidth,cellHeight,gap}=gridShape;
+  const width=Math.round(spans.columns*cellWidth+(spans.columns-1)*gap),height=Math.round(spans.rows*cellHeight+(spans.rows-1)*gap);
+  const grid=el('div','widgets widget-preview-grid');grid.dataset.layout='widgets';grid.style.width=width+'px';grid.style.height=height+'px';
+  grid.style.setProperty('--widget-columns',spans.columns);grid.style.setProperty('--widget-rows',spans.rows);
+  const uid=crypto.randomUUID().slice(0,8),view={id:`preview-${uid}-content`,type,...item},card={id:`preview-${uid}`,type,title:'',enabled:true,size,items:[view],activeItemId:view.id};
+  const panel=el('section',`widget container-card ${type}`);panel.dataset.widget=type;panel.dataset.size=size;panel.dataset.preview='true';panel.inert=true;
+  panel.style.gridColumn=`1 / span ${spans.columns}`;panel.style.gridRow=`1 / span ${spans.rows}`;
+  const body=el('div','card-body');panel.append(body);grid.append(panel);
+  return{node:grid,width,height,draw:()=>{try{applyMood(panel,type,card,view);drawContent(body,card,view,panel,type);updateShape(panel);}catch(error){console.error('A widget preview could not be drawn.',error);}}};
+}
+function galleryContext(){return{getState:()=>state,el,button,icon,layout:window.EdgeLayout,preview:widgetPreview,addWidget,saveCard,removeWidget,fitsSize,pages:pagesList,currentPage,cardTitle,catalog:widgetCatalog,openCardEditor:showCardEditor,showSettings,toast};}
+function openWidgetGallery(){closeDeckMenu();closeWidgetMenu();if(window.EdgeWidgetGallery)window.EdgeWidgetGallery.openGallery(galleryContext());}
+function openWidgetEditor(id){closeWidgetMenu();if(window.EdgeWidgetGallery)window.EdgeWidgetGallery.openEditor(galleryContext(),id);}
+// Adds a widget to the page in front, or the next page with room, or a new page.
+async function addWidget(type,size,extra={}){
+  const cfg=newConfig();cfg.pages=structuredClone(pagesList());
+  if(cfg.widgets.filter(w=>w.type!=='launchers').length>=40)throw new Error('You have 40 widgets. Remove one to add another.');
+  const id=`w-${crypto.randomUUID().slice(0,8)}`,item={id:`${id}-content`,type,...extra};
+  const card={id,type,title:'',enabled:true,size,items:[item],activeItemId:item.id};cfg.widgets.push(card);
+  const order=[currentPage(),...cfg.pages.map(page=>page.id).filter(page=>page!==currentPage())];
+  let page=order.find(candidate=>{card.page=candidate;return fitsOnPage(cfg,candidate);});
+  if(!page){
+    if(cfg.pages.length>=6)throw new Error('All six pages are full. Remove or shrink a widget first.');
+    page=`page-${crypto.randomUUID().slice(0,8)}`;cfg.pages.push({id:page,name:`Page ${cfg.pages.length+1}`});
+  }
+  card.page=page;await saveConfig(cfg);showPage(page);
+  const name=widgetCatalog[type]?.[0]||'Widget';
+  toast(page===order[0]?`${name} added`:`${name} added to ${pageName(page)}`);
+  requestAnimationFrame(()=>{const panel=document.querySelector(`.page-grid > [data-id="${CSS.escape(id)}"]`);if(panel&&!stillMotion())panel.animate([{transform:'scale(.6)',opacity:0},{transform:'scale(1.03)',opacity:1,offset:.7},{transform:'none',opacity:1}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});});
+  return id;
+}
+// Changes one widget; refused when it would not fit its page.
+async function saveCard(id,mutate){
+  const cfg=newConfig(),card=cfg.widgets.find(w=>w.id===id);if(!card)throw new Error('This widget was removed.');
+  mutate(card,cfg);
+  if(!fitsOnPage(cfg,card.page||firstPageId()))throw new Error('There is no room for that on this page.');
+  await saveConfig(cfg);
+}
+function fitsSize(id,size,pageId){
+  const cfg=newConfig(),card=cfg.widgets.find(w=>w.id===id);if(!card)return false;
+  card.size=size;if(pageId)card.page=pageId;return fitsOnPage(cfg,card.page||firstPageId());
+}
+async function removeWidget(id){
+  closeWidgetMenu();
+  const card=state.config.widgets.find(w=>w.id===id);if(!card)return;
+  if(!await confirmAction(`Remove ${cardTitle(card)}?`,'Removing a widget does not delete any of your data or connections.','Remove'))return;
+  const cfg=newConfig();cfg.widgets=cfg.widgets.filter(w=>w.id!==id);await saveConfig(cfg);toast(`${cardTitle(card)} removed`);
+}
+// A small iOS-style alert; resolves true when confirmed.
+function confirmAction(title,message,confirmLabel){
+  return new Promise(resolve=>{
+    const box=el('dialog','confirm-dialog');box.setAttribute('aria-label',title);
+    const actions=el('div','confirm-actions'),no=el('button','button','Cancel'),yes=el('button','button danger',confirmLabel);no.type=yes.type='button';
+    actions.append(no,yes);box.append(el('h2','',title),el('p','',message),actions);document.body.append(box);
+    let result=false;no.addEventListener('click',()=>box.close());yes.addEventListener('click',()=>{result=true;box.close();});
+    box.addEventListener('click',event=>{if(event.target===box)box.close();});
+    // A toast shown while the alert was open lives in it; keep it when the alert goes.
+    box.addEventListener('close',()=>{const notice=$('#toast');if(notice&&box.contains(notice))document.body.append(notice);box.remove();resolve(result);});box.showModal();no.focus();
+  });
+}
+// Hold a widget: a menu like iOS (Edit widget, Edit Home Screen, its settings, Remove).
+let widgetMenuPanel=null;
+function openWidgetMenu(panel){
+  closeWidgetMenu();
+  const id=panel.dataset.id,card=state.config.widgets.find(w=>w.id===id);if(!card)return;
+  const menu=el('div','widget-menu');menu.id='widget-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label',`${cardTitle(card)} options`);
+  const entry=(label,symbol,fn,extra='')=>{const node=button(label,()=>{closeWidgetMenu();return fn();},{className:`widget-menu-item ${extra}`,icon:symbol});node.setAttribute('role','menuitem');return node;};
+  menu.append(entry('Edit widget','settings',()=>openWidgetEditor(id)),entry('Edit Home Screen','grip',()=>setEditing(true)));
+  const tab=CARD_SETTINGS[panel.dataset.widget];
+  if(tab)menu.append(entry(`${({music:'Music',weather:'Weather',printers:'Printer',agents:'Agent',display:'Display',apps:'App'})[tab]} settings`,'monitor',()=>showSettings(tab)));
+  menu.append(entry('Remove widget','trash',()=>removeWidget(id),'is-danger'));
+  document.body.append(menu);
+  const box=panel.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
+  let left=Math.min(innerWidth-width-12,Math.max(12,box.left+box.width/2-width/2)),top=box.bottom+10;
+  if(top+height>innerHeight-12)top=box.top-height-10;
+  if(top<12){top=Math.max(12,Math.min(innerHeight-height-12,box.top+box.height/2-height/2));left=box.right+12+width<innerWidth?box.right+12:Math.max(12,box.left-width-12);}
+  menu.style.left=left+'px';menu.style.top=top+'px';
+  panel.classList.add('is-menu-open');widgetMenuPanel=panel;menu.querySelector('button')?.focus();
+}
+function closeWidgetMenu(){$('#widget-menu')?.remove();widgetMenuPanel?.classList.remove('is-menu-open');widgetMenuPanel=null;}
+document.addEventListener('pointerdown',event=>{if(!event.target.closest?.('#widget-menu'))closeWidgetMenu();},true);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('#widget-menu')){const panel=widgetMenuPanel;closeWidgetMenu();panel?.focus?.();}});
+function setEditing(on){
+  closeDeckMenu();closeWidgetMenu();editingLayout=!!on;editLayoutLabel();$('#edit-layout').setAttribute('aria-pressed',String(editingLayout));render();
+}
+function layoutContext(){return{getState:()=>state,bridge,updateState,toast,onEditCard:showCardEditor,onAddWidget:()=>openWidgetGallery(),onChooseApp:()=>{$('#layout-editor').close();showSettings('apps');},onClose:()=>$('#layout-editor').close()};}
 function showCardEditor(id){window.EdgeLayoutUI.renderEditor($('#layout-editor-content'),{...layoutContext(),cardId:id});const editor=$('#layout-editor');if(!editor.open){editor.showModal();renderApprovals();if(!matchMedia('(prefers-reduced-motion: reduce)').matches)editor.animate([{opacity:0,transform:'translateX(24px)'},{opacity:1,transform:'none'}],{duration:240,easing:'cubic-bezier(.2,.8,.2,1)'});}}
-async function moveCard(id,targetId,after){
+async function moveCard(id,targetId,after,pageId){
   const cfg=newConfig(),from=cfg.widgets.findIndex(w=>w.id===id);if(from<0||id===targetId)return;
-  const positions=new Map([...$('#widgets').children].map(p=>[p.dataset.id,p.getBoundingClientRect()]));
-  const [card]=cfg.widgets.splice(from,1),index=cfg.widgets.findIndex(w=>w.id===targetId);if(index<0)return;cfg.widgets.splice(index+(after?1:0),0,card);await saveConfig(cfg);
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)for(const panel of $('#widgets').children){const old=positions.get(panel.dataset.id);if(!old)continue;const next=panel.getBoundingClientRect();panel.animate([{transform:`translate(${old.left-next.left}px,${old.top-next.top}px)`},{transform:'none'}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});}
-  toast(`${cardTitle(card)} moved`);
+  cfg.pages=structuredClone(pagesList());
+  const target=targetId?cfg.widgets.find(w=>w.id===targetId):null;
+  const page=(target?(target.page||firstPageId()):pageId)||cfg.widgets[from].page||firstPageId();
+  const positions=new Map([...document.querySelectorAll('#widgets .page-grid > .container-card')].map(p=>[p.dataset.id,p.getBoundingClientRect()]));
+  const [card]=cfg.widgets.splice(from,1),moved=(card.page||firstPageId())!==page;card.page=page;
+  if(target){const index=cfg.widgets.findIndex(w=>w.id===targetId);cfg.widgets.splice(index+(after?1:0),0,card);}else cfg.widgets.push(card);
+  if(moved&&!fitsOnPage(cfg,page))throw new Error(`There is no room on ${pageName(page)}. Make a widget smaller first.`);
+  await saveConfig(cfg);
+  if(!stillMotion())for(const panel of document.querySelectorAll('#widgets .page-grid > .container-card')){const old=positions.get(panel.dataset.id);if(!old||panel.dataset.id===id&&moved)continue;const next=panel.getBoundingClientRect();if(old.left===next.left&&old.top===next.top)continue;panel.animate([{transform:`translate(${old.left-next.left}px,${old.top-next.top}px)`},{transform:'none'}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});}
+  toast(moved?`${cardTitle(card)} moved to ${pageName(page)}`:`${cardTitle(card)} moved`);
 }
 function weatherContext(liveRefresh=false){return{getState:()=>state,bridge,updateState,toast,liveRefresh,onOpen:showWeather,clock24:state.config.clock24!==false};}
 function renderToday(panel){
@@ -493,7 +638,7 @@ function widgetContext(card, item, panel) {
     state: () => state, config: () => state.config, bridge, updateState, toast,
     el, button, icon, badge, header, emptyContent, glide, statRing, printerRing, printerRow, printerLabels, printerFigure, printProgress, filamentSpools, showPrinterConsole, showSettings, PRINTER_FINISHED_MS,
     gigabytes, uptimeText, durationText, agoText,
-    clock24: () => state.config.clock24 !== false,
+    clock24: () => state.config.clock24 !== false, showWeather,
     lowPower: () => document.documentElement.classList.contains('low-power'),
     editCard: () => showCardEditor(card.id),
     refreshMood: () => applyMood(panel, item?.type || card.type, card, item),
@@ -727,7 +872,7 @@ function renderApprovals() {
   // Shown inside an open dialog (which blocks the rest of the page), else over
   // the Agent chats card, else floating at the top.
   const modal = [...document.querySelectorAll('dialog[open]')].at(-1);
-  const card = document.querySelector('#widgets > .container-card.tasks');
+  const card = document.querySelector('#widgets .page-grid[data-current="true"] > .container-card.tasks');
   if (!sheet) { sheet = el('section', 'approval-sheet'); sheet.id = 'approval-sheet'; sheet.setAttribute('role', 'region'); sheet.setAttribute('aria-label', 'Permission request'); }
   const host = modal || card || document.body;
   if (sheet.parentElement !== host) host.append(sheet);
@@ -1340,23 +1485,23 @@ async function closePrinterConsole() {
 }
 const CONNECTION_TABS = [['music', 'Music'], ['weather', 'Weather'], ['printers', 'Printers'], ['agents', 'Agents']];
 let lastConnectionTab = 'music';
-// Long-press a card (about 0.6 s) to open its own settings.
-const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps', gauge: 'display', switch: 'display', machine: 'printers' };
+// Hold a widget (about 0.6 s) for its menu; hold an empty spot to edit the Home Screen.
+const CARD_SETTINGS = { media: 'music', weather: 'weather', today: 'weather', printers: 'printers', tasks: 'agents', stats: 'display', actions: 'display', clock: 'display', app: 'apps', website: 'apps', gauge: 'display', switch: 'display', machine: 'printers', 'rain-wind': 'weather', 'daily-forecast': 'weather', 'sun-path': 'weather', dial: 'display', city: 'display', 'world-clock': 'display' };
 let pressTimer = null, pressStart = null, pressedCard = null, suppressClick = false;
 function cancelPress() { clearTimeout(pressTimer); pressTimer = null; pressedCard?.classList.remove('is-pressing'); pressedCard = null; }
 document.addEventListener('pointerdown', event => {
-  const card = event.target.closest?.('#widgets > .container-card');
-  if (!card || editingLayout || event.button > 0 || event.target.closest('input, select, textarea, [contenteditable]')) return;
-  const tab = CARD_SETTINGS[card.dataset.widget]; if (!tab) return;
+  if (editingLayout || event.button > 0 || !event.isPrimary || event.target.closest?.('input, select, textarea, [contenteditable], dialog')) return;
+  const card = event.target.closest?.('.page-grid > .container-card');
+  if (!card && !event.target.closest?.('#widgets .page-grid')) return;
   pressStart = { x: event.clientX, y: event.clientY }; pressedCard = card;
-  pressTimer = setTimeout(() => { card.classList.remove('is-pressing'); suppressClick = true; setTimeout(() => { suppressClick = false; }, 1500); pressedCard = null; pressTimer = null; navigator.vibrate?.(10); showSettings(tab); }, 600);
-  setTimeout(() => { if (pressedCard === card && pressTimer) card.classList.add('is-pressing'); }, 180);
+  pressTimer = setTimeout(() => { card?.classList.remove('is-pressing'); suppressClick = true; setTimeout(() => { suppressClick = false; }, 1500); pressedCard = null; pressTimer = null; navigator.vibrate?.(10); if (card) openWidgetMenu(card); else setEditing(true); }, 600);
+  if (card) setTimeout(() => { if (pressedCard === card && pressTimer) card.classList.add('is-pressing'); }, 180);
 }, true);
 document.addEventListener('pointermove', event => { if (pressTimer && pressStart && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 12) cancelPress(); }, true);
 for (const type of ['pointerup', 'pointercancel', 'pointerleave']) document.addEventListener(type, () => { if (pressTimer) cancelPress(); }, true);
 // The tap that ends a long press does not also press what is under the finger.
 document.addEventListener('click', event => { if (suppressClick) { suppressClick = false; event.preventDefault(); event.stopPropagation(); } }, true);
-document.addEventListener('contextmenu', event => { if (event.target.closest?.('#widgets > .container-card')) event.preventDefault(); });
+document.addEventListener('contextmenu', event => { if (event.target.closest?.('#widgets .container-card')) event.preventDefault(); });
 async function showSettings(tab = 'layout') {
   activeTab = tab==='widgets'?'layout':tab; renderSettings(); if (!dialog.open) { dialog.showModal(); renderApprovals(); }
 }
@@ -1717,16 +1862,20 @@ async function settingsDisplay(content) {
 $('#close-layout-editor').append(icon('close'));
 $('#close-layout-editor').addEventListener('click',()=>$('#layout-editor').close());
 $('#layout-editor').addEventListener('close',()=>{$('#layout-editor-content').replaceChildren();if(dialog.open&&activeTab==='layout')renderSettings();});
-function editLayoutLabel(){$('#edit-layout').replaceChildren(icon('grip'),document.createTextNode(editingLayout?'Finish editing':'Edit layout'));}
+function editLayoutLabel(){$('#edit-layout').replaceChildren(icon('grip'),document.createTextNode(editingLayout?'Done editing':'Edit Home Screen'));}
 editLayoutLabel();
-$('#edit-layout').addEventListener('click',()=>{closeDeckMenu();editingLayout=!editingLayout;editLayoutLabel();$('#edit-layout').setAttribute('aria-pressed',String(editingLayout));render();});
-$('#layout-done').addEventListener('click',()=>$('#edit-layout').click());
+$('#edit-layout').addEventListener('click',()=>setEditing(!editingLayout));
+$('#layout-done').addEventListener('click',()=>setEditing(false));
+$('#widget-add').append(icon('plus'));
+$('#widget-add').addEventListener('click',()=>openWidgetGallery());
+$('#add-widget').prepend(icon('plus'));
+$('#add-widget').addEventListener('click',()=>openWidgetGallery());
 // The Edge Deck menu (bottom left): Customize, Edit layout, Full screen.
 function closeDeckMenu(){ $('#deck-menu-list').hidden = true; $('#deck-menu').setAttribute('aria-expanded', 'false'); }
 $('#deck-menu').addEventListener('click', event => { event.stopPropagation(); const open = $('#deck-menu-list').hidden; $('#deck-menu-list').hidden = !open; $('#deck-menu').setAttribute('aria-expanded', String(open)); if (open) $('#deck-menu-list button')?.focus(); });
 document.addEventListener('pointerdown', event => { if (!event.target.closest?.('.deck-controls')) closeDeckMenu(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#deck-menu-list').hidden) { closeDeckMenu(); $('#deck-menu').focus(); } });
-window.EdgeCardDrag.attach($('#widgets'),{onMove:moveCard,onError:error=>toast(error.message)});
+window.EdgeCardDrag.attach($('#widgets'),{onMove:moveCard,onError:error=>toast(error.message),onEdge:direction=>{const next=pagesList()[pageIndex()+direction];if(next)showPage(next.id);},canStart:()=>editingLayout});
 // Card titles and options stay hidden until the top strip of a card is
 // hovered with a mouse or tapped; keyboard focus and Edit layout show them too.
 const chromeTimers=new WeakMap();
@@ -1743,7 +1892,7 @@ $('#widgets').addEventListener('pointerout',event=>{
 });
 $('#widgets').addEventListener('click',event=>{const panel=chromePanel(event.target);if(panel&&panel.dataset.chromeHover!=='true')showChrome(panel,4500);});
 $('#widgets').addEventListener('focusout',event=>{const panel=chromePanel(event.target);if(panel)showChrome(panel,700);});
-addEventListener('resize',()=>requestAnimationFrame(applyCardLayout));
+addEventListener('resize',()=>requestAnimationFrame(()=>{applyCardLayout();placePages(0,false);}));
 $('#fullscreen').append(icon('fullscreen'));
 $('#settings-icon').append(icon('settings'));
 $('#close-settings').append(icon('close'));

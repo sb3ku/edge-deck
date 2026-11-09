@@ -1,12 +1,15 @@
 /* A deliberate hold starts a move; ordinary taps and scrolling stay native. */
 (function(root){
   'use strict';
-  function attach(container,{onMove,onError=()=>{}}){
+  function attach(container,{onMove,onError=()=>{},onEdge=null,canStart=()=>true}){
     let pending=null,active=null,suppressUntil=0,raf=0;
     const announce=document.createElement('div');announce.className='visually-hidden';announce.setAttribute('role','status');announce.setAttribute('aria-live','polite');document.body.append(announce);
     const say=text=>{announce.textContent=text;};
-    const cards=()=>[...container.querySelectorAll(':scope > .container-card')];
-    const clearTargets=()=>cards().forEach(card=>{delete card.dataset.drop;delete card.dataset.dropAxis;});
+    // Cards sit in the container, or in the page in front of its home-screen track.
+    const isCard=card=>!!card&&(card.parentElement===container||(card.parentElement?.classList.contains('page-grid')&&container.contains(card)));
+    const frontPage=()=>container.querySelector(':scope > .home-track > .page-grid[data-current="true"]');
+    const cards=()=>[...container.querySelectorAll(':scope > .container-card, :scope > .home-track > .page-grid[data-current="true"] > .container-card')];
+    const clearTargets=()=>{cards().forEach(card=>{delete card.dataset.drop;delete card.dataset.dropAxis;});container.querySelectorAll('.page-grid[data-drop]').forEach(grid=>delete grid.dataset.drop);};
     function start(){
       if(!pending||!pending.card.isConnected)return;
       const source=pending;pending=null;delete container.dataset.dragPending;clearTimeout(source.timer);
@@ -22,9 +25,13 @@
       if(!active)return;active.x=x;active.y=y;
       active.ghost.style.transform=`translate(${x-active.offsetX}px,${y-active.offsetY}px)`;
       const bounds=container.getBoundingClientRect();
-      if(x<bounds.left-20||x>bounds.right+20||y<bounds.top-30||y>bounds.bottom+30){active.target=null;clearTargets();return;}
-      const hit=document.elementsFromPoint(x,y).map(node=>node.closest('.container-card')).find(card=>card&&card.parentElement===container);
-      if(hit===active.card){active.target=null;clearTargets();return;}
+      if(x<bounds.left-20||x>bounds.right+20||y<bounds.top-30||y>bounds.bottom+30){active.target=null;active.page=null;clearTargets();return;}
+      const hit=document.elementsFromPoint(x,y).map(node=>node.closest('.container-card')).find(card=>isCard(card)&&card.closest('.page-grid')?.dataset.current!=='false');
+      if(hit===active.card){active.target=null;active.page=null;clearTargets();return;}
+      // An empty page in front: drop the card onto the page itself.
+      const page=frontPage();
+      if(page&&!cards().some(card=>card!==active.card)){if(active.page!==page.dataset.page){clearTargets();active.target=null;active.page=page.dataset.page;page.dataset.drop='page';say('Onto this page');}return;}
+      active.page=null;
       let target=hit;
       if(!target){
         let distance=Infinity;
@@ -38,9 +45,16 @@
     }
     function scroll(){
       if(!active)return;const box=container.getBoundingClientRect(),edge=50;
-      if(innerWidth<1000){if(active.y<edge)window.scrollBy(0,-12);else if(active.y>innerHeight-edge)window.scrollBy(0,12);}
-      if(active.y<box.top+edge)container.scrollTop-=12;else if(active.y>box.bottom-edge)container.scrollTop+=12;
-      if(container.scrollWidth>container.clientWidth){if(active.x<box.left+edge)container.scrollLeft-=12;else if(active.x>box.right-edge)container.scrollLeft+=12;}
+      if(onEdge&&container.querySelector(':scope > .home-track')){
+        // Hold at the left or right edge to carry the card to the next page.
+        const direction=active.x<box.left+56?-1:active.x>box.right-56?1:0,now=performance.now();
+        if(!direction)active.edgeAt=0;else if(!active.edgeAt||active.edgeDirection!==direction){active.edgeAt=now;active.edgeDirection=direction;}
+        else if(now-active.edgeAt>650){active.edgeAt=now+500;onEdge(direction);}
+      }else{
+        if(innerWidth<1000){if(active.y<edge)window.scrollBy(0,-12);else if(active.y>innerHeight-edge)window.scrollBy(0,12);}
+        if(active.y<box.top+edge)container.scrollTop-=12;else if(active.y>box.bottom-edge)container.scrollTop+=12;
+        if(container.scrollWidth>container.clientWidth){if(active.x<box.left+edge)container.scrollLeft-=12;else if(active.x>box.right-edge)container.scrollLeft+=12;}
+      }
       move(active.x,active.y);raf=requestAnimationFrame(scroll);
     }
     function finish(commit){
@@ -48,15 +62,15 @@
       if(!active)return;const moving=active;active=null;cancelAnimationFrame(raf);
       suppressUntil=performance.now()+650;delete moving.card.dataset.dragging;delete container.dataset.dragging;clearTargets();moving.ghost.remove();
       try{if(container.hasPointerCapture(moving.pointerId))container.releasePointerCapture(moving.pointerId);}catch{}
-      if(commit&&moving.target){Promise.resolve(onMove(moving.card.dataset.id,moving.target.dataset.id,moving.after)).then(()=>say(`${moving.card.dataset.cardTitle} moved`)).catch(error=>{say('The card could not be moved.');onError(error);});}
+      if(commit&&(moving.target||moving.page)){Promise.resolve(onMove(moving.card.dataset.id,moving.target?.dataset.id||null,moving.after,moving.target?null:moving.page)).then(()=>say(`${moving.card.dataset.cardTitle} moved`)).catch(error=>{say('The card could not be moved.');onError(error);});}
       else say('Move cancelled');
     }
     container.addEventListener('pointerdown',event=>{
-      if(event.button!==0||!event.isPrimary||active||pending)return;
-      const card=event.target.closest('.container-card');if(!card||card.parentElement!==container)return;
+      if(event.button!==0||!event.isPrimary||active||pending||!canStart())return;
+      const card=event.target.closest('.container-card');if(!isCard(card))return;
       const handle=event.target.closest('.card-drag-handle');
       const control=event.target.closest('button,a,input,select,textarea,iframe,[contenteditable=true],[role=button]');
-      if(control&&!handle&&!control.matches('.weather-card-open,.printer-open'))return;
+      if(control&&!handle&&!control.matches('.weather-card-open,.printer-open,.widget-shield'))return;
       container.dataset.dragPending='true';pending={card,pointerId:event.pointerId,x:event.clientX,y:event.clientY};pending.timer=setTimeout(start,450);
     });
     document.addEventListener('pointermove',event=>{

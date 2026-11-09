@@ -358,5 +358,7 @@
     tickToday(view.root, context.clock24 !== false);
     return true;
   }
-  window.EdgeWeatherUI = Object.freeze({ renderWidget, renderDetails, renderToday, tickToday, condition });
+  // Helpers for the other weather widgets (src/widget-weather-kinds.js).
+  const helpers = Object.freeze({ weather, temp, condition, icon, time, today, daily, currentDay, hours, hourLabel, scene, range, zone, finite });
+  window.EdgeWeatherUI = Object.freeze({ renderWidget, renderDetails, renderToday, tickToday, condition, helpers });
 })();

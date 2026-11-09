@@ -1,0 +1,164 @@
+/* Home screens, like iOS: pages of widgets side by side on a track that follows
+   the finger; page dots; Edit Home Screen; the widget menu, gallery and editor. */
+
+/* ---- Pages ------------------------------------------------------------------ */
+.home-pages { position: relative; flex: 1; min-height: 0; overflow: clip; touch-action: pan-y; }
+.home-track { display: flex; gap: 40px; height: 100%; will-change: transform; }
+.home-track > .page-grid { flex: 0 0 100%; min-width: 0; height: 100%; }
+.home-pages[data-paging] { cursor: grabbing; user-select: none; }
+.home-pages[data-paging] .container-card { pointer-events: none; }
+.page-grid > .container-card { transition: transform 260ms var(--ease), filter 220ms var(--ease); }
+.page-grid > .container-card.is-pressing { transform: scale(.975); }
+.page-grid > .page-empty { grid-column: 1 / -1; grid-row: 1 / -1; place-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 520px; text-align: center; color: var(--label-2); }
+.page-empty h2 { margin: 0; color: var(--text); font-size: 24px; font-weight: 700; }
+.page-empty p { margin: 0 0 8px; font-size: 16px; line-height: 1.4; }
+.page-grid[data-drop=page] { outline: 2px dashed rgb(10 132 255 / 60%); outline-offset: -6px; border-radius: 28px; }
+
+/* Page dots (bottom right). */
+.page-dots { display: flex; align-items: center; padding: 0 8px; min-height: 48px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 24px; background: rgb(44 44 46 / 62%); backdrop-filter: blur(20px); }
+.page-dots[hidden] { display: none; }
+.page-dot { display: grid; place-items: center; width: 34px; height: 48px; padding: 0; border: 0; background: transparent; color: var(--text); }
+.page-dot i { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / 32%); transition: background 200ms var(--ease), transform 200ms var(--ease); }
+.page-dot.is-active i { background: #fff; transform: scale(1.1); }
+.page-dot.page-add { width: 44px; }
+.page-dot.page-add svg { width: 20px; height: 20px; }
+
+/* ---- Edit Home Screen ------------------------------------------------------------- */
+.deck-add { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: rgb(118 118 128 / 36%); color: #fff; }
+.deck-add svg { width: 22px; height: 22px; }
+.deck-add[hidden] { display: none !important; }
+/* The iOS jiggle: each widget rocks a small angle (less for bigger widgets, so the
+   corners move about the same 2 px) with a slight drift, about four times a
+   second, each a little out of step with the others (delay and speed set per widget). */
+.page-grid.is-jiggling > .container-card { --jiggle-angle: .75deg; --jiggle-shift: .5px; animation: widget-jiggle var(--jiggle-duration, 270ms) ease-in-out var(--jiggle-delay, 0ms) infinite; transition: none; transform-origin: 50% 50%; will-change: transform; }
+.page-grid.is-jiggling > .container-card:is([data-size=medium], [data-size=tall]) { --jiggle-angle: .45deg; }
+.page-grid.is-jiggling > .container-card[data-size=large] { --jiggle-angle: .32deg; }
+.page-grid.is-jiggling > .container-card[data-dragging=true] { animation: none; opacity: .4; }
+.page-grid.is-jiggling > .container-card[data-overflow=true] { opacity: .45; outline: 2px dashed rgb(255 214 10 / 60%); outline-offset: -2px; }
+@keyframes widget-jiggle {
+  0%, 100% { transform: rotate(calc(var(--jiggle-angle) * -1)); }
+  25% { transform: translate3d(var(--jiggle-shift), calc(var(--jiggle-shift) * -1), 0); }
+  50% { transform: rotate(var(--jiggle-angle)); }
+  75% { transform: translate3d(calc(var(--jiggle-shift) * -1), var(--jiggle-shift), 0); }
+}
+html.low-power .page-grid.is-jiggling > .container-card { animation: none; }
+@media (prefers-reduced-motion: reduce) { .page-grid.is-jiggling > .container-card { animation: none; } }
+.widget-shield { position: absolute; inset: 0; z-index: 8; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: grab; }
+.widget-shield:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.widget-remove { position: absolute; top: 2px; left: 2px; z-index: 9; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; color: #fff; }
+.widget-remove::before { content: ''; position: absolute; width: 30px; height: 30px; border-radius: 50%; background: rgb(99 99 102 / 92%); box-shadow: 0 2px 8px rgb(0 0 0 / 40%); backdrop-filter: blur(10px); }
+.widget-remove svg { position: relative; width: 18px; height: 18px; stroke-width: 3; }
+.widget-remove:active::before { background: #ff453a; }
+
+/* ---- The widget menu (hold a widget) ------------------------------------------- */
+.widget-menu { position: fixed; z-index: 60; display: flex; flex-direction: column; min-width: 280px; padding: 6px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 18px; background: rgb(44 44 46 / 90%); box-shadow: 0 24px 70px rgb(0 0 0 / 60%); backdrop-filter: blur(30px) saturate(1.6); animation: widget-menu-in 200ms var(--ease) both; }
+.widget-menu-item { display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 18px; min-height: 50px; padding: 0 16px; border: 0; border-radius: 12px; background: transparent; color: var(--text); font-size: 17px; font-weight: 500; text-align: left; }
+.widget-menu-item + .widget-menu-item { box-shadow: 0 -1px 0 rgb(255 255 255 / 8%); }
+.widget-menu-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+.widget-menu-item:hover, .widget-menu-item:focus-visible { background: rgb(255 255 255 / 8%); }
+.widget-menu-item.is-danger { color: #ff453a; }
+.page-grid > .container-card.is-menu-open { transform: scale(1.02); z-index: 5; box-shadow: 0 24px 60px rgb(0 0 0 / 55%); }
+body:has(#widget-menu) .page-grid > .container-card:not(.is-menu-open) { filter: blur(5px) brightness(.55); }
+@keyframes widget-menu-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .widget-menu { animation: none; } }
+
+/* ---- Alert ---------------------------------------------------------------------- */
+.confirm-dialog { width: 360px; padding: 24px 20px 16px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 22px; background: rgb(44 44 46 / 96%); color: var(--text); text-align: center; box-shadow: 0 24px 70px rgb(0 0 0 / 60%); }
+.confirm-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.confirm-dialog h2 { margin: 0 0 6px; font-size: 19px; font-weight: 700; }
+.confirm-dialog p { margin: 0 0 18px; color: var(--label-2); font-size: 15px; line-height: 1.4; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirm-actions .button { min-height: 48px; justify-content: center; }
+.confirm-actions .button.danger { color: #ff453a; }
+
+/* ---- Widget gallery and Edit widget -------------------------------------------- */
+.widget-sheet { width: min(1680px, calc(100vw - 80px)); height: min(660px, calc(100vh - 40px)); max-width: none; max-height: none; padding: 0; border: 1px solid rgb(255 255 255 / 8%); border-radius: 34px; background: rgb(28 28 30 / 94%); color: var(--text); box-shadow: 0 30px 90px rgb(0 0 0 / 60%); backdrop-filter: blur(40px) saturate(1.5); overflow: clip; }
+.widget-sheet::backdrop { background: rgb(0 0 0 / 42%); backdrop-filter: blur(14px); }
+.ws-panel { display: grid; height: 100%; min-height: 0; }
+.ws-gallery { grid-template-columns: 360px minmax(0, 1fr); }
+.ws-side { display: flex; flex-direction: column; gap: 14px; min-height: 0; padding: 24px 16px 20px 22px; border-right: 1px solid rgb(255 255 255 / 7%); }
+.ws-search { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-radius: 14px; background: rgb(118 118 128 / 24%); color: var(--label-2); flex-shrink: 0; }
+.ws-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+.ws-search input { flex: 1; min-width: 0; min-height: 46px; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 17px; outline: none; }
+.ws-search input::-webkit-search-cancel-button { filter: invert(1); }
+.ws-sources { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: clip; }
+.ws-source { display: grid; grid-template-columns: 36px minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-height: 48px; padding: 0 10px; border: 0; border-radius: 12px; background: transparent; color: var(--text); font-size: 16px; font-weight: 600; text-align: left; }
+.ws-source:hover { background: rgb(255 255 255 / 5%); }
+.ws-source.is-active { background: rgb(255 255 255 / 11%); }
+.ws-source > svg { width: 14px; height: 14px; color: var(--label-3); }
+.ws-source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-source-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: #48484a; color: #fff; }
+.ws-source-icon svg { width: 20px; height: 20px; }
+.ws-source-icon.is-suggestions { background: linear-gradient(135deg, #5e5ce6, #bf5af2); }
+.ws-source-icon.is-clock { background: #1c1c1e; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%); }
+.ws-source-icon.is-weather { background: linear-gradient(180deg, #2f80ed, #56ccf2); }
+.ws-source-icon.is-music { background: linear-gradient(180deg, #ff375f, #ff6482); }
+.ws-source-icon.is-printers { background: linear-gradient(180deg, #30d158, #9be15d); color: #0b2a10; }
+.ws-source-icon.is-pc { background: linear-gradient(180deg, #ff9f0a, #ffb340); color: #3a2200; }
+.ws-source-icon.is-agents { background: linear-gradient(180deg, #d97757, #e8916f); }
+.ws-source-icon.is-controls { background: linear-gradient(180deg, #0a84ff, #409cff); }
+.ws-source-icon.is-timer { background: linear-gradient(180deg, #ffd60a, #ffe055); color: #3a3000; }
+.ws-source-icon.is-apps { background: linear-gradient(180deg, #636366, #8e8e93); }
+.ws-main { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; min-height: 0; padding: 18px 26px 22px; }
+.ws-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; align-self: stretch; min-height: 48px; }
+.ws-head h2 { margin: 0; overflow: hidden; color: var(--label-2); font-size: 17px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.ws-close { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: rgb(118 118 128 / 24%); }
+.ws-copy { max-width: 760px; text-align: center; }
+.ws-copy h3 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
+.ws-copy p { margin: 4px 0 0; color: var(--label-2); font-size: 16px; line-height: 1.35; }
+.ws-carousel { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; gap: 12px; flex: 1; min-height: 0; align-self: stretch; }
+.ws-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; min-height: 0; touch-action: pan-y; user-select: none; }
+.ws-frame { position: relative; flex-shrink: 0; border-radius: 26px; box-shadow: 0 18px 50px rgb(0 0 0 / 45%); }
+.ws-frame > .widget-preview-grid { pointer-events: none; }
+.ws-size-label { color: var(--label-3); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.ws-step { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: rgb(118 118 128 / 20%); }
+.ws-step:disabled { opacity: .25; }
+.ws-dots { display: flex; gap: 8px; min-height: 10px; }
+.ws-dots i { width: 8px; height: 8px; border-radius: 50%; background: rgb(255 255 255 / 25%); }
+.ws-dots i.is-active { background: #fff; }
+.ws-add { justify-content: center; min-width: 300px; min-height: 52px; border-radius: 26px; font-size: 17px; font-weight: 600; }
+.ws-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--label-2); text-align: center; }
+.ws-empty h3 { margin: 0; color: var(--text); font-size: 22px; }
+.ws-empty p { margin: 0 0 8px; }
+.ws-editor { grid-template-rows: auto minmax(0, 1fr) auto; gap: 14px; padding: 18px 26px 22px; }
+.ws-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 28px; min-height: 0; }
+.ws-editor-stage { border-radius: 26px; background: rgb(0 0 0 / 24%); }
+.ws-editor-form { display: flex; flex-direction: column; gap: 18px; min-height: 0; overflow: clip; }
+.ws-section h3 { margin: 0 0 8px; color: var(--label-2); font-size: 13px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.ws-sizes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ws-size { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 116px; padding: 12px 6px; border: 2px solid transparent; border-radius: 18px; background: rgb(118 118 128 / 18%); color: var(--text); font-size: 15px; }
+.ws-size small { color: var(--label-2); font-size: 12px; }
+.ws-size.is-active { border-color: var(--accent); background: rgb(10 132 255 / 16%); }
+.ws-size:disabled { opacity: .4; }
+.ws-size-shape { display: grid; grid-template-columns: repeat(2, 16px); grid-template-rows: repeat(2, 16px); gap: 3px; padding: 3px; border-radius: 8px; background: rgb(255 255 255 / 8%); }
+.ws-size-shape i { border-radius: 5px; background: currentColor; }
+.ws-size-shape.is-small i { grid-area: 1 / 1 / 2 / 2; }
+.ws-size-shape.is-medium i { grid-area: 1 / 1 / 2 / 3; }
+.ws-size-shape.is-large i { grid-area: 1 / 1 / 3 / 3; }
+.ws-size-shape.is-tall i { grid-area: 1 / 1 / 3 / 2; }
+.ws-size.is-active .ws-size-shape i { background: var(--accent); }
+.ws-select { width: 100%; min-height: 48px; padding: 0 14px; border: 0; border-radius: 14px; background: rgb(118 118 128 / 24%); color: var(--text); font: inherit; font-size: 16px; }
+.ws-pages { display: flex; flex-wrap: wrap; gap: 8px; }
+.ws-page { min-height: 48px; padding: 0 18px; border: 0; border-radius: 24px; background: rgb(118 118 128 / 20%); color: var(--text); font-size: 15px; font-weight: 600; }
+.ws-page.is-active { background: var(--accent); color: #fff; }
+.ws-page:disabled { opacity: .4; }
+.ws-editor-actions { display: flex; gap: 10px; margin-top: auto; }
+.ws-editor-actions .button { min-height: 48px; }
+.ws-editor-actions .button.danger { color: #ff453a; }
+.ws-done { justify-self: end; justify-content: center; min-width: 180px; min-height: 52px; border-radius: 26px; font-size: 17px; }
+/* Sheets and alerts sit in the middle of the deck (other dialogs slide in from the side). */
+dialog.widget-sheet, dialog.confirm-dialog { position: fixed; inset: 0; margin: auto; }
+.page-grid > .container-card.is-menu-open > .card-toolbar, .page-grid > .container-card.is-menu-open > .card-reveal { display: none; }
+.ws-options { display: grid; gap: 10px; }
+.ws-options.is-many { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ws-option { display: flex; flex-direction: column; gap: 6px; color: var(--label-2); font-size: 13px; font-weight: 600; }
+/* Website widgets: a compact title row with Open, and the live page filling the rest. */
+.widgets[data-layout=widgets] > .website .app-card-summary { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 12px; min-height: 0; padding: 0 0 10px; }
+.widgets[data-layout=widgets] > .website .app-card-icon { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; }
+.widgets[data-layout=widgets] > .website .app-card-icon svg { width: 20px; height: 20px; }
+.widgets[data-layout=widgets] > .website .app-card-summary h3 { flex: 1; min-width: 0; margin: 0; overflow: hidden; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.widgets[data-layout=widgets] > .website .app-card-summary p, .widgets[data-layout=widgets] > .website .website-note { display: none; }
+.widgets[data-layout=widgets] > .website .website-preview { flex: 1 1 auto; min-height: 0; }
+/* App shortcuts: Small is the icon, the name and Open. */
+.widgets[data-layout=widgets] > .app[data-size=small] .app-card-summary { min-height: 0; gap: 10px; padding: 0; }
+.widgets[data-layout=widgets] > .app[data-size=small] .app-card-summary p { display: none; }

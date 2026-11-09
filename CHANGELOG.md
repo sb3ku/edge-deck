@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **A Home Screen like iOS.** Widgets are the only layout. Pages of widgets sit side by side: swipe and they follow your finger, or tap the dots at the bottom right.
+- **Add widgets from a gallery.** Search, or pick a source (Clock, Weather, Music, 3D printers, PC, Agents, Controls, Timer, Apps), then swipe through live previews of each widget in each of its sizes and tap Add widget. It goes where there is room, or onto a new page.
+- **Each widget has its own sizes**, as on iOS: Agent chats are Medium, Large or Tall; a City clock is Small; World clock is Small or Medium. Edit widget offers only those, plus the widget's options and its page.
+- **Hold a widget** for Edit widget, Edit Home Screen, its settings or Remove. **Hold an empty spot** (or use the menu) to edit the Home Screen: widgets wiggle, – removes one, a tap edits it, hold to move it, and hold at the edge to carry it to the next page.
+- **New widgets from iOS:** Clock digital, Clock I, II and III faces, City clocks (digital or analog, with the time difference), World clock, and Weather Details (rain chance, wind), Daily forecast and Sunrise and sunset.
+- **Clock and weather are separate widgets**, with the sizes and layouts of iOS: Clock digital and three analog faces, City and World clock; Forecast (Small, Medium, Large), Details, Daily forecast and Sunrise and sunset, all over Edge Deck's living sky. A Time & weather widget becomes Clock digital plus Forecast.
+- **Spotify like iOS:** Small and Medium show Recently Played (the song, DJ, Liked Songs and your latest playlists); Large and Tall are the full player with Canvas.
+- The page goes full screen inside the full-screen window, so Edge's toolbar no longer drops down over the widgets when the mouse touches the top edge.
+- Up to 40 widgets over six pages. Earlier layouts move to Widgets automatically, spread over pages so every widget fits.
+
 ## 0.15.0
 
 - **Widgets, like iOS.** A new Widgets layout: an 8 × 2 grid where every card is Small (1 × 1), Medium (2 × 1), Large (2 × 2) or Tall (1 × 2), chosen with one tap in Edit layout. Each card has a design for each size instead of stretching one layout: Clock, Time & weather, Weather, Printers, Music, PC stats, Agent chats and Quick controls. Widgets that do not fit the page are listed so you can shrink or move them.
