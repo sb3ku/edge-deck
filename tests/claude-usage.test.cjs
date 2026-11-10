@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createClaudeUsage, USAGE_URL } = require('../lib/claude-usage.cjs');
+const { createClaudeUsage, USAGE_URL, TOKEN_URL } =require('../lib/claude-usage.cjs');
 
 const TOKEN = 'sk-ant-oat01-test-token-value';
 function home(t, credentials) {
@@ -49,8 +49,41 @@ test('without a Claude Code sign-in nothing is fetched and the state says how to
   }
 });
 
-test('an expired sign-in or one without the profile scope is not sent', async t => {
-  const expired = createClaudeUsage({ home: home(t, signedIn({ expiresAt: 5 })), now: () => 10, fetch: async () => { throw new Error('must not fetch'); } });
+test('an expired sign-in is renewed like Claude Code renews it, saved back, and then read', async t => {
+  const dir = home(t, { ...signedIn({ expiresAt: 5, rateLimitTier: 'tier' }), mcpOAuth: { server: { accessToken: 'other' } } });
+  const file = path.join(dir, '.claude', '.credentials.json'), calls = [];
+  const usage = createClaudeUsage({ home: dir, now: () => 1000, fetch: async (url, options) => {
+    calls.push({ url, options });
+    if (url === TOKEN_URL) return json({ access_token: 'sk-ant-oat01-renewed', refresh_token: 'refresh-next', expires_in: 3600, refresh_token_expires_in: 86400, scope: 'user:inference user:profile' });
+    return json({ five_hour: { utilization: 7, resets_at: null } });
+  } });
+  const state = await usage.refresh();
+  assert.deepEqual(calls.map(call => call.url), [TOKEN_URL, USAGE_URL]);
+  assert.equal(calls[0].options.method, 'POST'); assert.equal(calls[0].options.redirect, 'error');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { grant_type: 'refresh_token', refresh_token: 'refresh-secret', client_id: '9d1c250a-e61b-44d9-88ed-5944d1962f5e', scope: 'user:inference user:profile' });
+  assert.equal(calls[1].options.headers.Authorization, 'Bearer sk-ant-oat01-renewed');
+  assert.equal(state.windows[0].usedPercent, 7); assert.equal(state.error, null);
+  assert.doesNotMatch(JSON.stringify(state), /renewed|refresh-/);
+  // The file keeps everything else and now holds the renewed sign-in.
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { claudeAiOauth: { accessToken: 'sk-ant-oat01-renewed', refreshToken: 'refresh-next', expiresAt: 3601000, scopes: ['user:inference', 'user:profile'], subscriptionType: 'max', rateLimitTier: 'tier', refreshTokenExpiresAt: 86401000 }, mcpOAuth: { server: { accessToken: 'other' } } });
+  assert.deepEqual(fs.readdirSync(path.dirname(file)), ['.credentials.json']);
+  await usage.refresh();
+  assert.equal(calls.filter(call => call.url === TOKEN_URL).length, 1, 'A valid sign-in is not renewed again');
+});
+
+test('a refused renewal asks for a new sign-in, leaves the file alone and is not repeated at once', async t => {
+  const dir = home(t, signedIn({ expiresAt: 5 })), file = path.join(dir, '.claude', '.credentials.json'), before = fs.readFileSync(file, 'utf8');
+  let clock = 1000, calls = 0;
+  const usage = createClaudeUsage({ home: dir, now: () => clock, fetch: async url => { calls++; assert.equal(url, TOKEN_URL); return json({ error: 'invalid_grant' }, 400); } });
+  const state = await usage.refresh();
+  assert.match(state.error, /Sign in to Claude Code again/); assert.equal(state.signedIn, false);
+  await usage.refresh(); assert.equal(calls, 1);
+  clock += 700000; await usage.refresh(); assert.equal(calls, 2);
+  assert.equal(fs.readFileSync(file, 'utf8'), before);
+});
+
+test('an expired sign-in that cannot be renewed, or one without the profile scope, is not sent', async t => {
+  const expired = createClaudeUsage({ home: home(t, signedIn({ expiresAt: 5, refreshToken: undefined })), now: () => 10, fetch: async () => { throw new Error('must not fetch'); } });
   assert.match((await expired.refresh()).error, /expired/);
   assert.equal((await expired.refresh()).plan, 'Max');
   const scoped = createClaudeUsage({ home: home(t, signedIn({ scopes: ['user:inference'] })), fetch: async () => { throw new Error('must not fetch'); } });

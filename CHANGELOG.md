@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **ChatGPT messages appear in Agent chats.** An ordinary ChatGPT message (in the app, or on the web or phone while the app is open) lists its chat for two minutes; before, only long background work did.
+- **Every chat is listed.** The Agents card scrolls instead of counting the chats that do not fit ("+ 1 more chat"); its edge fades where more chats lie beyond it.
+- **Claude usage renews its sign-in.** When the Claude Code sign-in on this PC has expired, Edge Deck renews it the way Claude Code does and saves it back, instead of asking you to start `claude` in a terminal.
+
 ## 0.19.0 — 2026-11-09
 
 - **Printers read from a distance.** The printer's name, model and status sit above its picture; idle printers show one status (Ready) instead of two; the loaded filament has a thin frame; all printer text is larger.

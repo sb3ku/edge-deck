@@ -830,10 +830,12 @@ html, body { height: 100%; overflow: clip; }
 .printer.is-rich:not(.is-live) > .printer-figure { width: auto; max-width: none; justify-self: stretch; }
 .widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) { grid-template-columns: 84px minmax(0, 1fr); }
 .widgets[data-layout=widgets] > .printers:is([data-size=medium], [data-size=tall]) .printer.is-rich:not(.is-live) > .printer-figure { width: auto; max-width: none; }
-/* The agents list shows only whole cards; the rest are counted under it. */
-.task-list { overflow: clip; }
-.task-list > .task[hidden], .task [hidden] { display: none; }
-.task-list-more { flex-shrink: 0; margin: 8px 0 0 4px; font-size: 17px; font-weight: 600; color: var(--label-2); }
+/* The agents list shows every chat and scrolls; its edge fades where more
+   chats lie beyond it. */
+.task-list { overflow: hidden auto; overscroll-behavior: contain; touch-action: pan-y; --fade-top: 0px; --fade-bottom: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent); mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent); }
+.task-list.more-above { --fade-top: 28px; }
+.task-list.more-below { --fade-bottom: 28px; }
+.task [hidden] { display: none; }
 /* Tall printers card: smaller spools so four fit beside the picture. */
 .widgets[data-layout=widgets] > .printers[data-size=tall] .printer-spools { --spool-size: 26px; }
 .widgets[data-layout=widgets] > .printers[data-size=tall] .spool-group-slots { gap: 5px; }
@@ -851,8 +853,6 @@ html, body { height: 100%; overflow: clip; }
 /* ---- Usage rings tucked into the card's bottom-right corner ---- */
 .task-usage { margin: 0 -8px -8px 0; padding-top: 2px; gap: 0; }
 .usage-ring { width: 48px; height: 48px; }
-/* "+ 2 more chats" shares the rings' line instead of taking its own. */
-.card-body:has(> .task-list-more + .task-usage) > .task-list-more { margin-bottom: -40px; padding-bottom: 14px; }
 
 /* ---- Printers card: each printer on its own rounded tile, like the agent chats ---- */
 .widgets[data-layout=widgets] > .printers .printer-list { gap: 10px; }

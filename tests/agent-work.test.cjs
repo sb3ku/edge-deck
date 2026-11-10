@@ -256,3 +256,29 @@ test('ChatGPT app: a chat working in the background appears until its work is do
   chats = parseChatGptLog(row('2026-11-07T17:11:00.000Z', `chatgpt_conversation_refetch_started conversationId=${id} statusBefore=idle`) + row('2026-11-07T17:11:01.000Z', 'chatgpt_pubsub_conversation_update_received'), chats);
   assert.equal(chats.get(id).active, false); assert.equal(chats.size, 1);
 });
+
+test('ChatGPT app: an ordinary message lists its chat for two minutes', async () => {
+  const { createTaskBridge } = require('../lib/tasks.cjs');
+  const os = require('node:os'), fsp = require('node:fs/promises'), path = require('node:path');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'edge-deck-chatgpt-'));
+  const at = Date.parse('2026-11-08T21:03:30.000Z'); let clock = at;
+  const folder = path.join(root, 'OpenAI.Codex_test', 'LocalCache', 'Local', 'Codex', 'Logs', '2026', '11', '08');
+  await fsp.mkdir(folder, { recursive: true });
+  const open = '6af0e17f-0000-4000-8000-000000000001', elsewhere = '6aedca8f-0000-4000-8000-000000000002';
+  const row = (time, fields) => `${time} info [electron-message-handler] ${fields} rendererWebContentsId=2\n`;
+  const file = path.join(folder, 'codex-desktop-test.log');
+  await fsp.writeFile(file, row('2026-11-08T21:03:09.156Z', `chatgpt_conversation_message_update_applied conversationId=${open} messageId=da4bd9a1`)
+    + row('2026-11-08T21:03:12.000Z', `chatgpt_conversation_update_ignored conversationId=${elsewhere} reason=conversation_not_loaded updateType=message`)
+    // A refetch of a chat that is not open is not a message.
+    + row('2026-11-08T21:03:13.000Z', 'chatgpt_conversation_update_ignored conversationId=6aef2f4d-0000-4000-8000-000000000003 reason=conversation_not_loaded updateType=refetch'));
+  await fsp.utimes(file, new Date(at), new Date(at));
+  try {
+    const bridge = createTaskBridge({ codexHome: path.join(root, 'no-codex'), claudeHome: path.join(root, 'no-claude'), chatgptPackages: root, now: () => clock });
+    const chats = (await bridge.getState()).items.filter(item => item.agent === 'ChatGPT');
+    assert.deepEqual(chats.map(item => item.id).sort(), [`chatgpt-${open}`, `chatgpt-${elsewhere}`].sort());
+    assert.ok(chats.every(item => item.status === 'working' && item.activityLabel === 'Replying'));
+    assert.equal(chats.find(item => item.id === `chatgpt-${open}`).startedAt, '2026-11-08T21:03:09.156Z');
+    clock = at + 3 * 60000;
+    assert.equal((await bridge.getState()).items.filter(item => item.agent === 'ChatGPT').length, 0);
+  } finally { await fsp.rm(root, { recursive: true, force: true }); }
+});

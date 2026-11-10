@@ -1005,19 +1005,14 @@ function renderTasks(panel) {
   if (tasks.error) { const note = el('p', 'widget-footnote', tasks.error); note.title = tasks.message || ''; panel.append(note); }
   if (tasks.usage?.codex || tasks.usage?.claude) { const usage = el('div', 'task-usage'); usage.setAttribute('role', 'group'); usage.setAttribute('aria-label', 'Usage'); panel.append(usage); }
   updateTaskTimers(); updateTaskUsage();
-  const list = panel.querySelector('.task-list'); if (list) requestAnimationFrame(() => fitTaskList(list));
+  const list = panel.querySelector('.task-list');
+  if (list) { list.addEventListener('scroll', () => markTaskScroll(list), { passive: true }); requestAnimationFrame(() => markTaskScroll(list)); }
 }
-// Only whole chat cards show (none cut off at the bottom): when the first one is
-// too tall its step list goes, then cards that do not fit are left out and counted.
-function fitTaskList(list) {
-  if (!list.isConnected || !list.clientHeight) return;
-  const rows = [...list.children].filter(node => node.classList.contains('task'));
-  const fits = row => row.offsetTop - list.offsetTop + row.offsetHeight <= list.clientHeight + 1;
-  if (rows[0] && !fits(rows[0])) for (const extra of rows[0].querySelectorAll('.task-steps, .task-bg, .task-progress-message')) extra.hidden = true;
-  let hidden = 0;
-  for (const row of rows.slice(1)) if (hidden || !fits(row)) { row.hidden = true; hidden++; }
-  list.parentElement?.querySelector(':scope > .task-list-more')?.remove();
-  if (hidden) list.after(el('p', 'task-list-more', `+ ${hidden} more ${hidden === 1 ? 'chat' : 'chats'}`));
+// Every chat is listed and the list scrolls; its edges fade where chats lie beyond them.
+function markTaskScroll(list) {
+  if (!list.isConnected) return;
+  list.classList.toggle('more-above', list.scrollTop > 1);
+  list.classList.toggle('more-below', list.scrollTop + list.clientHeight < list.scrollHeight - 1);
 }
 // Plan usage at the foot of the card: a ring per agent with the 5-hour session's
 // used share, like the ring in the Claude app; a tap opens every limit window.
@@ -1901,7 +1896,7 @@ function settingsAgents(content) {
   // Claude plan usage, read with the Claude Code sign-in on this PC.
   const usage = state.tasks?.usage?.claude || {}, usageOn = state.config.agents?.claudeUsage !== false;
   const usageRow = el('div', 'settings-row'); const usageCopy = el('div');
-  usageCopy.append(el('p', 'settings-row-title', 'Show Claude usage'), el('small', '', 'Reads your plan usage (the 5-hour session and the weekly limits) from Anthropic with the Claude Code sign-in stored on this PC, the way Claude Code’s /usage does. The sign-in is sent only to Anthropic and never shown.'));
+  usageCopy.append(el('p', 'settings-row-title', 'Show Claude usage'), el('small', '', 'Reads your plan usage (the 5-hour session and the weekly limits) from Anthropic with the Claude Code sign-in stored on this PC, the way Claude Code’s /usage does. The sign-in is sent only to Anthropic and never shown. When it expires, Edge Deck renews it the way Claude Code does.'));
   const usageToggle = button('', async () => {
     const cfg = newConfig(); cfg.agents = { ...(cfg.agents || {}), claudeUsage: !usageOn }; await saveConfig(cfg); renderSettings();
     toast(usageOn ? 'Claude usage is hidden' : 'Claude usage is shown on the Agents card');
